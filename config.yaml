@@ -1,0 +1,43 @@
+baseurl: https://qiaoin.github.io
+languageCode: en-us
+title: 在桥边
+theme: hugo-lithium
+hasCJKLanguage: true
+googleAnalytics: 'G-EBLEJGMMQV'
+disqusShortname: ''
+ignoreFiles:
+  - \.Rmd$
+  - \.Rmarkdown$
+  - _cache$
+  - \.knit\.md$
+  - \.utf8\.md$
+permalinks:
+  post: /:year/:month/:day/:slug/
+menu:
+  main:
+    - name: About
+      url: /about/
+    - name: GitHub
+      url: https://github.com/qiaoin
+params:
+  MathJaxCDN: //cdnjs.cloudflare.com/ajax/libs
+  MathJaxVersion: 2.7.5
+  description: 在桥边
+  favicon: favicon.ico
+  highlightjsCDN: //cdnjs.cloudflare.com/ajax/libs
+  highlightjsLang:
+    - bash
+    - c
+    - c++
+    - cmake
+    - go
+    - java
+    - python
+    - yaml
+  highlightjsTheme: monokai
+  highlightjsVersion: 10.7.1
+  logo:
+    alt: Logo
+    height: 50
+    url: logo.png
+    width: 50
