@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Tags on 在桥边</title>
+    <link>https://qiaoin.github.io/tags/</link>
+    <description>Recent content in Tags on 在桥边</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>en-us</language>
+    <lastBuildDate>Tue, 09 Jun 2020 00:00:00 +0000</lastBuildDate><atom:link href="https://qiaoin.github.io/tags/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>RSA</title>
+      <link>https://qiaoin.github.io/tags/rsa/</link>
+      <pubDate>Tue, 09 Jun 2020 00:00:00 +0000</pubDate>
+      
+      <guid>https://qiaoin.github.io/tags/rsa/</guid>
+      <description></description>
+    </item>
+    
+    <item>
+      <title>翻译</title>
+      <link>https://qiaoin.github.io/tags/%E7%BF%BB%E8%AF%91/</link>
+      <pubDate>Fri, 24 Feb 2017 00:00:00 +0000</pubDate>
+      
+      <guid>https://qiaoin.github.io/tags/%E7%BF%BB%E8%AF%91/</guid>
+      <description></description>
+    </item>
+    
+    <item>
+      <title>随机数</title>
+      <link>https://qiaoin.github.io/tags/%E9%9A%8F%E6%9C%BA%E6%95%B0/</link>
+      <pubDate>Sat, 23 Jan 2016 00:00:00 +0000</pubDate>
+      
+      <guid>https://qiaoin.github.io/tags/%E9%9A%8F%E6%9C%BA%E6%95%B0/</guid>
+      <description></description>
+    </item>
+    
+  </channel>
+</rss>

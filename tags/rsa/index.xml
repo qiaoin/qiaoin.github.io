@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>RSA on 在桥边</title>
+    <link>https://qiaoin.github.io/tags/rsa/</link>
+    <description>Recent content in RSA on 在桥边</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>en-us</language>
+    <lastBuildDate>Tue, 09 Jun 2020 00:00:00 +0000</lastBuildDate><atom:link href="https://qiaoin.github.io/tags/rsa/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>RSA 算法</title>
+      <link>https://qiaoin.github.io/2020/06/09/rsa/</link>
+      <pubDate>Tue, 09 Jun 2020 00:00:00 +0000</pubDate>
+      
+      <guid>https://qiaoin.github.io/2020/06/09/rsa/</guid>
+      <description>参考资料： RSA 算法涉及的数学知识 介绍了 RSA 算法中涉及到的四个数学概念，1）互质关系，2）欧拉函数，3）欧拉定理，4）模反元素 RSA算法原理 通过例</description>
+    </item>
+    
+  </channel>
+</rss>

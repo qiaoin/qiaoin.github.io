@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>algorithm on 在桥边</title>
+    <link>https://qiaoin.github.io/categories/algorithm/</link>
+    <description>Recent content in algorithm on 在桥边</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>en-us</language>
+    <lastBuildDate>Tue, 09 Jun 2020 00:00:00 +0000</lastBuildDate><atom:link href="https://qiaoin.github.io/categories/algorithm/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>RSA 算法</title>
+      <link>https://qiaoin.github.io/2020/06/09/rsa/</link>
+      <pubDate>Tue, 09 Jun 2020 00:00:00 +0000</pubDate>
+      
+      <guid>https://qiaoin.github.io/2020/06/09/rsa/</guid>
+      <description>参考资料： RSA 算法涉及的数学知识 介绍了 RSA 算法中涉及到的四个数学概念，1）互质关系，2）欧拉函数，3）欧拉定理，4）模反元素 RSA算法原理 通过例</description>
+    </item>
+    
+    <item>
+      <title>随机数——僭越之罪</title>
+      <link>https://qiaoin.github.io/2016/01/23/random-numbers/</link>
+      <pubDate>Sat, 23 Jan 2016 00:00:00 +0000</pubDate>
+      
+      <guid>https://qiaoin.github.io/2016/01/23/random-numbers/</guid>
+      <description>相较于用物理方法生成随机数，冯・诺依曼承认：“当然，任何考虑用算术方法生成随机数的人都犯了僭越之罪。因为，正如已经被多次指出的，不存在一个随</description>
+    </item>
+    
+  </channel>
+</rss>

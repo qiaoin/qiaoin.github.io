@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en-us">
+  <head>
+    <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="generator" content="Hugo 0.82.0" />
+
+
+<title>RSA 算法 - 在桥边</title>
+<meta property="og:title" content="RSA 算法 - 在桥边">
+
+
+  <link href='https://qiaoin.github.io/favicon.ico' rel='icon' type='image/x-icon'/>
+
+
+
+  
+
+
+
+
+
+
+
+
+<link href='//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/styles/monokai.min.css' rel='stylesheet' type='text/css' />
+
+
+
+<link rel="stylesheet" href="/css/fonts.css" media="all">
+<link rel="stylesheet" href="/css/main.css" media="all">
+
+
+
+  </head>
+  <body>
+    <div class="wrapper">
+      <header class="header">
+        <nav class="nav">
+  <a href="/" class="nav-logo">
+    <img src="/images/logo.png"
+         width="50"
+         height="50"
+         alt="Logo">
+  </a>
+
+  <ul class="nav-links">
+    
+    <li><a href="/about/">About</a></li>
+    
+    <li><a href="https://github.com/qiaoin">GitHub</a></li>
+    
+  </ul>
+</nav>
+
+      </header>
+
+
+<main class="content" role="main">
+
+  <article class="article">
+    
+    <span class="article-duration">3 min read</span>
+    
+
+    <h1 class="article-title">RSA 算法</h1>
+
+    
+    <span class="article-date">2020-06-09</span>
+    
+
+    <div class="article-content">
+      <p>参考资料：</p>
+<ul>
+<li><a href="http://www.ruanyifeng.com/blog/2013/06/rsa_algorithm_part_one.html">RSA 算法涉及的数学知识</a> 介绍了 RSA 算法中涉及到的四个数学概念，1）互质关系，2）欧拉函数，3）欧拉定理，4）模反元素</li>
+<li><a href="http://www.ruanyifeng.com/blog/2013/07/rsa_algorithm_part_two.html">RSA算法原理</a> 通过例子进行讲解，同时给出 RSA 算法证明</li>
+<li><a href="http://www.matrix67.com/blog/archives/5100">Matrix67：跨越千年的RSA算法</a></li>
+<li>Fermat 素性测试——在 SICP 第一章也有提及</li>
+<li><a href="https://blog.csdn.net/guyongqiangx/article/details/74930951">为什么 RSA 公钥每次加密得到的结果都不一样？</a></li>
+</ul>
+<h2 id="rsa-算法">RSA 算法</h2>
+<ol>
+<li>随机选择两个不相等的质数 p 和 q（实际应用中，这两个质数越大，就越难破解）；</li>
+<li>计算 p 和 q 的乘积 n；</li>
+<li>计算 n 的欧拉函数 <code>$\varphi(n)$</code>；</li>
+<li>随机选择一个整数 e，条件是 1&lt; e &lt; <code>$\varphi(n)$</code>，且 e 与 <code>$\varphi(n)$</code> 互质；</li>
+<li>计算 e 对于 <code>$\varphi(n)$</code> 的模反元素 d，即 <code>$e \times d \equiv 1 \ (\mathbf{mod} \ \varphi(n))$</code>（实际应用中，常常选择 65537）；</li>
+<li>将 (n, e) 封装成公钥，(n, d) 封装成私钥。</li>
+</ol>
+<blockquote>
+<p>证明时需要用到的定理推论：</p>
+<p>对于自然数 a, b, e, k，如果 a % e = b, 则 a^k % e = b^k % e</p>
+</blockquote>
+<h2 id="rsa-加密填充规范">RSA 加密填充规范</h2>
+<p>使用公钥进行加密，同一个明文内容，多次加密返回的内容不一样；使用私钥进行签名，同一个明文内容，多次加密返回的内容一样。</p>
+<blockquote>
+<ul>
+<li>PKCS #1 v1.5：比较简单的填充方式，也是目前最常见的填充方式</li>
+<li>PKCS #1 v2.0：指定了针对加密使用的 OAEP 填充方式</li>
+<li>PKCS #1 v2.1：又进一步指定了针对签名使用的 PSS 填充方式</li>
+</ul>
+</blockquote>
+<p>不管是使用 RSA 私钥进行签名还是公钥进行加密，操作中都需要对待处理的数据先进行填充，然后再对填充后的数据进行加密处理。<a href="https://tools.ietf.org/html/rfc2313">PKCS #1 v1.5</a>规定的填充格式为：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash">EB <span style="color:#f92672">=</span> <span style="color:#ae81ff">00</span> <span style="color:#f92672">||</span> BT <span style="color:#f92672">||</span> PS <span style="color:#f92672">||</span> <span style="color:#ae81ff">00</span> <span style="color:#f92672">||</span> D
+</code></pre></div><p>表示为：</p>
+<ul>
+<li><code>D</code>: data（指待处理数据，即填充前的原始数据）</li>
+<li><code>PS</code>: padding string（填充字符串）</li>
+<li><code>BT</code>: block type（数据块类型）</li>
+<li><code>EB</code>: encryption block（待加密的数据块，经过填充后结果）</li>
+<li><code>||</code>: 表示连接操作（<code>X||Y</code> 表示将 <code>X</code> 和 <code>Y</code> 的内容连接到一起）</li>
+</ul>
+<p>“填充块类型” <code>BT</code> 决定了紧挨着的“填充字符串” <code>PS</code> 的内容，<code>BT</code> 的可能取值包括 <code>00</code>, <code>01</code> 和 <code>02</code></p>
+<ul>
+<li>针对<strong>私钥</strong>处理的数据，<code>BT</code> 取值为 <code>00</code> 或 <code>01</code>;
+<ol>
+<li><code>BT</code> 取值为 <code>00</code> 时，<code>PS</code> 为全 <code>00</code> 的字符串</li>
+<li><code>BT</code> 取值为 <code>01</code> 时，<code>PS</code> 为全 <code>FF</code> 的字符串，通过填充得到的整数会足够大，可以阻止某些攻击，因此也是推荐的填充方式</li>
+</ol>
+</li>
+<li>针对<strong>公钥</strong>处理的数据，<code>BT</code> 取值为 <code>02</code>，使用伪随机的 16 进制字符串填充 <code>PS</code>，而且每次操作进行填充的伪随机数都是不同的，因此使用公钥加密数据每次得到的密文都是不一样的</li>
+</ul>
+<p>Q1：如果填充字符串 <code>PS</code> 中存在 <code>00</code>，那如何确定 <code>PS</code> 和 <code>D</code> 的间隔呢？</p>
+<p><a href="https://tools.ietf.org/html/rfc2313">RFC 2313</a> 中的 Notes 对此是有解释的：</p>
+<blockquote>
+<p>For block type 00, the data D must begin with a nonzero octet or have known length so that the encryption block can be parsed unambiguously. For block types 01 and 02, the encryption block can be parsed unambiguously since <strong>the padding string PS contains no octets with value 00</strong> and the padding string is separated from the data D by an octet with value 00.</p>
+</blockquote>
+
+    </div>
+  </article>
+
+  
+
+
+</main>
+
+      <footer class="footer">
+        <ul class="footer-links">
+          <li>
+            <a href="https://qiaoin.github.io">在桥边</a> © 2016 - 2020
+          </li>
+          <li>
+            <a href="https://gohugo.io/" class="footer-links-kudos">Made with <img src="/images/hugo-logo.png" alt="Img link to Hugo website" width="22" height="22"></a>
+          </li>
+        </ul>
+      </footer>
+
+    </div>
+    
+
+
+
+<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/highlight.min.js"></script>
+
+
+
+<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/languages/bash.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/languages/c.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/languages/c&#43;&#43;.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/languages/cmake.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/languages/go.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/languages/java.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/languages/python.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/languages/yaml.min.js"></script>
+<script>hljs.configure({languages: []}); hljs.initHighlightingOnLoad();</script>
+
+
+
+    
+<script src="/js/math-code.js"></script>
+<script async src="//cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+
+
+    
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-EBLEJGMMQV"></script>
+<script>
+var doNotTrack = false;
+if (!doNotTrack) {
+	window.dataLayer = window.dataLayer || [];
+	function gtag(){dataLayer.push(arguments);}
+	gtag('js', new Date());
+	gtag('config', 'G-EBLEJGMMQV', { 'anonymize_ip': false });
+}
+</script>
+
+  </body>
+</html>
+

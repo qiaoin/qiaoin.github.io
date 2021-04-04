@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>翻译 on 在桥边</title>
+    <link>https://qiaoin.github.io/tags/%E7%BF%BB%E8%AF%91/</link>
+    <description>Recent content in 翻译 on 在桥边</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>en-us</language>
+    <lastBuildDate>Fri, 24 Feb 2017 00:00:00 +0000</lastBuildDate><atom:link href="https://qiaoin.github.io/tags/%E7%BF%BB%E8%AF%91/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>CMake Tutorial 翻译及整理</title>
+      <link>https://qiaoin.github.io/2017/02/24/cmake-tutorial/</link>
+      <pubDate>Fri, 24 Feb 2017 00:00:00 +0000</pubDate>
+      
+      <guid>https://qiaoin.github.io/2017/02/24/cmake-tutorial/</guid>
+      <description>本文为 CMake 官网入门教程 CMake Tutorial 的翻译，并添加了一些自己的理解，以帮助读者更好地理解文章内容。(对原文中引用过来的代码进行了一些简单的修改，如编程风</description>
+    </item>
+    
+  </channel>
+</rss>
