@@ -1,0 +1,1288 @@
+<!DOCTYPE html>
+<html lang="en-us">
+  <head>
+    <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="generator" content="Hugo 0.82.0" />
+
+
+<title>C&#43;&#43; 面向对象程序设计 - 在桥边</title>
+<meta property="og:title" content="C&#43;&#43; 面向对象程序设计 - 在桥边">
+
+
+  <link href='https://qiaoin.github.io/favicon.ico' rel='icon' type='image/x-icon'/>
+
+
+
+  
+
+
+
+
+
+
+
+
+<link href='//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/styles/monokai.min.css' rel='stylesheet' type='text/css' />
+
+
+
+<link rel="stylesheet" href="/css/fonts.css" media="all">
+<link rel="stylesheet" href="/css/main.css" media="all">
+
+
+
+  </head>
+  <body>
+    <div class="wrapper">
+      <header class="header">
+        <nav class="nav">
+  <a href="/" class="nav-logo">
+    <img src="/images/logo.png"
+         width="50"
+         height="50"
+         alt="Logo">
+  </a>
+
+  <ul class="nav-links">
+    
+    <li><a href="/about/">About</a></li>
+    
+    <li><a href="https://github.com/qiaoin">GitHub</a></li>
+    
+  </ul>
+</nav>
+
+      </header>
+
+
+<main class="content" role="main">
+
+  <article class="article">
+    
+    <span class="article-duration">23 min read</span>
+    
+
+    <h1 class="article-title">C&#43;&#43; 面向对象程序设计</h1>
+
+    
+    <span class="article-date">2019-07-27</span>
+    
+
+    <div class="article-content">
+      <h2 id="写在最前面">写在最前面</h2>
+<p>侯捷老师翻译的 <a href="https://book.douban.com/subject/5387403/">Effective C++</a>，C++ 学习者人手必备一本。本系列博文是笔者在学习侯捷老师视频课程时整理的笔记，将课程内容的关键点与 Effective C++ 的对应条款做了一下联动，希望能对你有些许帮助。</p>
+<blockquote>
+<ol>
+<li>C++ 面向对象程序设计 [DONE]</li>
+<li>C++ 程序设计 II - 兼谈对象模型</li>
+<li>C++ STL 标准库 - 体系结构与内核分析</li>
+<li>C++ 内存管理</li>
+<li>C++ 的生前死后 - 揭秘 CRT Startup code</li>
+<li>C++2.0 新特性</li>
+</ol>
+</blockquote>
+<h2 id="00-目标">0.0 目标</h2>
+<ol>
+<li>培养正规的、大气的编程习惯</li>
+<li>以良好的方式编写 C++ Class —— 基于对象（Object Based）
+<ul>
+<li>class without pointer members，以 Complex 为例子</li>
+<li>class with pointer members，以 String 为例子</li>
+</ul>
+</li>
+<li>学习 Classes 之间的关系 —— 面向对象（Object Oriented）
+<ul>
+<li>继承（inheritance）</li>
+<li>组合（composition）</li>
+<li>委托（delegation）</li>
+</ul>
+</li>
+</ol>
+<blockquote>
+<p>将 C++ 视为一个由相关语言组成的联邦</p>
+</blockquote>
+<h2 id="术语">术语</h2>
+<ul>
+<li><strong>声明（declaration）</strong>：告诉编译器某个东西的名称和类型（type），但略去细节</li>
+<li><strong>定义（definition）</strong>：提供编译器一些声明时所遗漏的细节。对对象而言，定义是编译器为此对象拨发内存的地点；对 function 或 function template 而言，定义提供了代码本体；对 class 或 class template 而言，定义列出了它们的成员</li>
+<li><strong>初始化（initialization）</strong>：是“给予对象初值”的过程。对用户自定义类型的对象而言，初始化由构造函数执行。构造函数最好使用<strong>成员初值列</strong>（member initialization list），而不要在构造函数本体内使用赋值操作（assignment）。初值列列出的成员变量，其排列次序应该和它们在 class 中的声明次序相同</li>
+<li><strong>default 构造函数</strong>：是一个可被调用而不带任何实参者，这样的构造函数要不没有，要不就是每个参数都有缺省值（默认值）</li>
+<li><strong>不明确行为（undefined）</strong>：例如，<code>i++ + ++i</code>，未定义行为，“有问题的，坏的行为，理论上什么事情都可能发生”，你无法稳定预估运行期会发生什么事</li>
+<li><strong>未指定行为（unspecified）</strong>：例如，参数的求职顺序，“你不能依赖的某个特定顺序，但其行为是良好定义的”</li>
+<li><strong>实现定义的行为（implementation）</strong>：例如，当一个 double 转换为 float 时，如果 double 变量的值不能精确表达在一个 float 中，那么选取下一个接近的离散值还是上一个接近的离散值是 implementation defined 的，实现定义的，“你可以在实现商的编译器文档中找到说明”</li>
+</ul>
+<h2 id="header头文件中的防御式编程">Header（头文件）中的防御式编程</h2>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cpp" data-lang="cpp"><span style="color:#75715e">#ifndef __LCOMPLEX__
+</span><span style="color:#75715e">#define __LCOMPLEX__
+</span><span style="color:#75715e"></span>
+<span style="color:#75715e">/**
+</span><span style="color:#75715e">0. 前置声明（forward declarations）
+</span><span style="color:#75715e">*/</span>
+<span style="color:#66d9ef">class</span> <span style="color:#a6e22e">ostream</span>;
+<span style="color:#66d9ef">class</span> <span style="color:#a6e22e">lcomplex</span>;
+
+lcomplex<span style="color:#f92672">&amp;</span> __doapl(lcomplex<span style="color:#f92672">*</span> ths, <span style="color:#66d9ef">const</span> lcomplex<span style="color:#f92672">&amp;</span> r);
+
+<span style="color:#75715e">/**
+</span><span style="color:#75715e">1. 类声明（class declarations）
+</span><span style="color:#75715e">需要思考：
+</span><span style="color:#75715e">- 复数应该具有哪些数据，提供哪些函数，才能够满足使用复数的用户的需求
+</span><span style="color:#75715e">*/</span>
+<span style="color:#66d9ef">class</span> <span style="color:#a6e22e">lcomplex</span>
+{
+    <span style="color:#75715e">//...
+</span><span style="color:#75715e"></span>};
+
+<span style="color:#75715e">/**
+</span><span style="color:#75715e">2. 类定义（clss definition）
+</span><span style="color:#75715e">*/</span>
+lcomplex<span style="color:#f92672">::</span>function ...
+
+<span style="color:#75715e">#endif  </span><span style="color:#75715e">// __LCOMPLEX__
+</span></code></pre></div><p>避免重复的 <code>#include</code> 头文件</p>
+<h2 id="inline-函数">inline 函数</h2>
+<ul>
+<li>函数如果太复杂，编译器就没法将其 <code>inline</code></li>
+<li>函数若在 <code>class body</code> 中定义完成，便自动成为 <code>inline</code> 候选者</li>
+<li><code>inline</code> 标识符或者在 <code>class body</code> 中定义的函数只是对编译器的建议而已，是否真的 <code>inline</code> 是由编译器来决定的</li>
+</ul>
+<h2 id="构造函数-constructor">构造函数 constructor</h2>
+<ul>
+<li>函数名跟类名相同</li>
+<li>没有返回值类型，因为构造函数就是要来创建对象的，不用写</li>
+<li>可以拥有参数</li>
+<li>参数可以有默认值（其他函数的参数都可以有默认值）</li>
+<li>构造函数有特殊的语法：初始值列（initialization list）</li>
+</ul>
+<p>构造函数使用初值列（initialization list）进行会更好。这种写法相较于在函数体中进行赋值（assignments）有什么好处呢？性能上更优，写法更符合 C++ 规范</p>
+<blockquote>
+<p>参见《Effective C++》条款 4：确定对象被使用前已先被初始化</p>
+</blockquote>
+<p>将对象初始化，C++ 在某些语境下是保证会进行初始化的，但在其他语境下却不保证。读取未初始化的值会导致<strong>不明确的行为（undefined behavior）</strong></p>
+<p><strong>最佳实践 Best Practice</strong>：永远在使用对象之前先将它初始化</p>
+<ul>
+<li>对应无任何成员的内置类型，手动进行初始化，C++ 不保证初始化它们</li>
+<li>对于用户自定义类型，初始化责任落在构造函数身上，确保每一个构造函数都将对象的每一个成员初始化。构造函数最好使用<strong>成员初值列</strong>（member initialization list），而不要在构造函数本体内使用赋值操作（assignment）。初值列列出的成员变量，其排列次序应该和它们在 class 中的声明次序相同</li>
+</ul>
+<p>一个变量其数值的设定分两个阶段，1）初始化（对应构造函数 <code>:</code> 后的初值列），2）赋值（对应构造函数 <code>{}</code> 中的赋值操作）</p>
+<h3 id="区分赋值和初始化assignment-and-initialization">区分赋值和初始化（assignment and initialization）</h3>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cpp" data-lang="cpp"><span style="color:#66d9ef">class</span> <span style="color:#a6e22e">PhoneNumber</span> { ... };
+<span style="color:#66d9ef">class</span> <span style="color:#a6e22e">ABEntry</span> {
+<span style="color:#66d9ef">public</span><span style="color:#f92672">:</span>
+    ABEntry(<span style="color:#66d9ef">const</span> std<span style="color:#f92672">::</span>string<span style="color:#f92672">&amp;</span> name, <span style="color:#66d9ef">const</span> std<span style="color:#f92672">::</span>string<span style="color:#f92672">&amp;</span> address,
+            <span style="color:#66d9ef">const</span> std<span style="color:#f92672">::</span>list<span style="color:#f92672">&lt;</span>PhoneNumber<span style="color:#f92672">&gt;&amp;</span> phones);
+<span style="color:#66d9ef">private</span><span style="color:#f92672">:</span>
+    std<span style="color:#f92672">::</span>string theName;
+    std<span style="color:#f92672">::</span>string theAddress;
+    std<span style="color:#f92672">::</span>list<span style="color:#f92672">&lt;</span>PhoneNumber<span style="color:#f92672">&gt;</span> thePhones;
+    <span style="color:#66d9ef">int</span> numTimesConsulted;
+};
+
+ABEntry<span style="color:#f92672">::</span>ABEntry(<span style="color:#66d9ef">const</span> std<span style="color:#f92672">::</span>string<span style="color:#f92672">&amp;</span> name, <span style="color:#66d9ef">const</span> std<span style="color:#f92672">::</span>string<span style="color:#f92672">&amp;</span> address,
+                 <span style="color:#66d9ef">const</span> std<span style="color:#f92672">::</span>list<span style="color:#f92672">&lt;</span>PhoneNumber<span style="color:#f92672">&gt;&amp;</span> phones)
+<span style="color:#75715e">// 编译器会为用户自定义类型（user-defined types）之成员变量自动调用 default 构造函数
+</span><span style="color:#75715e"></span>{
+    theName <span style="color:#f92672">=</span> name;      <span style="color:#75715e">// 这些都是赋值（assignments），而非初始化（initializations）
+</span><span style="color:#75715e"></span>    theAddress <span style="color:#f92672">=</span> address;
+    thePhones <span style="color:#f92672">=</span> phones;
+    numTimesConsulted <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>;
+}
+</code></pre></div><p>C++ 规定，对象的成员变量的初始化动作发生在进入构造函数本体之前。在 <code>ABEntry</code> 构造函数内，<code>theName</code>、<code>theAddress</code> 和 <code>thePhones</code> 都不是被初始化，而是被赋值。初始化的发生时间更早，发生于这些成员的 default 构造函数被自动调用之时（比进入 <code>ABEntry</code> 构造函数本体的时间更早）</p>
+<p><code>ABEntry</code> 构造函数的一个较佳写法是，使用成员初值列（member initalization list）替换赋值动作：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cpp" data-lang="cpp">ABEntry<span style="color:#f92672">::</span>ABEntry(<span style="color:#66d9ef">const</span> std<span style="color:#f92672">::</span>string<span style="color:#f92672">&amp;</span> name, <span style="color:#66d9ef">const</span> std<span style="color:#f92672">::</span>string<span style="color:#f92672">&amp;</span> address,
+                 <span style="color:#66d9ef">const</span> std<span style="color:#f92672">::</span>list<span style="color:#f92672">&lt;</span>PhoneNumber<span style="color:#f92672">&gt;&amp;</span> phones)
+    <span style="color:#f92672">:</span> theName(name),      <span style="color:#75715e">// 这些都是初始化（initializations）
+</span><span style="color:#75715e"></span>      theAddress(address),
+      thePhones(phones),
+      numTimeConsulted(<span style="color:#ae81ff">0</span>)
+{ }
+</code></pre></div><ul>
+<li>基于赋值的版本，首先调用 <strong>default 构造函数</strong>为 <code>theName</code>、<code>theAddress</code> 和 <code>thePhones</code> 设初值，然后立刻再对它们<strong>赋新值</strong>。default 构造函数的一切行为因此浪费了</li>
+<li>基于成员初值列的版本，初值列针对各个成员变量设置实参，然后调用各个成员变量对应的<strong>拷贝构造函数</strong></li>
+<li>对于大多数类型而言，比起先调用 default 构造函数然后再调用 copy assignment 操作符，单只调用一次 copy 构造函数是比较高效的，有时甚至高效得多</li>
+<li>对于内置类型对象如 <code>numTimeConsulted</code>，其初始化和赋值的成本相同，但为了一致性最好也通过成员初值列来初始化</li>
+<li>如果成员变量是 <code>const</code> 或 <code>referenece</code>，它们就一定需要初值，不能被赋值</li>
+<li>总是在初值列中列出所有成员变量，以免还得记住哪些成员变量可以无需初值</li>
+<li>总是使用成员初值列</li>
+<li>C++ 的成员初始化次序：base classes 早于其 derived classses 被初始化，而 class 的成员变量总是已其声明次序被初始化。当在成员初值列中列出各个成员时，最好总是以其声明次序为次序</li>
+</ul>
+<h3 id="不同编译单元内定义的-non-local-static-对象">不同编译单元内定义的 non-local static 对象</h3>
+<blockquote>
+<p>参见《Effective C++》条款 4：确定对象被使用前已先被初始化</p>
+</blockquote>
+<p><code>static</code> 对象包括 <code>global</code> 对象、定义于 <code>namespace</code> 作用域内的对象、在 <code>class</code> 内、在函数内、以及在 <code>file</code> 作用域内被声明为 <code>static</code> 的对象。函数内的 <code>static</code> 对象成为 <code>local static</code> 对象（因为它们对函数而言是 <code>local</code>)，其他 <code>static</code> 对象称为 <code>non-local static</code> 对象。程序结束时 <code>static</code> 对象会被自动销毁，也就是它们的析构函数会在 <code>main()</code> 结束时被自动调用</p>
+<p>编译单元基本上就是单一源码文件加上其所 <code>include</code> 的头文件。考虑两个不同的源码文件，每一个文件内含有至少一个 <code>non-local static</code> 对象，也就是说该对象是 <code>global</code> 或位于 <code>namespace</code> 作用域内，抑或是在 <code>class</code> 内或在 <code>file</code> 作用域内被声明为 <code>static</code>。真正的问题是：如果某编译单元内的某个 <code>non-local static</code> 对象的初始化动作使用了另一个编译单元内的某个 <code>non-local static</code> 对象，它所用到的这个对象可能尚未被初始化，因为 <strong>C++ 对“定于于不同编译单元内的 <code>non-local static</code> 对象”的初始化次序并无明确定义</strong></p>
+<p>解决办法：将每个 <code>non-local static</code> 对象搬到自己的专属函数内（该对象在此函数内被声明为 <code>static</code>），这些函数返回一个 <code>reference</code> 指向它所含的对象，然后用户调用这些函数，而不直接指涉这些对象。换句话说，<code>non-local static</code> 对象被 <code>local static</code> 对象替换了。这是单例模式的一个常见实现手法。</p>
+<p>这个手法的基础在于：<strong>C++ 保证，函数内的 <code>local static</code> 对象会在“该函数被调用期间”“首次遇上该对象之定义式”时被初始化</strong>。所以，以“函数调用”（返回一个 <code>reference</code> 指向 <code>local static</code> 对象）替换“直接访问 <code>non-local static</code> 对象”，就获得保证，保证了通过函数调用所获得的 <code>reference</code> 将指向一个历经初始化的对象</p>
+<h3 id="将构造函数放在-private-域单例模式singleton">将构造函数放在 private 域，单例模式（Singleton）</h3>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cpp" data-lang="cpp"><span style="color:#66d9ef">class</span> <span style="color:#a6e22e">A</span> {
+<span style="color:#66d9ef">public</span><span style="color:#f92672">:</span>
+    <span style="color:#66d9ef">static</span> A<span style="color:#f92672">&amp;</span> getInstance() { <span style="color:#66d9ef">return</span> a; }
+    setup() { ... }
+<span style="color:#66d9ef">private</span><span style="color:#f92672">:</span>
+    A();
+    A(<span style="color:#66d9ef">const</span> A<span style="color:#f92672">&amp;</span> rhs);
+    <span style="color:#66d9ef">static</span> A a;
+    ...
+};
+</code></pre></div><div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cpp" data-lang="cpp"><span style="color:#66d9ef">class</span> <span style="color:#a6e22e">A</span> {
+<span style="color:#66d9ef">public</span><span style="color:#f92672">:</span>
+    <span style="color:#66d9ef">static</span> A<span style="color:#f92672">&amp;</span> getInstance();
+    setup() { ... }
+<span style="color:#66d9ef">private</span><span style="color:#f92672">:</span>
+    A();
+    A(<span style="color:#66d9ef">const</span> A<span style="color:#f92672">&amp;</span> rhs);
+    ...
+};
+
+<span style="color:#75715e">// referen-returning 函数：第一行定义并初始化一个 local static 对象，第二行返回它
+</span><span style="color:#75715e"></span>A<span style="color:#f92672">&amp;</span> A<span style="color:#f92672">::</span>getInstance()
+{
+    <span style="color:#66d9ef">static</span> A a;  <span style="color:#75715e">// 定义并初始化一个 local static 对象
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">return</span> a;    <span style="color:#75715e">// 返回一个 reference 指向上述对象
+</span><span style="color:#75715e"></span>}
+</code></pre></div><p>之后使用 <code>A::getInstance().setup();</code> 进行调用</p>
+<h2 id="const">const</h2>
+<blockquote>
+<p>参见《Effective C++》条款 3:尽可能使用 const</p>
+</blockquote>
+<p>令函数返回一个常量值，往往可以降低因客户错误而造成的意外，而又不至于放弃安全性和高效性。例如，有理数的 <code>operator*</code> 声明式：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cpp" data-lang="cpp"><span style="color:#66d9ef">class</span> <span style="color:#a6e22e">Rational</span>
+{
+    <span style="color:#75715e">//...
+</span><span style="color:#75715e"></span>};
+<span style="color:#66d9ef">const</span> Rational <span style="color:#66d9ef">operator</span><span style="color:#f92672">*</span>(<span style="color:#66d9ef">const</span> Rational<span style="color:#f92672">&amp;</span> lhs, <span style="color:#66d9ef">const</span> Rational<span style="color:#f92672">&amp;</span> rhs);
+</code></pre></div><p>避免出现以下的使用错误：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cpp" data-lang="cpp">Rational a, b, c;
+<span style="color:#66d9ef">if</span> (a <span style="color:#f92672">*</span> b <span style="color:#f92672">=</span> c) {
+    <span style="color:#75715e">//...
+</span><span style="color:#75715e"></span>}
+</code></pre></div><p>编程时错误地将关系运算符 <code>==</code> 漏写为了赋值运算符 <code>=</code>。如果 <code>a</code>、<code>b</code> 是内置类型，这样的代码直截了当就是不合法。因此，我们在设计用户自定义类型时，应该避免无端地与内置类型不兼容，将 <code>operator*</code> 的返回值声明为 <code>const</code> 可以语法这个无意义的赋值动作</p>
+<h2 id="常量成员函数">常量成员函数</h2>
+<p>在函数声明的参数列表右括号的后面添加 <code>const</code> 限制</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cpp" data-lang="cpp"><span style="color:#66d9ef">class</span> <span style="color:#a6e22e">Complex</span>
+{
+<span style="color:#66d9ef">public</span><span style="color:#f92672">:</span>
+    <span style="color:#66d9ef">double</span> real();
+    <span style="color:#66d9ef">double</span> <span style="color:#a6e22e">real</span>() <span style="color:#66d9ef">const</span>;
+    <span style="color:#66d9ef">void</span> <span style="color:#a6e22e">set_real</span>(<span style="color:#66d9ef">double</span> r);
+<span style="color:#66d9ef">private</span><span style="color:#f92672">:</span>
+    <span style="color:#66d9ef">double</span> real;
+};
+</code></pre></div><p>class 里面的函数分为两种：</p>
+<ol>
+<li>会改变对象中包含的数据内容；</li>
+<li>不会改变对象中包含的数据内容，加上 <code>const</code> 修饰</li>
+</ol>
+<p><strong>注意</strong>：</p>
+<ul>
+<li>两个成员函数如果只是常量性（constness）不同（是否是常量成员函数），可以被重载（overloaded）</li>
+<li>C++ 以 by value 返回对象</li>
+</ul>
+<p>成员函数如果是 <code>const</code> 意味着什么？<code>const</code> 成员函数不可以更改对象内任何 <code>non-static</code> 成员变量，也就是说不可以更改对象内的任何一个 bit。编译器强制实施 bitwise constness，但你编写程序时应该使用“概念上的常量性”（conceptual constness）</p>
+<p>对成员函数，该使用 <code>const</code> 修饰的，一定要加 <code>const</code> 修饰。否则，创建一个 <code>const</code> 常量实例，然后调用这个未使用 <code>const</code> 修饰的成员函数（就是告诉编译器说该函数可能会改变对象包含的数据内容），而实例使用 <code>const</code> 修饰（就是告诉编译器说这个实例是常量，其包含的数据内容是不能被改变的），这样就出现了矛盾，编译器就会报错</p>
+<h2 id="参数传递-pass-by-value-vs-pass-by-reference-to-const">参数传递 pass by value vs. pass by reference (to const)</h2>
+<ul>
+<li>pass by value：value 数据多大，函数进行参数传递的时候就把整个包都一起传过去，压入函数栈里面去</li>
+<li><strong>Best Practice</strong>：尽量不要 pass by value</li>
+<li>pass by reference，引用在底层的实现就相当于是指针，传引用就相当于传指针</li>
+<li><strong>Best Practice</strong>：参数传递尽量传引用 reference-to-const；传递引用又不希望函数会对值进行修改，可以传递 reference to const</li>
+</ul>
+<h2 id="返回值传递-return-by-value-vs-return-by-reference-to-const">返回值传递 return by value vs. return by reference (to const)</h2>
+<ul>
+<li>返回值传递尽量 return by reference</li>
+</ul>
+<p>什么情况下可以 pass by reference？什么情况下可以 return by reference？</p>
+<p>一个函数的运算结果是放置在什么位置呢？</p>
+<ol>
+<li>函数必须新创建一个地方来进行存放，函数需要返回新创建的这部分内容，但这部分内容的生命周期在函数调用返回时就结束了（函数调用栈释放了），为局部变量（local object），这时候就不能返回 reference，只能 return by value，在“<strong>临时对象</strong>”有示例；</li>
+<li>放置在已存在的位置上，就可以 return by reference</li>
+</ol>
+<h3 id="临时对象">临时对象</h3>
+<p>在类名后面直接加 <code>()</code>：<code>typename ()</code>，临时对象 temp object</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cpp" data-lang="cpp"><span style="color:#66d9ef">inline</span> lcomplex
+<span style="color:#66d9ef">operator</span> <span style="color:#f92672">+</span> (<span style="color:#66d9ef">const</span> lcomplex<span style="color:#f92672">&amp;</span> x, <span style="color:#66d9ef">const</span> lcomplex<span style="color:#f92672">&amp;</span> y) {
+    <span style="color:#66d9ef">return</span> <span style="color:#a6e22e">lcomplex</span>(real(x)<span style="color:#f92672">+</span>real(y), imag(x)<span style="color:#f92672">+</span>imag(y));
+}
+</code></pre></div><h2 id="友元-friend">友元 friend</h2>
+<p>自由取得 friend 的 private 成员</p>
+<p>相同 class 的各个 objects 互为友元</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cpp" data-lang="cpp"><span style="color:#66d9ef">class</span> <span style="color:#a6e22e">lcomplex</span>
+{
+<span style="color:#66d9ef">public</span><span style="color:#f92672">:</span>
+    lcomplex(<span style="color:#66d9ef">double</span> r <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>, <span style="color:#66d9ef">double</span> i <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>)
+      <span style="color:#f92672">:</span> re(r), im(i) {}
+
+    <span style="color:#66d9ef">int</span> <span style="color:#a6e22e">func</span>(<span style="color:#66d9ef">const</span> lcomplex<span style="color:#f92672">&amp;</span> param)
+    { <span style="color:#66d9ef">return</span> param.re <span style="color:#f92672">+</span> param.im; }
+
+<span style="color:#66d9ef">private</span><span style="color:#f92672">:</span>
+    <span style="color:#66d9ef">double</span> re, im;
+};
+</code></pre></div><h2 id="operator-overloading-操作符重载">operator overloading 操作符重载</h2>
+<blockquote>
+<p>该选择成员函数，还是非成员函数？</p>
+</blockquote>
+<h3 id="成员函数">成员函数</h3>
+<p>所有的成员函数都含有一个隐藏的参数 this 指针，谁调用这个成员函数，谁就是 this</p>
+<p><img src="https://i.loli.net/2019/07/27/5d3c3d0f116f956799.png" alt="成员函数 this 指针"></p>
+<p>对于 return by reference 语法，传递者无需知道接收者是以 reference 形式接收的</p>
+<h3 id="非成员函数全域函数无-this-指针">非成员函数（全域函数），无 this 指针</h3>
+<h3 id="输入输出操作符重载">输入输出操作符重载</h3>
+<ul>
+<li>只能写成非成员函数</li>
+<li>函数的第一个参数不能加 <code>const</code>，因为每次使用 <code>&lt;&lt;</code> 向 <code>os</code> 输出值的时候，<code>os</code> 的状态都在改变</li>
+<li>函数返回为 <code>ostream&amp;</code>，支持连续输出</li>
+</ul>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cpp" data-lang="cpp"><span style="color:#75715e">#include</span> <span style="color:#75715e">&lt;iostream&gt;</span><span style="color:#75715e">
+</span><span style="color:#75715e"></span>
+ostream<span style="color:#f92672">&amp;</span>
+perator <span style="color:#f92672">&lt;&lt;</span> (ostream<span style="color:#f92672">&amp;</span> os, <span style="color:#66d9ef">const</span> lcomplex<span style="color:#f92672">&amp;</span> x) {
+    <span style="color:#66d9ef">return</span> os <span style="color:#f92672">&lt;&lt;</span> <span style="color:#e6db74">&#39;(&#39;</span> <span style="color:#f92672">&lt;&lt;</span> real(x) <span style="color:#f92672">&lt;&lt;</span> <span style="color:#e6db74">&#39;,&#39;</span> <span style="color:#f92672">&lt;&lt;</span> imag(x) <span style="color:#f92672">&lt;&lt;</span> <span style="color:#e6db74">&#39;)&#39;</span>;
+}
+</code></pre></div><h3 id="cout">cout</h3>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cpp" data-lang="cpp"><span style="color:#66d9ef">class</span> <span style="color:#a6e22e">_IO_ostream_withassign</span> <span style="color:#f92672">:</span> <span style="color:#66d9ef">public</span> ostream
+{
+    <span style="color:#75715e">// ...
+</span><span style="color:#75715e"></span>};
+
+<span style="color:#66d9ef">extern</span> _IO_ostream_withassign cout;
+
+<span style="color:#66d9ef">class</span> <span style="color:#a6e22e">ostream</span> <span style="color:#f92672">:</span> <span style="color:#66d9ef">virtual</span> <span style="color:#66d9ef">public</span> ios
+{
+<span style="color:#66d9ef">public</span><span style="color:#f92672">:</span>
+    ostream<span style="color:#f92672">&amp;</span> <span style="color:#66d9ef">operator</span><span style="color:#f92672">&lt;&lt;</span>(<span style="color:#66d9ef">char</span> c);
+    ostream<span style="color:#f92672">&amp;</span> <span style="color:#66d9ef">operator</span><span style="color:#f92672">&lt;&lt;</span>(<span style="color:#66d9ef">unsigned</span> <span style="color:#66d9ef">char</span> c) { <span style="color:#66d9ef">return</span> (<span style="color:#f92672">*</span><span style="color:#66d9ef">this</span>) <span style="color:#f92672">&lt;&lt;</span> (<span style="color:#66d9ef">char</span>)c; }
+    ostream<span style="color:#f92672">&amp;</span> <span style="color:#66d9ef">operator</span><span style="color:#f92672">&lt;&lt;</span>(<span style="color:#66d9ef">signed</span> <span style="color:#66d9ef">char</span> c) { <span style="color:#66d9ef">return</span> (<span style="color:#f92672">*</span><span style="color:#66d9ef">this</span>) <span style="color:#f92672">&lt;&lt;</span> (<span style="color:#66d9ef">char</span>)c; }
+    ostream<span style="color:#f92672">&amp;</span> <span style="color:#66d9ef">operator</span><span style="color:#f92672">&lt;&lt;</span>(<span style="color:#66d9ef">const</span> <span style="color:#66d9ef">char</span><span style="color:#f92672">*</span> s);
+    ostream<span style="color:#f92672">&amp;</span> <span style="color:#66d9ef">operator</span><span style="color:#f92672">&lt;&lt;</span>(<span style="color:#66d9ef">const</span> <span style="color:#66d9ef">unsigned</span> <span style="color:#66d9ef">char</span><span style="color:#f92672">*</span> s) { <span style="color:#66d9ef">return</span> (<span style="color:#f92672">*</span><span style="color:#66d9ef">this</span>) <span style="color:#f92672">&lt;&lt;</span> (<span style="color:#66d9ef">const</span> <span style="color:#66d9ef">char</span><span style="color:#f92672">*</span>)s; }
+    ostream<span style="color:#f92672">&amp;</span> <span style="color:#66d9ef">operator</span><span style="color:#f92672">&lt;&lt;</span>(<span style="color:#66d9ef">const</span> <span style="color:#66d9ef">signed</span> <span style="color:#66d9ef">char</span><span style="color:#f92672">*</span> s) { <span style="color:#66d9ef">return</span> (<span style="color:#f92672">*</span><span style="color:#66d9ef">this</span>) <span style="color:#f92672">&lt;&lt;</span> (<span style="color:#66d9ef">const</span> <span style="color:#66d9ef">char</span><span style="color:#f92672">*</span>)s; }
+    ostream<span style="color:#f92672">&amp;</span> <span style="color:#66d9ef">operator</span><span style="color:#f92672">&lt;&lt;</span>(<span style="color:#66d9ef">const</span> <span style="color:#66d9ef">void</span> <span style="color:#f92672">*</span>p);
+    ostream<span style="color:#f92672">&amp;</span> <span style="color:#66d9ef">operator</span><span style="color:#f92672">&lt;&lt;</span>(<span style="color:#66d9ef">int</span> n);
+    ostream<span style="color:#f92672">&amp;</span> <span style="color:#66d9ef">operator</span><span style="color:#f92672">&lt;&lt;</span>(<span style="color:#66d9ef">unsigned</span> <span style="color:#66d9ef">int</span> n);
+    ostream<span style="color:#f92672">&amp;</span> <span style="color:#66d9ef">operator</span><span style="color:#f92672">&lt;&lt;</span>(<span style="color:#66d9ef">long</span> n);
+    ostream<span style="color:#f92672">&amp;</span> <span style="color:#66d9ef">operator</span><span style="color:#f92672">&lt;&lt;</span>(<span style="color:#66d9ef">unsigned</span> <span style="color:#66d9ef">long</span> n);
+    <span style="color:#75715e">// ...
+</span><span style="color:#75715e"></span>}
+</code></pre></div><h2 id="小结">小结</h2>
+<p>设计一个类，怎么写才是更为规范的？</p>
+<ol>
+<li>数据一定是放置在 private 里面的</li>
+<li>参数尽可能使用 reference 传递，并且考虑是否使用 const 修饰</li>
+<li>返回值尽可能使用 reference 传递</li>
+<li>需要使用 const 修饰的成员函数就一定要使用 const 进行修饰，不然可能编译器会报错</li>
+<li>构造函数使用 initialization list 进行初始化</li>
+</ol>
+<h2 id="big-three-三个特殊函数">Big Three 三个特殊函数</h2>
+<blockquote>
+<p>参见《Effective C++》条款 5:了解 C++ 默默编写并调用哪些函数</p>
+</blockquote>
+<ul>
+<li>编译器会默认生成一套<strong>default 构造函数</strong>，<strong>拷贝构造函数</strong>和<strong>拷贝赋值函数</strong>，<strong>析构函数</strong>，都是 <code>public</code> 修饰</li>
+<li>编译器默认生成的会一个 bit 一个 bit 拷贝</li>
+<li>需要考虑编译器默认生成的函数是否够用和适用</li>
+<li>在 C++11 中，可以通过将<strong>拷贝构造函数</strong>和<strong>拷贝赋值函数</strong>定义为<strong>删除函数</strong>（delete function）来阻止拷贝，表明：我们虽然声明了它们，但不能以任何方式使用它们，直接在函数的参数列表后面加上 <code>=delete</code> 来指定删除函数</li>
+<li>class with pointer members 必须要有<strong>拷贝构造函数</strong>和<strong>拷贝赋值函数</strong>，还需要有<strong>析构函数</strong></li>
+<li>在<strong>拷贝赋值函数</strong>开始部分一定要检查是否是自我赋值（self assignment），保证正确性和高效率</li>
+</ul>
+<blockquote>
+<p>参见《Effective C++》条款 11:在 operator= 中处理“自我赋值”</p>
+</blockquote>
+<ul>
+<li><strong>Best Practice最佳实践</strong>：大多数类应该定义<strong>默认构造函数</strong>、<strong>拷贝构造函数</strong>、<strong>拷贝赋值运算符</strong>和<strong>析构函数</strong>，无论是隐式地还是显式地</li>
+</ul>
+<h3 id="拷贝构造函数和拷贝赋值函数">拷贝构造函数和拷贝赋值函数</h3>
+<blockquote>
+<p>参见《Effective C++》条款 12:复制对象时勿忘其每一个成分</p>
+</blockquote>
+<p>为 derived class 编写拷贝构造函数和拷贝赋值函数，要确保（1）复制所有 local 成员变量，（2）调用所有 base classes 内的适当的 coping 函数</p>
+<ul>
+<li>拷贝构造函数被用来“以同型对象初始化自我对象”</li>
+<li>拷贝赋值函数被用来“从另一个同型对象中拷贝其值到自我对象”</li>
+<li>如果一个新对象被定义，一定会有个构造函数被调用，不可能调用赋值操作。如果没有新对象被定义，就不会有构造函数被调用，那么就是拷贝赋值函数被调用</li>
+<li>赋值符号 <code>=</code> 也可以用来调用拷贝构造函数</li>
+<li>拷贝构造函数定义了一个对象如何 pass-by-value（以值传递）</li>
+<li>以 by-value 传递用户自定义类型通常是个坏主意，pass-by-reference-to-const 往往是比较好的选择</li>
+</ul>
+<h3 id="浅拷贝">浅拷贝</h3>
+<h3 id="深拷贝">深拷贝</h3>
+<h2 id="何谓栈stack何谓堆heap">何谓栈（stack），何谓堆（heap）</h2>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cpp" data-lang="cpp"><span style="color:#66d9ef">class</span> <span style="color:#a6e22e">Complex</span> { <span style="color:#75715e">/* ... */</span> };
+<span style="color:#75715e">/* ... */</span>
+
+Complex <span style="color:#a6e22e">c3</span>(<span style="color:#ae81ff">1</span>, <span style="color:#ae81ff">2</span>);
+{
+    Complex <span style="color:#a6e22e">c1</span>(<span style="color:#ae81ff">1</span>, <span style="color:#ae81ff">2</span>);
+    <span style="color:#66d9ef">static</span> Complex <span style="color:#a6e22e">c2</span>(<span style="color:#ae81ff">1</span>, <span style="color:#ae81ff">2</span>);
+    Complex<span style="color:#f92672">*</span> p <span style="color:#f92672">=</span> <span style="color:#66d9ef">new</span> Complex(<span style="color:#ae81ff">3</span>);
+    <span style="color:#75715e">/* ... */</span>
+    <span style="color:#66d9ef">delete</span> p;
+}
+</code></pre></div><ul>
+<li>Stack，是存在于某个作用域（scope）的一块内存空间（memory space）</li>
+<li>Heap，或谓 System heap，是指操作系统提供的一块全局内存空间，程序可动态分配（dynamic allocated）从中获得若个区块（blocks）</li>
+</ul>
+<h3 id="生命周期">生命周期</h3>
+<ul>
+<li><code>c1</code> 为 <strong>stack objects</strong>，其生命在作用域结束之际结束。这种作用域内的 object，又称为 <strong>auto object</strong>，因为它们会被自动清理，析构函数在作用域结束之际自动调用</li>
+<li><code>c2</code> 为 <strong>static local objects</strong>，其生命在作用域结束之后仍然存在，直到整个程序结束，即从被构造出来直到程序结束为止</li>
+<li><code>c3</code> 为 <strong>global objects</strong>，其生命在整个程序结束之后才结束。其作用域是整个程序</li>
+<li><code>p</code> 为 <strong>heap objects</strong>，其生命在它被 <strong>delete</strong> 之际结束</li>
+</ul>
+<h2 id="new-和-delete">new 和 delete</h2>
+<blockquote>
+<p>参见《Effective C++》条款 16:成对使用 new 和 delete 时要采用相同形式</p>
+</blockquote>
+<h3 id="new">new</h3>
+<p>（1）内存被分配出来（通过名为 <code>operator new</code> 的函数）；
+（2）针对此内存会有一个（或多个）构造函数被调用</p>
+<p><img src="https://i.loli.net/2019/07/27/5d3c58574672522287.png" alt="new：先分配 memory，再调用构造函数"></p>
+<h3 id="delete">delete</h3>
+<p>（1）针对此内存会有一个（或更多）析构函数被调用；
+（2）释放内存（通过名为 <code>operator delete</code> 的函数）</p>
+<p><img src="https://i.loli.net/2019/07/27/5d3c59aad32b276563.png" alt="delete：先调用析构函数，再释放 memory"></p>
+<p><code>delete</code> 的最大问题在于：即将被删除的内存之内究竟存有多少对象？这个问题决定了有多少个析构函数必须被调用起来。更简单的表述为：即将被删除的那个指针，所指的是单一对象还是对象数据？因为单一对象的内存布局一般而言不同于数组的内存布局。更明确地说，数组所用的内存通常还包括“数组大小”的记录，以便 <code>delete</code> 知道需要调用多少次析构函数。单一对象的内存则不需要这笔记录。</p>
+<h3 id="单一对象的内存布局示意图">单一对象的内存布局示意图</h3>
+<p><img src="https://i.loli.net/2019/09/13/4vZQDuVkdxBYCOL.png" alt="单一对象内存示意图"></p>
+<h3 id="对象数组的内存布局示意图">对象数组的内存布局示意图</h3>
+<ul>
+<li>array new 要搭配 array delete 使用，程序员需要告诉编译器需要 <code>delete</code> 的“数组大小”</li>
+<li>如果调用 <code>new</code> 时使用 <code>[]</code>，必须在对应调用 <code>delete</code> 时也使用 <code>[]</code></li>
+<li>如果调用 <code>new</code> 时没有使用 <code>[]</code>，一定不要在对应调用 <code>delete</code> 时使用 <code>[]</code></li>
+</ul>
+<p><img src="https://i.loli.net/2019/07/28/5d3c78852fffc98769.png" alt="动态分配数组的内存示意图"></p>
+<p><img src="https://i.loli.net/2019/07/28/5d3c788542f7342619.png" alt="array new 要搭配 array delete 使用"></p>
+<h2 id="static">static</h2>
+<ul>
+<li>静态成员函数没有 this 指针，因此<strong>只能处理静态数据</strong></li>
+<li>调用 static 函数的方式有两种：
+<ol>
+<li>通过 object 调用</li>
+<li>通过 class name 调用</li>
+</ol>
+</li>
+</ul>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cpp" data-lang="cpp"><span style="color:#66d9ef">class</span> <span style="color:#a6e22e">Account</span>
+{
+<span style="color:#66d9ef">public</span><span style="color:#f92672">:</span>
+    <span style="color:#66d9ef">static</span> <span style="color:#66d9ef">double</span> m_rate;  <span style="color:#75715e">// 声明
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">static</span> <span style="color:#66d9ef">void</span> <span style="color:#a6e22e">set_rate</span>(<span style="color:#66d9ef">const</span> <span style="color:#66d9ef">double</span> x) { m_rate <span style="color:#f92672">=</span> x; }
+};
+
+<span style="color:#66d9ef">double</span> Account<span style="color:#f92672">::</span>m_rate <span style="color:#f92672">=</span> <span style="color:#ae81ff">8.0</span>;  <span style="color:#75715e">// 定义，使得对应的变量获得内存
+</span><span style="color:#75715e"></span>
+<span style="color:#66d9ef">int</span> <span style="color:#a6e22e">main</span>(<span style="color:#66d9ef">void</span>)
+{
+    Account<span style="color:#f92672">::</span>set_rate(<span style="color:#ae81ff">5.0</span>);
+
+    Account a;
+    a.set_rate(<span style="color:#ae81ff">7.0</span>);
+}
+</code></pre></div><p>利息 <code>m_rate</code> 称为 <strong>class 专属变量（class-specific variables）</strong>：</p>
+<ol>
+<li>为了将变量的作用域（scope）限制于 class 内，必须让它成为 class 的一个成员（member）</li>
+<li>为了确保此变量至多只有一份实体，必须让它成为一个 static 成员</li>
+</ol>
+<h2 id="类模版-class-template">类模版 class template</h2>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cpp" data-lang="cpp"><span style="color:#66d9ef">template</span><span style="color:#f92672">&lt;</span><span style="color:#66d9ef">typename</span> T<span style="color:#f92672">&gt;</span>  <span style="color:#75715e">// template、typename 都是关键字
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">class</span> <span style="color:#a6e22e">complex</span>
+{
+<span style="color:#66d9ef">public</span><span style="color:#f92672">:</span>
+    complex(T r <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>, T i <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>)
+      <span style="color:#f92672">:</span> re(r), im(i) {}
+    complex<span style="color:#f92672">&amp;</span> <span style="color:#66d9ef">operator</span><span style="color:#f92672">+=</span>(<span style="color:#66d9ef">const</span> complex<span style="color:#f92672">&amp;</span>);
+    T <span style="color:#a6e22e">real</span>() <span style="color:#66d9ef">const</span> { <span style="color:#66d9ef">return</span> re; }
+    T <span style="color:#a6e22e">imag</span>() <span style="color:#66d9ef">const</span> { <span style="color:#66d9ef">return</span> im; }
+<span style="color:#66d9ef">private</span><span style="color:#f92672">:</span>
+    T re, im;
+};
+
+{
+    complex<span style="color:#f92672">&lt;</span><span style="color:#66d9ef">double</span><span style="color:#f92672">&gt;</span> c1(<span style="color:#ae81ff">1.5</span>, <span style="color:#ae81ff">3.5</span>);
+    complex<span style="color:#f92672">&lt;</span><span style="color:#66d9ef">int</span><span style="color:#f92672">&gt;</span> c2;
+    ...
+}
+</code></pre></div><h2 id="函数模版-function-template">函数模版 function template</h2>
+<ul>
+<li>编译器会做实参推导（argument deduction）</li>
+<li>C++ 标准库中的算法都是函数模版</li>
+</ul>
+<h2 id="namespace">namespace</h2>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cpp" data-lang="cpp"><span style="color:#66d9ef">namespace</span> <span style="color:#f92672">&lt;</span><span style="color:#66d9ef">namespace</span><span style="color:#f92672">-</span>name<span style="color:#f92672">&gt;</span>
+{
+    <span style="color:#75715e">// ...
+</span><span style="color:#75715e"></span>}
+</code></pre></div><ul>
+<li>using directive，<code>using namespace std;</code></li>
+<li>using declaration，<code>using std::cout;</code></li>
+<li>每一项都是用全名</li>
+</ul>
+<h2 id="面向对象编程面向对象设计">面向对象编程（面向对象设计）</h2>
+<p>类和类之间的关系：</p>
+<ol>
+<li>继承 Inheritance</li>
+<li>组合 Composition</li>
+<li>委托 Delegation</li>
+</ol>
+<h2 id="composition-复合表示-has-a">Composition 复合，表示 has-a</h2>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cpp" data-lang="cpp"><span style="color:#66d9ef">template</span> <span style="color:#f92672">&lt;</span><span style="color:#66d9ef">class</span> <span style="color:#a6e22e">T</span>, <span style="color:#66d9ef">class</span> <span style="color:#a6e22e">Sequence</span> <span style="color:#f92672">=</span> deque<span style="color:#f92672">&lt;</span>T<span style="color:#f92672">&gt;</span> <span style="color:#f92672">&gt;</span>
+<span style="color:#66d9ef">class</span> <span style="color:#a6e22e">queue</span>
+{
+    <span style="color:#75715e">// ...
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">protected</span><span style="color:#f92672">:</span>
+    Sequence c;  <span style="color:#75715e">// 底层容器
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">public</span><span style="color:#f92672">:</span>
+    <span style="color:#75715e">// 以下完全利用 c 的操作函数完成
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">bool</span> empty() <span style="color:#66d9ef">const</span> { <span style="color:#66d9ef">return</span> c.empty(); }
+    size_type <span style="color:#a6e22e">size</span>() <span style="color:#66d9ef">const</span> { <span style="color:#66d9ef">return</span> c.size(); }
+    reference <span style="color:#a6e22e">front</span>() { <span style="color:#66d9ef">return</span> c.front(); }
+    reference <span style="color:#a6e22e">back</span>() { <span style="color:#66d9ef">return</span> c.back(); }
+    <span style="color:#75715e">// deque 是两端可进出，queue 是末端进前端出，先进先出
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">void</span> <span style="color:#a6e22e">push</span>(<span style="color:#66d9ef">const</span> value_type<span style="color:#f92672">&amp;</span> x) { c.push_back(x); }
+    <span style="color:#66d9ef">void</span> <span style="color:#a6e22e">pop</span>() { c.pop_front(); }
+};
+</code></pre></div><ul>
+<li>学会使用 UML 类图来表示</li>
+<li>Adapter 设计模式</li>
+<li>Container 和 Component 的生命期一致</li>
+</ul>
+<h3 id="composition-关系下的构造和析构">Composition 关系下的构造和析构</h3>
+<p>编译器帮助完成：</p>
+<ul>
+<li><strong>构造由内而外</strong>：Container 的构造函数首先调用 Component 的 <strong>default 构造函数</strong>，然后才执行自己</li>
+</ul>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cpp" data-lang="cpp">Container<span style="color:#f92672">::</span>Container(...)<span style="color:#f92672">:</span> Component() { ... }
+</code></pre></div><ul>
+<li><strong>析构由外而内</strong>：Container 的析构函数函数首先执行自己，然后才调用 Component 的析构函数</li>
+</ul>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cpp" data-lang="cpp">Container<span style="color:#f92672">::~</span>Container(...)<span style="color:#f92672">:</span> { ... <span style="color:#f92672">~</span>Component(); }
+</code></pre></div><h2 id="delegation-委托composition-by-reference">Delegation 委托，Composition by reference</h2>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cpp" data-lang="cpp"><span style="color:#75715e">// file String.hpp
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">class</span> <span style="color:#a6e22e">StringRep</span>;
+<span style="color:#66d9ef">class</span> <span style="color:#a6e22e">String</span>
+{
+<span style="color:#66d9ef">public</span><span style="color:#f92672">:</span>
+    String();
+    String(<span style="color:#66d9ef">const</span> <span style="color:#66d9ef">char</span><span style="color:#f92672">*</span> s);
+    String(<span style="color:#66d9ef">const</span> String<span style="color:#f92672">&amp;</span> s);
+    String<span style="color:#f92672">&amp;</span> <span style="color:#66d9ef">operator</span><span style="color:#f92672">=</span>(<span style="color:#66d9ef">const</span> String<span style="color:#f92672">&amp;</span> s);
+    <span style="color:#f92672">~</span>String();
+<span style="color:#66d9ef">private</span><span style="color:#f92672">:</span>
+    StringRep<span style="color:#f92672">*</span> rep; <span style="color:#75715e">// pimpl -&gt; pointer to implementation, handle &amp; body
+</span><span style="color:#75715e"></span>};
+</code></pre></div><div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cpp" data-lang="cpp"><span style="color:#75715e">// file String.cpp
+</span><span style="color:#75715e"></span><span style="color:#75715e">#include</span> <span style="color:#75715e">&#34;String.hpp&#34;</span><span style="color:#75715e">
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">namespace</span> {
+<span style="color:#66d9ef">class</span> <span style="color:#a6e22e">StringRep</span> {
+    <span style="color:#66d9ef">friend</span> <span style="color:#66d9ef">class</span> <span style="color:#a6e22e">String</span>;
+    StringRep(<span style="color:#66d9ef">const</span> <span style="color:#66d9ef">char</span><span style="color:#f92672">*</span> s);
+    <span style="color:#f92672">~</span>StringRep();
+    <span style="color:#66d9ef">int</span> count;
+    <span style="color:#66d9ef">char</span><span style="color:#f92672">*</span> rep;
+};
+}
+
+String<span style="color:#f92672">::</span>String() { ... }
+</code></pre></div><ul>
+<li>编译防火墙：Handle/Body，pImpl</li>
+<li>引用计数（reference counting）</li>
+<li>COW（copy on write），当共享的变量需要改变内容时，先完全拷贝一份，然后在得到的拷贝上进行相应的修改</li>
+</ul>
+<h2 id="inheritance-继承表示-is-a">Inheritance 继承，表示 is-a</h2>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cpp" data-lang="cpp"><span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">_List_node_base</span>
+{
+    _List_node_base<span style="color:#f92672">*</span> _M_next;
+    _List_node_base<span style="color:#f92672">*</span> _M_prev;
+};
+
+<span style="color:#66d9ef">template</span><span style="color:#f92672">&lt;</span><span style="color:#66d9ef">typename</span> _Tp<span style="color:#f92672">&gt;</span>
+<span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">_List_node</span>
+  <span style="color:#f92672">:</span> <span style="color:#66d9ef">public</span> _List_node_base
+{
+    _Tp _M_data;
+}
+</code></pre></div><ul>
+<li>父类的数据会被子类完整继承</li>
+</ul>
+<h3 id="inheritance继承关系下的构造和析构">Inheritance（继承）关系下的构造和析构</h3>
+<blockquote>
+<p>参见《Effective C++》条款 7:为多态基类声明 virtual 析构函数</p>
+</blockquote>
+<ol>
+<li>带多态性质的 base classes 应该声明一个 virtual 析构函数，这种 base classes 的设计目的是为了“通过 base class 接口处理 derived class 对象”。如果 class 带有任何 virtual 函数，它就应该拥有一个 virtual 析构函数</li>
+<li>classes 的设计目的不是作为 base classes 使用，或不是为了具备多态性，就不该声明 virtual 析构函数。例如标准 string 和 STL 容器都不被设计作为 base classes 使用</li>
+</ol>
+<ul>
+<li><strong>构造由内而外</strong>：Derived 的构造函数首先调用 Base 的 default 构造函数，然后才执行自己</li>
+</ul>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cpp" data-lang="cpp">Derived<span style="color:#f92672">::</span>Derived(...)<span style="color:#f92672">:</span> Base() { ... };
+</code></pre></div><ul>
+<li><strong>析构由外而内</strong>：Derived 的析构函数首先执行自己，然后才调用 Base 的析构函数</li>
+</ul>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cpp" data-lang="cpp">Derived<span style="color:#f92672">::~</span>Derived(...) { ... <span style="color:#f92672">~</span>Base() };
+</code></pre></div><h3 id="inheritance继承with-virtual-function虚函数">Inheritance（继承）with virtual function（虚函数）</h3>
+<p>在继承的关系下，父类所有的东西都会被子类继承</p>
+<ol>
+<li>数据可以被继承下来，占用内存的一部分</li>
+<li>函数也可以被继承下来，子类继承父类函数的调用权，子类可以调用父类的函数。那子类是否需要对继承的父类函数进行重新定义呢？</li>
+</ol>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cpp" data-lang="cpp"><span style="color:#66d9ef">class</span> <span style="color:#a6e22e">Shape</span> {
+<span style="color:#66d9ef">public</span><span style="color:#f92672">:</span>
+    <span style="color:#66d9ef">virtual</span> <span style="color:#66d9ef">void</span> draw() <span style="color:#66d9ef">const</span> <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>;  <span style="color:#75715e">// 1. 纯虚函数，pure virtual
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">virtual</span> <span style="color:#66d9ef">void</span> <span style="color:#a6e22e">error</span>(<span style="color:#66d9ef">const</span> std<span style="color:#f92672">::</span>string<span style="color:#f92672">&amp;</span> msg);  <span style="color:#75715e">// 2. 虚函数，impure virtual
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">int</span> <span style="color:#a6e22e">objectID</span>() <span style="color:#66d9ef">const</span>;  <span style="color:#75715e">// 3. 普通函数
+</span><span style="color:#75715e"></span>    ...
+};
+
+<span style="color:#66d9ef">class</span> <span style="color:#a6e22e">Rectangle</span> <span style="color:#f92672">:</span> <span style="color:#66d9ef">public</span> Shape { ... };
+<span style="color:#66d9ef">class</span> <span style="color:#a6e22e">Ellipse</span> <span style="color:#f92672">:</span> <span style="color:#66d9ef">public</span> Shape { ... };
+</code></pre></div><ol>
+<li><strong>pure virtual</strong> 函数：希望子类一定要重新定义（override，覆写）的函数，现在父类中没有默认定义（可以有定义）</li>
+<li><strong>impure virtual</strong> 函数：希望子类重新定义（override，覆写）的函数，但父类中已提供了默认定义</li>
+<li><strong>non-virtual</strong> 函数：不希望子类重新定义（override，覆写）的函数</li>
+</ol>
+<ul>
+<li>创建子类对象</li>
+<li>通过子类对象调用父类方法</li>
+<li>Template method 设计模式</li>
+</ul>
+<h3 id="inheritancecomposition-关系下的构造和析构">Inheritance+Composition 关系下的构造和析构</h3>
+<h3 id="delegation委托inheritance继承">Delegation（委托）+Inheritance（继承）</h3>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cpp" data-lang="cpp"><span style="color:#66d9ef">class</span> <span style="color:#a6e22e">Subject</span>
+{
+    <span style="color:#66d9ef">int</span> m_value;
+    std<span style="color:#f92672">::</span>vector<span style="color:#f92672">&lt;</span>Observer<span style="color:#f92672">*&gt;</span> m_views;
+<span style="color:#66d9ef">public</span><span style="color:#f92672">:</span>
+    <span style="color:#66d9ef">void</span> attach(Observer<span style="color:#f92672">*</span> obs) {
+        m_views.push_back(obs);
+    }
+
+    <span style="color:#66d9ef">void</span> <span style="color:#a6e22e">set_val</span>(<span style="color:#66d9ef">int</span> value) {
+        m_value <span style="color:#f92672">=</span> value;
+        notify();
+    }
+
+    <span style="color:#66d9ef">void</span> <span style="color:#a6e22e">notify</span>() {
+        <span style="color:#66d9ef">for</span> (<span style="color:#66d9ef">int</span> i <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>; i <span style="color:#f92672">&lt;</span> m_views.size(); <span style="color:#f92672">++</span>i) {
+            m_views[i]<span style="color:#f92672">-&gt;</span>update(<span style="color:#66d9ef">this</span>, m_value);
+        }
+    }
+};
+
+<span style="color:#66d9ef">class</span> <span style="color:#a6e22e">Observer</span>
+{
+<span style="color:#66d9ef">public</span><span style="color:#f92672">:</span>
+    <span style="color:#66d9ef">virtual</span> <span style="color:#66d9ef">void</span> update(Subject<span style="color:#f92672">*</span> sub, <span style="color:#66d9ef">int</span> vaule) <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>;
+}
+</code></pre></div><ul>
+<li>Observer 设计模式</li>
+<li>Composite 设计模式</li>
+<li>Prototype 设计模式：当下要去创建未来的 class 对象</li>
+</ul>
+<p>参考书 Design Patterns Explained Simply</p>
+<h2 id="10-目标">1.0 目标</h2>
+<ul>
+<li>在 0.0 的基础课程所培养的正规、大器的编程素养上，继续探讨更多技术</li>
+<li>范型编程（Generic Programming）和面向对象编程（Object-Oriented Programming）虽然分属不同思维，但它们正是 C++ 的技术主线，本部分也讨论 template（模版）</li>
+<li>深入探索面向对象之继承关系（inheritance）所形成的对象模型（Object Model），包括隐藏于底层的 this 指针，vptr（虚指针），vtbl（虚表），virtual mechanism（虚机制），以及虚函数（virtual function）造成的 Polymorphism（多态）效果</li>
+</ul>
+<h2 id="更多细节">更多细节</h2>
+<ul>
+<li>operator type() const;</li>
+<li>explicit complex(&hellip;) : initialization list {}</li>
+<li>pointer-like object</li>
+<li>function-like object</li>
+<li>Namespace</li>
+<li>template specialization</li>
+<li>Standard library</li>
+<li>variadic template (since C++11)&ndash;</li>
+<li>move ctor (since C++11)</li>
+<li>Rvalue reference (since C++11)</li>
+<li>auto (since C++11)&ndash;</li>
+<li>lambda (since C++11)</li>
+<li>range-base for loop (since C++11)&ndash;</li>
+<li>unordered containers (since C++11)</li>
+<li>&hellip;</li>
+</ul>
+<h2 id="conversion-function-转换函数">conversion function 转换函数</h2>
+<ul>
+<li>将当前对象转换为别样的对象</li>
+</ul>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cpp" data-lang="cpp"><span style="color:#66d9ef">class</span> <span style="color:#a6e22e">Fraction</span>
+{
+<span style="color:#66d9ef">public</span><span style="color:#f92672">:</span>
+    Fraction(<span style="color:#66d9ef">int</span> num, <span style="color:#66d9ef">int</span> den<span style="color:#f92672">=</span><span style="color:#ae81ff">1</span>)
+      <span style="color:#f92672">:</span> m_numerator(num), m_denominator(den) {}
+    <span style="color:#66d9ef">operator</span> <span style="color:#a6e22e">double</span>() <span style="color:#66d9ef">const</span> {
+        <span style="color:#66d9ef">return</span> (<span style="color:#66d9ef">double</span>)(<span style="color:#66d9ef">static_cast</span><span style="color:#f92672">&lt;</span><span style="color:#66d9ef">double</span><span style="color:#f92672">&gt;</span>(m_numerator) <span style="color:#f92672">/</span> <span style="color:#66d9ef">static_cast</span><span style="color:#f92672">&lt;</span><span style="color:#66d9ef">double</span><span style="color:#f92672">&gt;</span>(m_denominator));
+    }
+<span style="color:#66d9ef">private</span><span style="color:#f92672">:</span>
+    <span style="color:#66d9ef">int</span> m_numerator;    <span style="color:#75715e">// 分子
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">int</span> m_denominator;  <span style="color:#75715e">// 分母
+</span><span style="color:#75715e"></span>};
+
+{
+    Fraction <span style="color:#a6e22e">f</span>(<span style="color:#ae81ff">3</span>, <span style="color:#ae81ff">5</span>);
+    <span style="color:#66d9ef">double</span> d <span style="color:#f92672">=</span> <span style="color:#ae81ff">4</span> <span style="color:#f92672">+</span> f;
+    std<span style="color:#f92672">::</span>cout <span style="color:#f92672">&lt;&lt;</span> d <span style="color:#f92672">&lt;&lt;</span> std<span style="color:#f92672">::</span>endl;
+
+    <span style="color:#66d9ef">return</span> <span style="color:#ae81ff">0</span>;
+}
+</code></pre></div><p>在标准库中有如下源码：</p>
+<p>vector bool</p>
+<h2 id="non-explicit-one-argument-ctor">non-explicit-one-argument ctor</h2>
+<ul>
+<li>one argument，只要一个实参就够了，另外可以有实参，提供对应的默认值即可</li>
+<li>two parameters, one argument</li>
+<li>关键字 explicit，“明白的，明确的”，用在构造函数的前面，禁止编译器执行非预期的类型转换</li>
+<li>将别种对象转换为当前对象</li>
+</ul>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cpp" data-lang="cpp"><span style="color:#66d9ef">class</span> <span style="color:#a6e22e">Fraction</span>
+{
+<span style="color:#66d9ef">public</span><span style="color:#f92672">:</span>
+    Fraction(<span style="color:#66d9ef">int</span> num, <span style="color:#66d9ef">int</span> den<span style="color:#f92672">=</span><span style="color:#ae81ff">1</span>)
+      <span style="color:#f92672">:</span> m_numerator(num), m_denominator(den) {}
+    Fraction <span style="color:#66d9ef">operator</span><span style="color:#f92672">+</span>(<span style="color:#66d9ef">const</span> Fraction<span style="color:#f92672">&amp;</span> f) {
+        <span style="color:#66d9ef">return</span> <span style="color:#a6e22e">Fraction</span>(<span style="color:#66d9ef">this</span><span style="color:#f92672">-&gt;</span>m_numerator <span style="color:#f92672">+</span> f.m_numerator,
+                        <span style="color:#66d9ef">this</span><span style="color:#f92672">-&gt;</span>m_denominator <span style="color:#f92672">+</span> f.m_denominator);
+    }
+<span style="color:#66d9ef">private</span><span style="color:#f92672">:</span>
+    <span style="color:#66d9ef">int</span> m_numerator;    <span style="color:#75715e">// 分子
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">int</span> m_denominator;  <span style="color:#75715e">// 分母
+</span><span style="color:#75715e"></span>};
+
+{
+    Fraction <span style="color:#a6e22e">f</span>(<span style="color:#ae81ff">3</span>, <span style="color:#ae81ff">5</span>);
+    <span style="color:#66d9ef">double</span> d <span style="color:#f92672">=</span> <span style="color:#ae81ff">4</span> <span style="color:#f92672">+</span> f;
+    std<span style="color:#f92672">::</span>cout <span style="color:#f92672">&lt;&lt;</span> d <span style="color:#f92672">&lt;&lt;</span> std<span style="color:#f92672">::</span>endl;
+
+    <span style="color:#66d9ef">return</span> <span style="color:#ae81ff">0</span>;
+}
+</code></pre></div><h2 id="pointer-like-classes">pointer-like classes</h2>
+<blockquote>
+<p>设计一个 class，让它的行为像一个指针</p>
+</blockquote>
+<h3 id="shared-ptr-关于智能指针">shared-ptr 关于智能指针</h3>
+<p><code>shared-ptr</code> 持续追踪共有多少对象指向某笔资源，并在无人指向它时自动删除该资源。<code>shared-ptr</code> 允许指定所谓的“<strong>删除器（deleter）</strong>”，是一个函数或者函数对象（function object），当引用计数为 0 时便被调用</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cpp" data-lang="cpp"><span style="color:#66d9ef">template</span><span style="color:#f92672">&lt;</span><span style="color:#66d9ef">class</span> <span style="color:#a6e22e">T</span><span style="color:#f92672">&gt;</span>
+<span style="color:#66d9ef">class</span> <span style="color:#a6e22e">shared_ptr</span>
+{
+<span style="color:#66d9ef">public</span><span style="color:#f92672">:</span>
+    T<span style="color:#f92672">&amp;</span> <span style="color:#66d9ef">operator</span><span style="color:#f92672">*</span>() <span style="color:#66d9ef">const</span> { <span style="color:#66d9ef">return</span> <span style="color:#f92672">*</span>px; }
+    T<span style="color:#f92672">*</span> <span style="color:#66d9ef">operator</span><span style="color:#f92672">-&gt;</span>() <span style="color:#66d9ef">const</span> { <span style="color:#66d9ef">return</span> px; }
+<span style="color:#66d9ef">private</span><span style="color:#f92672">:</span>
+    T<span style="color:#f92672">*</span>    px;
+    <span style="color:#66d9ef">long</span><span style="color:#f92672">*</span> pn;
+};
+
+<span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">Foo</span>
+{
+    ...
+    <span style="color:#66d9ef">void</span> method(<span style="color:#66d9ef">void</span>) { ... }
+};
+
+shared_ptr<span style="color:#f92672">&lt;</span>Foo<span style="color:#f92672">&gt;</span> sp(<span style="color:#66d9ef">new</span> Foo);
+Foo <span style="color:#a6e22e">f</span>(<span style="color:#f92672">*</span>sp);
+sp<span style="color:#f92672">-&gt;</span>method();  <span style="color:#75715e">// px-&gt;method(), -&gt; 会一直作用下去
+</span></code></pre></div><ul>
+<li>智能指针里面包含有普通指针</li>
+<li><code>*</code> <code>-&gt;</code> 运算符重载的写法确定，允许隐式转换至底层原始指针</li>
+</ul>
+<blockquote>
+<p>参见《Effective C++》条款 13:以对象管理资源</p>
+</blockquote>
+<p>“以对象管理资源”的两个关键想法：</p>
+<ol>
+<li><strong>获得资源后立刻放进管理对象内</strong>。实际上，“以资源管理对象”的观念常被称为“资源取得时机便是初始化时机”（Resource Acquisition Is Initialization，<strong>RAII</strong>），因为我们几乎总是在获得一笔资源后于同一语句内以它初始化某个管理对象，有时候获得的资源被拿来赋值某个管理对象（而非初始化）</li>
+<li><strong>管理对象运用析构函数确保资源被释放</strong>。不论控制流如何离开区块，一旦对象被销毁，其析构函数自然会被自动调用，于是资源被释放</li>
+</ol>
+<h3 id="iter-关于迭代器">iter 关于迭代器</h3>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cpp" data-lang="cpp"><span style="color:#66d9ef">template</span> <span style="color:#f92672">&lt;</span><span style="color:#66d9ef">class</span> <span style="color:#a6e22e">T</span><span style="color:#f92672">&gt;</span>
+<span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">__list_node</span>
+{
+    <span style="color:#66d9ef">void</span><span style="color:#f92672">*</span> prev;
+    <span style="color:#66d9ef">void</span><span style="color:#f92672">*</span> next;
+    T data;
+};
+
+<span style="color:#66d9ef">template</span><span style="color:#f92672">&lt;</span><span style="color:#66d9ef">class</span> <span style="color:#a6e22e">T</span>, <span style="color:#66d9ef">class</span> <span style="color:#a6e22e">Ref</span>, <span style="color:#66d9ef">class</span> <span style="color:#a6e22e">Ptr</span><span style="color:#f92672">&gt;</span>
+<span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">__list_iterator</span>
+{
+    <span style="color:#66d9ef">typedef</span> __list_iterator<span style="color:#f92672">&lt;</span>T, Ref, Ptr<span style="color:#f92672">&gt;</span> self;
+    <span style="color:#66d9ef">typedef</span> Ptr pointer;
+    <span style="color:#66d9ef">typedef</span> Ref reference;
+    <span style="color:#66d9ef">typedef</span> __list_node<span style="color:#f92672">&lt;</span>T<span style="color:#f92672">&gt;*</span> link_type;
+    link_type node;
+    <span style="color:#66d9ef">bool</span> <span style="color:#66d9ef">operator</span><span style="color:#f92672">==</span>(<span style="color:#66d9ef">const</span> self<span style="color:#f92672">&amp;</span> x) <span style="color:#66d9ef">const</span> { <span style="color:#66d9ef">return</span> node <span style="color:#f92672">==</span> x.node; }
+    <span style="color:#66d9ef">bool</span> <span style="color:#66d9ef">operator</span><span style="color:#f92672">!=</span>(<span style="color:#66d9ef">const</span> self<span style="color:#f92672">&amp;</span> x) <span style="color:#66d9ef">const</span> { <span style="color:#66d9ef">return</span> node <span style="color:#f92672">!=</span> x.node; }
+    reference <span style="color:#66d9ef">operator</span><span style="color:#f92672">*</span>() <span style="color:#66d9ef">const</span> { <span style="color:#66d9ef">return</span> (<span style="color:#f92672">*</span>node).data; }
+    pointer <span style="color:#66d9ef">operator</span><span style="color:#f92672">-&gt;</span>() <span style="color:#66d9ef">const</span> { <span style="color:#66d9ef">return</span> <span style="color:#f92672">&amp;</span>(<span style="color:#66d9ef">operator</span><span style="color:#f92672">*</span>()); }
+    self<span style="color:#f92672">&amp;</span> <span style="color:#66d9ef">operator</span><span style="color:#f92672">++</span>() { node <span style="color:#f92672">=</span> (link_type)((<span style="color:#f92672">*</span>node).next); <span style="color:#66d9ef">return</span> <span style="color:#f92672">*</span><span style="color:#66d9ef">this</span>; }
+    self <span style="color:#66d9ef">operator</span><span style="color:#f92672">++</span>(<span style="color:#66d9ef">int</span>) { self tmp <span style="color:#f92672">=</span> <span style="color:#f92672">*</span><span style="color:#66d9ef">this</span>; <span style="color:#f92672">++*</span><span style="color:#66d9ef">this</span>; <span style="color:#66d9ef">return</span> tmp; }
+    self<span style="color:#f92672">&amp;</span> <span style="color:#66d9ef">operator</span><span style="color:#f92672">--</span>() { node <span style="color:#f92672">=</span> (link_type)((<span style="color:#f92672">*</span>node).prev); <span style="color:#66d9ef">return</span> <span style="color:#f92672">*</span><span style="color:#66d9ef">this</span>; }
+    self <span style="color:#66d9ef">operator</span><span style="color:#f92672">--</span>(<span style="color:#66d9ef">int</span>) { self tmp <span style="color:#f92672">=</span> <span style="color:#f92672">*</span><span style="color:#66d9ef">this</span>; <span style="color:#f92672">--*</span><span style="color:#66d9ef">this</span>; <span style="color:#66d9ef">return</span> tmp; }
+};
+
+{
+    list<span style="color:#f92672">&lt;</span>Foo<span style="color:#f92672">&gt;::</span>iterator ite;
+    ...
+    <span style="color:#f92672">*</span>ite;  <span style="color:#75715e">// 获得一个 Foo object
+</span><span style="color:#75715e"></span>    ite<span style="color:#f92672">-&gt;</span>method();  <span style="color:#75715e">// 意思是调用 Foo::method() 相当于 (*ite).method(); 相当于 (&amp;(*ite))-&gt;method();
+</span><span style="color:#75715e"></span>}
+</code></pre></div><p><strong>关于迭代器的补充说明：</strong></p>
+<p>STL 迭代器以指针为根据塑模出来，所以迭代器的作用就像个 <code>T*</code> 指针。声明迭代器为 <code>const</code> 就像声明指针为 <code>const</code> 一样（即声明一个 <code>T* const</code> 指针，指针本身是常量，但指向的值可以改变），表示这个迭代器不得指向不同的东西，但它所指的东西的值是可以改动的。如果希望迭代器所指的东西不可被改动（即希望 STL 模拟一个 <code>const T*</code> 指针），需要使用 <code>const_iterator</code></p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cpp" data-lang="cpp">std<span style="color:#f92672">::</span>vector<span style="color:#f92672">&lt;</span><span style="color:#66d9ef">int</span><span style="color:#f92672">&gt;</span> vec;
+...
+<span style="color:#66d9ef">const</span> std<span style="color:#f92672">::</span>vector<span style="color:#f92672">&lt;</span><span style="color:#66d9ef">int</span><span style="color:#f92672">&gt;::</span>iterator iter <span style="color:#f92672">=</span> vec.begin();  <span style="color:#75715e">// iter 的作用像个 T* const
+</span><span style="color:#75715e"></span><span style="color:#f92672">*</span>iter <span style="color:#f92672">=</span> <span style="color:#ae81ff">10</span>;  <span style="color:#75715e">// 没问题，可以改变 iter 所指物
+</span><span style="color:#75715e"></span><span style="color:#f92672">++</span>iter;      <span style="color:#75715e">// 错误！iter 是 const
+</span><span style="color:#75715e"></span>
+std<span style="color:#f92672">::</span>vector<span style="color:#f92672">&lt;</span><span style="color:#66d9ef">int</span><span style="color:#f92672">&gt;::</span>const_iterator cIter <span style="color:#f92672">=</span> vec.cbegin();  <span style="color:#75715e">// cIter 的作用像个 const T*
+</span><span style="color:#75715e"></span><span style="color:#f92672">*</span>cIter <span style="color:#f92672">=</span> <span style="color:#ae81ff">10</span>;  <span style="color:#75715e">// 错误！*cIter 是 const
+</span><span style="color:#75715e"></span><span style="color:#f92672">++</span>cIter;      <span style="color:#75715e">// 没问题，可以改变 cIter
+</span></code></pre></div><h2 id="function-like-classes-所谓仿函数">function-like classes 所谓仿函数</h2>
+<blockquote>
+<p>设计一个 class，让它的行为像一个函数</p>
+</blockquote>
+<p><strong>思考</strong>：C++ 为什么要让一个 Class 像一个指针或者像一个函数？在什么情景下？有什么好处？</p>
+<ul>
+<li><code>()</code> 小括号，函数调用操作符（function-call operator）</li>
+<li>任何一个东西如果它能够接受 <code>()</code> 操作符，我们就称这个东西是函数或者是一个像函数的东西</li>
+<li>函数对象，仿函数</li>
+</ul>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cpp" data-lang="cpp"><span style="color:#66d9ef">template</span> <span style="color:#f92672">&lt;</span><span style="color:#66d9ef">class</span> <span style="color:#a6e22e">T1</span>, <span style="color:#66d9ef">class</span> <span style="color:#a6e22e">T2</span><span style="color:#f92672">&gt;</span>
+<span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">Pair</span>
+{
+    T1 first;
+    T2 second;
+    Pair() <span style="color:#f92672">:</span> first(T1()), second(T2()) { }
+    Pair(<span style="color:#66d9ef">const</span> T1<span style="color:#f92672">&amp;</span> a, <span style="color:#66d9ef">const</span> T2<span style="color:#f92672">&amp;</span> b)
+      <span style="color:#f92672">:</span> first(a), second(b) { }
+};
+
+<span style="color:#66d9ef">template</span> <span style="color:#f92672">&lt;</span><span style="color:#66d9ef">class</span> <span style="color:#a6e22e">T</span><span style="color:#f92672">&gt;</span>
+<span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">identity</span> <span style="color:#f92672">:</span> <span style="color:#66d9ef">public</span> unary_function<span style="color:#f92672">&lt;</span>T, T<span style="color:#f92672">&gt;</span>
+{
+    <span style="color:#66d9ef">const</span> T<span style="color:#f92672">&amp;</span> <span style="color:#66d9ef">operator</span>()(<span style="color:#66d9ef">const</span> T<span style="color:#f92672">&amp;</span> x) <span style="color:#66d9ef">const</span> { <span style="color:#66d9ef">return</span> x; }
+};
+
+<span style="color:#66d9ef">template</span><span style="color:#f92672">&lt;</span><span style="color:#66d9ef">class</span> <span style="color:#a6e22e">Pair</span><span style="color:#f92672">&gt;</span>
+<span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">select1st</span> <span style="color:#f92672">:</span> <span style="color:#66d9ef">public</span> unary_function<span style="color:#f92672">&lt;</span>Pair, <span style="color:#66d9ef">typename</span> Pair<span style="color:#f92672">::</span>first_type<span style="color:#f92672">&gt;</span>
+{
+    <span style="color:#66d9ef">const</span> <span style="color:#66d9ef">typename</span> Pair<span style="color:#f92672">::</span>first_type<span style="color:#f92672">&amp;</span> <span style="color:#66d9ef">operator</span>()(<span style="color:#66d9ef">const</span> Pair<span style="color:#f92672">&amp;</span> x) <span style="color:#66d9ef">const</span> { <span style="color:#66d9ef">return</span> x.first; }
+};
+
+<span style="color:#66d9ef">template</span> <span style="color:#f92672">&lt;</span><span style="color:#66d9ef">class</span> <span style="color:#a6e22e">Pair</span><span style="color:#f92672">&gt;</span>
+<span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">select2nd</span> <span style="color:#f92672">:</span> <span style="color:#66d9ef">public</span> unary_function<span style="color:#f92672">&lt;</span>Pair, <span style="color:#66d9ef">typename</span> Pair<span style="color:#f92672">::</span>second_type<span style="color:#f92672">&gt;</span>
+{
+    <span style="color:#66d9ef">const</span> <span style="color:#66d9ef">typename</span> Pair<span style="color:#f92672">::</span>second_type<span style="color:#f92672">&amp;</span> <span style="color:#66d9ef">operator</span>()(<span style="color:#66d9ef">const</span> Pair<span style="color:#f92672">&amp;</span> x) <span style="color:#66d9ef">const</span> { <span style="color:#66d9ef">return</span> x.second; }
+};
+
+{
+    select1st<span style="color:#f92672">&lt;</span>Pair<span style="color:#f92672">&gt;</span>()()
+    <span style="color:#75715e">// 1. 创建临时对象
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// 2. 调用函数
+</span><span style="color:#75715e"></span>}
+</code></pre></div><p>标准库还有其他的仿函数</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cpp" data-lang="cpp"><span style="color:#66d9ef">template</span> <span style="color:#f92672">&lt;</span><span style="color:#66d9ef">class</span> <span style="color:#a6e22e">T</span><span style="color:#f92672">&gt;</span>
+<span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">plus</span> <span style="color:#f92672">:</span> <span style="color:#66d9ef">public</span> binary_function<span style="color:#f92672">&lt;</span>T, T, T<span style="color:#f92672">&gt;</span>
+{
+    T <span style="color:#a6e22e">operator</span>()(<span style="color:#66d9ef">const</span> T<span style="color:#f92672">&amp;</span> x, <span style="color:#66d9ef">const</span> T<span style="color:#f92672">&amp;</span> y) <span style="color:#66d9ef">const</span> { <span style="color:#66d9ef">return</span> x <span style="color:#f92672">+</span> y; }
+};
+
+<span style="color:#66d9ef">template</span> <span style="color:#f92672">&lt;</span><span style="color:#66d9ef">class</span> <span style="color:#a6e22e">T</span><span style="color:#f92672">&gt;</span>
+<span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">minus</span> <span style="color:#f92672">:</span> <span style="color:#66d9ef">public</span> binary_function<span style="color:#f92672">&lt;</span>T, T, T<span style="color:#f92672">&gt;</span>
+{
+    T <span style="color:#a6e22e">operator</span>()(<span style="color:#66d9ef">const</span> T<span style="color:#f92672">&amp;</span> x, <span style="color:#66d9ef">const</span> T<span style="color:#f92672">&amp;</span> y) <span style="color:#66d9ef">const</span> { <span style="color:#66d9ef">return</span> x <span style="color:#f92672">-</span> y; }
+};
+
+<span style="color:#66d9ef">template</span> <span style="color:#f92672">&lt;</span><span style="color:#66d9ef">class</span> <span style="color:#a6e22e">T</span><span style="color:#f92672">&gt;</span>
+<span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">equal_to</span> <span style="color:#f92672">:</span> <span style="color:#66d9ef">public</span> binary_function<span style="color:#f92672">&lt;</span>T, T, <span style="color:#66d9ef">bool</span><span style="color:#f92672">&gt;</span>
+{
+    <span style="color:#66d9ef">bool</span> <span style="color:#a6e22e">operator</span>()(<span style="color:#66d9ef">const</span> T<span style="color:#f92672">&amp;</span> x, <span style="color:#66d9ef">const</span> T<span style="color:#f92672">&amp;</span> y) <span style="color:#66d9ef">const</span> { <span style="color:#66d9ef">return</span> x <span style="color:#f92672">==</span> y; }
+};
+
+<span style="color:#66d9ef">template</span> <span style="color:#f92672">&lt;</span><span style="color:#66d9ef">class</span> <span style="color:#a6e22e">T</span><span style="color:#f92672">&gt;</span>
+<span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">less</span> <span style="color:#f92672">:</span> <span style="color:#66d9ef">public</span> binary_function<span style="color:#f92672">&lt;</span>T, T, <span style="color:#66d9ef">bool</span><span style="color:#f92672">&gt;</span>
+{
+    <span style="color:#66d9ef">bool</span> <span style="color:#a6e22e">operator</span>()(<span style="color:#66d9ef">const</span> T<span style="color:#f92672">&amp;</span> x, <span style="color:#66d9ef">const</span> T<span style="color:#f92672">&amp;</span> y) <span style="color:#66d9ef">const</span> { <span style="color:#66d9ef">return</span> x <span style="color:#f92672">&lt;</span> y; }
+};
+</code></pre></div><ul>
+<li>unary 一元运算符，一个操作数</li>
+<li>binary 二元运算符，两个操作数</li>
+</ul>
+<h3 id="标准库中仿函数所使用的奇特的-base-classes">标准库中，仿函数所使用的奇特的 base classes</h3>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cpp" data-lang="cpp"><span style="color:#66d9ef">template</span> <span style="color:#f92672">&lt;</span><span style="color:#66d9ef">class</span> <span style="color:#a6e22e">Arg</span>, <span style="color:#66d9ef">class</span> <span style="color:#a6e22e">Result</span><span style="color:#f92672">&gt;</span>
+<span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">unary_function</span>
+{
+    <span style="color:#66d9ef">typedef</span> Arg argument_type;
+    <span style="color:#66d9ef">typedef</span> Result result_type;
+};
+
+<span style="color:#66d9ef">template</span> <span style="color:#f92672">&lt;</span><span style="color:#66d9ef">class</span> <span style="color:#a6e22e">Arg1</span>, <span style="color:#66d9ef">class</span> <span style="color:#a6e22e">Arg2</span>, <span style="color:#66d9ef">class</span> <span style="color:#a6e22e">Result</span><span style="color:#f92672">&gt;</span>
+<span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">binary_function</span>
+{
+    <span style="color:#66d9ef">typedef</span> Arg1 first_argument_type;
+    <span style="color:#66d9ef">typedef</span> Arg2 second_argument_type;
+    <span style="color:#66d9ef">typedef</span> Result result_type;
+};
+</code></pre></div><ul>
+<li>sizeof(xxx) 理论上是 0，实际是 1</li>
+</ul>
+<h2 id="template-模版">template 模版</h2>
+<h3 id="class-template-类模版">class template 类模版</h3>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cpp" data-lang="cpp"><span style="color:#66d9ef">template</span> <span style="color:#f92672">&lt;</span><span style="color:#66d9ef">typename</span><span style="color:#f92672">&gt;</span>
+<span style="color:#66d9ef">class</span> <span style="color:#a6e22e">complex</span>
+{
+<span style="color:#66d9ef">public</span><span style="color:#f92672">:</span>
+    complex(T r <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>, T i <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>)
+      <span style="color:#f92672">:</span> re(r), im(i) { }
+    complex<span style="color:#f92672">&amp;</span> <span style="color:#66d9ef">operator</span><span style="color:#f92672">+=</span>(<span style="color:#66d9ef">const</span> complex<span style="color:#f92672">&amp;</span>);
+    T <span style="color:#a6e22e">real</span>() <span style="color:#66d9ef">const</span> { <span style="color:#66d9ef">return</span> re; }
+    T <span style="color:#a6e22e">imag</span>() <span style="color:#66d9ef">const</span> { <span style="color:#66d9ef">return</span> im; }
+<span style="color:#66d9ef">private</span><span style="color:#f92672">:</span>
+    T re, im;
+};
+
+{
+    complex<span style="color:#f92672">&lt;</span><span style="color:#66d9ef">double</span><span style="color:#f92672">&gt;</span> c1(<span style="color:#ae81ff">2.5</span>, <span style="color:#ae81ff">3.2</span>);
+    complex<span style="color:#f92672">&lt;</span><span style="color:#66d9ef">int</span><span style="color:#f92672">&gt;</span> c2(<span style="color:#ae81ff">2</span>, <span style="color:#ae81ff">6</span>);
+}
+</code></pre></div><h3 id="function-template-函数模版">function template 函数模版</h3>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cpp" data-lang="cpp"><span style="color:#66d9ef">class</span> <span style="color:#a6e22e">stone</span>
+{
+<span style="color:#66d9ef">public</span><span style="color:#f92672">:</span>
+    stone() <span style="color:#f92672">:</span> _w(<span style="color:#ae81ff">0</span>), _h(<span style="color:#ae81ff">0</span>), _weight(<span style="color:#ae81ff">0</span>) { }
+    stone(<span style="color:#66d9ef">int</span> w, <span style="color:#66d9ef">int</span> h, <span style="color:#66d9ef">int</span> we)
+      <span style="color:#f92672">:</span> _w(w), _h(h), _weight(we) { }
+    <span style="color:#66d9ef">bool</span> <span style="color:#66d9ef">operator</span><span style="color:#f92672">&lt;</span>(<span style="color:#66d9ef">const</span> stone<span style="color:#f92672">&amp;</span> rhs) <span style="color:#66d9ef">const</span> { <span style="color:#66d9ef">return</span> _weight <span style="color:#f92672">&lt;</span> rhs._weight; }
+<span style="color:#66d9ef">private</span><span style="color:#f92672">:</span>
+    <span style="color:#66d9ef">int</span> _w, _h, _weight;
+};
+
+<span style="color:#66d9ef">template</span> <span style="color:#f92672">&lt;</span><span style="color:#66d9ef">class</span> <span style="color:#a6e22e">T</span><span style="color:#f92672">&gt;</span>
+<span style="color:#66d9ef">inline</span> <span style="color:#66d9ef">const</span> T<span style="color:#f92672">&amp;</span> min(<span style="color:#66d9ef">const</span> T<span style="color:#f92672">&amp;</span> a, <span style="color:#66d9ef">const</span> T<span style="color:#f92672">&amp;</span> b)
+{
+    <span style="color:#66d9ef">return</span> b <span style="color:#f92672">&lt;</span> a <span style="color:#f92672">?</span> b : a;
+}
+
+{
+    stone <span style="color:#a6e22e">r1</span>(<span style="color:#ae81ff">1</span>, <span style="color:#ae81ff">2</span>, <span style="color:#ae81ff">3</span>), r2(<span style="color:#ae81ff">3</span>, <span style="color:#ae81ff">3</span>, <span style="color:#ae81ff">4</span>), r3;
+    r3 <span style="color:#f92672">=</span> min(r1, r2);
+}
+</code></pre></div><ul>
+<li>编译器会对函数模版进行实参推导（argument deduction）</li>
+<li>根据实参推导的结构，T 是 <code>stone</code>，于是调用 <code>stone::operator&lt;</code></li>
+</ul>
+<h3 id="member-template-成员模版">member template 成员模版</h3>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cpp" data-lang="cpp"><span style="color:#66d9ef">template</span> <span style="color:#f92672">&lt;</span><span style="color:#66d9ef">class</span> <span style="color:#a6e22e">T1</span>, <span style="color:#66d9ef">class</span> <span style="color:#a6e22e">T2</span><span style="color:#f92672">&gt;</span>
+<span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">pair</span>
+{
+    <span style="color:#66d9ef">typedef</span> T1 first_type;
+    <span style="color:#66d9ef">typedef</span> T2 seconde_type;
+
+    T1 first;
+    T2 second;
+
+    pair()
+      <span style="color:#f92672">:</span> first(T1()), second(T2()) {}
+    pair(<span style="color:#66d9ef">const</span> T1<span style="color:#f92672">&amp;</span> a, <span style="color:#66d9ef">const</span> T2<span style="color:#f92672">&amp;</span> b)
+      <span style="color:#f92672">:</span> first(a), second(b) {}
+
+    <span style="color:#75715e">// 成员模版
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">template</span> <span style="color:#f92672">&lt;</span><span style="color:#66d9ef">class</span> <span style="color:#a6e22e">U1</span>, <span style="color:#66d9ef">class</span> <span style="color:#a6e22e">U2</span><span style="color:#f92672">&gt;</span>
+    pair(<span style="color:#66d9ef">const</span> pair<span style="color:#f92672">&lt;</span>U1, U2<span style="color:#f92672">&gt;&amp;</span> p)
+      <span style="color:#f92672">:</span> first(p.first), second(p.second) {}
+};
+</code></pre></div><ul>
+<li>成员模版是 class template 里面的一个 member，然后它是一个模版，就称为 member template</li>
+<li>T1 T2是可以变换的，在 T1 T2 确定下来之后，里面的 U1 U2 也可以变化</li>
+<li>为了让构造函数更有弹性</li>
+</ul>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cpp" data-lang="cpp"><span style="color:#66d9ef">template</span> <span style="color:#f92672">&lt;</span><span style="color:#66d9ef">typename</span> _Tp<span style="color:#f92672">&gt;</span>
+<span style="color:#66d9ef">class</span> <span style="color:#a6e22e">shared_ptr</span> <span style="color:#f92672">:</span> <span style="color:#66d9ef">public</span> __shared_ptr<span style="color:#f92672">&lt;</span>_Tp<span style="color:#f92672">&gt;</span>
+{
+    ...
+    <span style="color:#66d9ef">template</span> <span style="color:#f92672">&lt;</span><span style="color:#66d9ef">typename</span> _Tp1<span style="color:#f92672">&gt;</span>
+    <span style="color:#66d9ef">explicit</span> shared_ptr(_Tp1<span style="color:#f92672">*</span> __p)
+      <span style="color:#f92672">:</span> __shared_ptr<span style="color:#f92672">&lt;</span>_Tp<span style="color:#f92672">&gt;</span>(__p) { }
+    ...
+};
+
+Base1<span style="color:#f92672">*</span> ptr <span style="color:#f92672">=</span> <span style="color:#66d9ef">new</span> Derived1;  <span style="color:#75715e">// up-cast
+</span><span style="color:#75715e"></span>shared_ptr<span style="color:#f92672">&lt;</span>Base1<span style="color:#f92672">&gt;</span> sptr(<span style="color:#66d9ef">new</span> Derived1);  <span style="color:#75715e">// 模拟 up-cast
+</span></code></pre></div><h2 id="specialization-模版特化">specialization 模版特化</h2>
+<ul>
+<li>泛化 - 特化</li>
+<li>在设计了一个模版之后，需要局部特化</li>
+</ul>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cpp" data-lang="cpp"><span style="color:#75715e">// 泛化
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">template</span> <span style="color:#f92672">&lt;</span><span style="color:#66d9ef">class</span> <span style="color:#a6e22e">Key</span><span style="color:#f92672">&gt;</span>
+<span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">hash</span> { };
+
+<span style="color:#75715e">// 特化
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">template</span> <span style="color:#f92672">&lt;&gt;</span>
+<span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">hash</span><span style="color:#f92672">&lt;</span><span style="color:#66d9ef">char</span><span style="color:#f92672">&gt;</span>
+{
+    size_t <span style="color:#a6e22e">operator</span>()(<span style="color:#66d9ef">char</span> x) <span style="color:#66d9ef">const</span> { <span style="color:#66d9ef">return</span> x; }
+};
+
+<span style="color:#66d9ef">template</span> <span style="color:#f92672">&lt;&gt;</span>
+<span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">hash</span><span style="color:#f92672">&lt;</span><span style="color:#66d9ef">int</span><span style="color:#f92672">&gt;</span>
+{
+    size_t <span style="color:#a6e22e">operator</span>()(<span style="color:#66d9ef">int</span> x) <span style="color:#66d9ef">const</span> { <span style="color:#66d9ef">return</span> x; }
+};
+
+<span style="color:#66d9ef">template</span> <span style="color:#f92672">&lt;&gt;</span>
+<span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">hash</span><span style="color:#f92672">&lt;</span><span style="color:#66d9ef">long</span><span style="color:#f92672">&gt;</span>
+{
+    size_t <span style="color:#a6e22e">operator</span>()(<span style="color:#66d9ef">long</span> x) <span style="color:#66d9ef">const</span> { <span style="color:#66d9ef">return</span> x; }
+};
+</code></pre></div><ul>
+<li>泛化称为全泛化（full）</li>
+<li>偏特化（partial specialization）</li>
+</ul>
+<h2 id="partial-specialization-偏特化">partial specialization 偏特化</h2>
+<h3 id="个数上的偏">个数上的偏</h3>
+<ul>
+<li>bool 只需要占用一个 bit 上就可以了</li>
+</ul>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cpp" data-lang="cpp"><span style="color:#66d9ef">template</span> <span style="color:#f92672">&lt;</span><span style="color:#66d9ef">typename</span> T, <span style="color:#66d9ef">typename</span> Alloc<span style="color:#f92672">=</span>......<span style="color:#f92672">&gt;</span>
+<span style="color:#66d9ef">class</span> <span style="color:#a6e22e">vector</span>
+{
+    ...
+};
+
+<span style="color:#66d9ef">template</span> <span style="color:#f92672">&lt;</span><span style="color:#66d9ef">typename</span> Alloc<span style="color:#f92672">=</span>......<span style="color:#f92672">&gt;</span>
+<span style="color:#66d9ef">class</span> <span style="color:#a6e22e">vector</span><span style="color:#f92672">&lt;</span><span style="color:#66d9ef">bool</span>, Alloc<span style="color:#f92672">&gt;</span>
+{
+    ...
+};
+</code></pre></div><h3 id="范围上的偏">范围上的偏</h3>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cpp" data-lang="cpp"><span style="color:#66d9ef">template</span> <span style="color:#f92672">&lt;</span><span style="color:#66d9ef">typename</span> T<span style="color:#f92672">&gt;</span>
+<span style="color:#66d9ef">class</span> <span style="color:#a6e22e">C</span>
+{
+    <span style="color:#75715e">// 类型不为指针，就使用这一套代码
+</span><span style="color:#75715e"></span>    ...
+};
+
+<span style="color:#66d9ef">template</span> <span style="color:#f92672">&lt;</span><span style="color:#66d9ef">typename</span> U<span style="color:#f92672">&gt;</span>
+<span style="color:#66d9ef">class</span> <span style="color:#a6e22e">C</span><span style="color:#f92672">&lt;</span>U<span style="color:#f92672">*&gt;</span>
+{
+    <span style="color:#75715e">// 类型为指针，就使用这一套特化代码
+</span><span style="color:#75715e"></span>    ...
+};
+
+{
+    C<span style="color:#f92672">&lt;</span>string<span style="color:#f92672">&gt;</span> obj1;  <span style="color:#75715e">// 使用第一套代码
+</span><span style="color:#75715e"></span>    C<span style="color:#f92672">&lt;</span>string<span style="color:#f92672">*&gt;</span> obj2; <span style="color:#75715e">// 使用第二套代码
+</span><span style="color:#75715e"></span>}
+</code></pre></div><ul>
+<li>接收任意类型</li>
+<li>接收指针类型，指针也是任意类型中的一种</li>
+</ul>
+<h2 id="template-template-parameter-模版模版参数">template template parameter 模版模版参数</h2>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cpp" data-lang="cpp"><span style="color:#66d9ef">template</span> <span style="color:#f92672">&lt;</span><span style="color:#66d9ef">typename</span> T,
+          <span style="color:#66d9ef">template</span> <span style="color:#f92672">&lt;</span><span style="color:#66d9ef">typename</span> T<span style="color:#f92672">&gt;</span>
+              <span style="color:#66d9ef">class</span> <span style="color:#a6e22e">Container</span>
+        <span style="color:#f92672">&gt;</span>
+<span style="color:#66d9ef">class</span> <span style="color:#a6e22e">XCls</span>
+{
+<span style="color:#66d9ef">private</span><span style="color:#f92672">:</span>
+    Container<span style="color:#f92672">&lt;</span>T<span style="color:#f92672">&gt;</span> c;
+<span style="color:#66d9ef">public</span><span style="color:#f92672">:</span>
+    ...
+};
+
+<span style="color:#66d9ef">template</span> <span style="color:#f92672">&lt;</span><span style="color:#66d9ef">typename</span> T<span style="color:#f92672">&gt;</span>
+<span style="color:#66d9ef">using</span> Lst <span style="color:#f92672">=</span> List<span style="color:#f92672">&lt;</span>T, allocator<span style="color:#f92672">&lt;</span>T<span style="color:#f92672">&gt;&gt;</span>;
+
+XCls<span style="color:#f92672">&lt;</span>string, list<span style="color:#f92672">&gt;</span> mylist1;  <span style="color:#75715e">// error
+</span><span style="color:#75715e"></span>XCls<span style="color:#f92672">&lt;</span>string, Lst<span style="color:#f92672">&gt;</span> mylist2;   <span style="color:#75715e">// success
+</span></code></pre></div><ul>
+<li><code>template &lt;typename T&gt; class Container</code> 是一个模版的参数，其本身就是作为一个模版存在的</li>
+<li>在模版参数列表中，即尖括号中，<code>class</code> 和 <code>typename</code> 关键字是共通的。历史因素</li>
+</ul>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cpp" data-lang="cpp"><span style="color:#66d9ef">template</span> <span style="color:#f92672">&lt;</span><span style="color:#66d9ef">typename</span> T,
+          <span style="color:#66d9ef">template</span> <span style="color:#f92672">&lt;</span><span style="color:#66d9ef">typename</span> T<span style="color:#f92672">&gt;</span>
+              <span style="color:#66d9ef">class</span> <span style="color:#a6e22e">SmartPtr</span>
+         <span style="color:#f92672">&gt;</span>
+<span style="color:#66d9ef">class</span> <span style="color:#a6e22e">XCls</span>
+{
+<span style="color:#66d9ef">private</span><span style="color:#f92672">:</span>
+    SmartPtr<span style="color:#f92672">&lt;</span>T<span style="color:#f92672">&gt;</span> sp;
+<span style="color:#66d9ef">public</span><span style="color:#f92672">:</span>
+    XCls() <span style="color:#f92672">:</span> sp(<span style="color:#66d9ef">new</span> T) {}
+};
+
+XCls<span style="color:#f92672">&lt;</span>string, shared_ptr<span style="color:#f92672">&gt;</span> p1;  <span style="color:#75715e">// success
+</span><span style="color:#75715e"></span>XCls<span style="color:#f92672">&lt;</span><span style="color:#66d9ef">double</span>, unique_ptr<span style="color:#f92672">&gt;</span> p2;  <span style="color:#75715e">// error
+</span><span style="color:#75715e"></span>XCls<span style="color:#f92672">&lt;</span><span style="color:#66d9ef">int</span>, weak_ptr<span style="color:#f92672">&gt;</span>      p3;  <span style="color:#75715e">// error
+</span><span style="color:#75715e"></span>XCls<span style="color:#f92672">&lt;</span><span style="color:#66d9ef">long</span>, auto_ptr<span style="color:#f92672">&gt;</span>     p4;  <span style="color:#75715e">// success
+</span></code></pre></div><h3 id="这不是模版模版参数">这不是模版模版参数</h3>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cpp" data-lang="cpp"><span style="color:#66d9ef">template</span> <span style="color:#f92672">&lt;</span><span style="color:#66d9ef">class</span> <span style="color:#a6e22e">T</span>, <span style="color:#66d9ef">class</span> <span style="color:#a6e22e">Sequence</span> <span style="color:#f92672">=</span> deque<span style="color:#f92672">&lt;</span>T<span style="color:#f92672">&gt;&gt;</span>
+<span style="color:#66d9ef">class</span> <span style="color:#a6e22e">stack</span>
+{
+    <span style="color:#66d9ef">friend</span> <span style="color:#66d9ef">bool</span> <span style="color:#66d9ef">operator</span><span style="color:#f92672">==</span> <span style="color:#f92672">&lt;&gt;</span> (<span style="color:#66d9ef">const</span> stack<span style="color:#f92672">&amp;</span>, <span style="color:#66d9ef">const</span> stack<span style="color:#f92672">&amp;</span>);
+    <span style="color:#66d9ef">friend</span> <span style="color:#66d9ef">bool</span> <span style="color:#66d9ef">operator</span><span style="color:#f92672">&lt;</span> <span style="color:#f92672">&lt;&gt;</span> (<span style="color:#66d9ef">const</span> stack<span style="color:#f92672">&amp;</span>, <span style="color:#66d9ef">const</span> stack<span style="color:#f92672">&amp;</span>);
+
+<span style="color:#66d9ef">protected</span><span style="color:#f92672">:</span>
+    Sequence c;  <span style="color:#75715e">// 底层容器
+</span><span style="color:#75715e"></span>    ...
+};
+
+stack<span style="color:#f92672">&lt;</span><span style="color:#66d9ef">int</span><span style="color:#f92672">&gt;</span> s1;
+stack<span style="color:#f92672">&lt;</span><span style="color:#66d9ef">int</span>, list<span style="color:#f92672">&lt;</span><span style="color:#66d9ef">int</span><span style="color:#f92672">&gt;&gt;</span> s2;
+</code></pre></div><h2 id="c-标准库">C++ 标准库</h2>
+<blockquote>
+<p>库很重要，要熟用，掌握【侯捷另有一门讲 STL 标准库的视频课程】</p>
+</blockquote>
+<p>确定当前编译器是否支持 C++11：macro __cplusplus</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cpp" data-lang="cpp"><span style="color:#75715e">#include</span> <span style="color:#75715e">&lt;iostream&gt;</span><span style="color:#75715e">
+</span><span style="color:#75715e"></span>
+<span style="color:#66d9ef">int</span> <span style="color:#a6e22e">main</span>(<span style="color:#66d9ef">void</span>)
+{
+    std<span style="color:#f92672">::</span>cout <span style="color:#f92672">&lt;&lt;</span> __cplusplus <span style="color:#f92672">&lt;&lt;</span> std<span style="color:#f92672">::</span>endl;
+    <span style="color:#75715e">// - 对于支持 C++11 的编译器，输出为 201103，可能更高 C++20？
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// - 对于 C++98 C++03，输出为 199711
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">return</span> <span style="color:#ae81ff">0</span>;
+}
+</code></pre></div><h2 id="c11variadic-template-数量不定的模版参数">C++11：variadic template 数量不定的模版参数</h2>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cpp" data-lang="cpp"><span style="color:#66d9ef">void</span> <span style="color:#a6e22e">print</span>()
+{
+}
+
+<span style="color:#66d9ef">template</span> <span style="color:#f92672">&lt;</span><span style="color:#66d9ef">typename</span> T, <span style="color:#66d9ef">typename</span>... Types<span style="color:#f92672">&gt;</span>
+<span style="color:#66d9ef">void</span> print(<span style="color:#66d9ef">const</span> T<span style="color:#f92672">&amp;</span> firstArg, <span style="color:#66d9ef">const</span> Types<span style="color:#f92672">&amp;</span>... args)
+{
+    cout <span style="color:#f92672">&lt;&lt;</span> firstArg <span style="color:#f92672">&lt;&lt;</span> endl;
+    print(args...);
+}
+</code></pre></div><ul>
+<li>Inside variadic templates, sizeof&hellip;(args) yields the number of arguments</li>
+<li>一个和一包（pack）</li>
+<li>后面的一包可以拿来继承，组合</li>
+<li>标准库中大量使用这个语法</li>
+</ul>
+<h2 id="c11-auto">C++11: auto</h2>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cpp" data-lang="cpp">list<span style="color:#f92672">&lt;</span>string<span style="color:#f92672">&gt;</span> c;
+...
+
+<span style="color:#75715e">// 1. 第一种用法
+</span><span style="color:#75715e"></span>list<span style="color:#f92672">&lt;</span>string<span style="color:#f92672">&gt;::</span>iterator ite1;
+ite1 <span style="color:#f92672">=</span> find(c.begin(), c.end(), target);
+
+<span style="color:#75715e">// 2. 第二种用法，编译器自动进行推断
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">auto</span> ite2 <span style="color:#f92672">=</span> find(c.begin(), c.end(), target);
+
+<span style="color:#75715e">// 错误写法
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">auto</span> ite3;
+ite3 <span style="color:#f92672">=</span> find(c.begin(), c.end(), target);
+</code></pre></div><h2 id="c11-range-base-for-loop">C++11: range-base for loop</h2>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cpp" data-lang="cpp">vector<span style="color:#f92672">&lt;</span><span style="color:#66d9ef">double</span><span style="color:#f92672">&gt;</span> vec;
+...
+<span style="color:#66d9ef">for</span> (<span style="color:#66d9ef">auto</span> elem : vec) {  <span style="color:#75715e">// pass by value
+</span><span style="color:#75715e"></span>    cout <span style="color:#f92672">&lt;&lt;</span> elem <span style="color:#f92672">&lt;&lt;</span> endl;
+}
+
+<span style="color:#66d9ef">for</span> (<span style="color:#66d9ef">auto</span><span style="color:#f92672">&amp;</span> elem : vec) {  <span style="color:#75715e">// pass by reference
+</span><span style="color:#75715e"></span>    elem <span style="color:#f92672">*</span> <span style="color:#f92672">=</span> <span style="color:#ae81ff">3</span>;
+}
+</code></pre></div><ul>
+<li>reference 引用的底层实现就是 pointer 指针，只是表现的形式不同，编译器都是使用指针来实现引用的</li>
+</ul>
+<h2 id="reference-引用">Reference 引用</h2>
+<p>从内存的角度去看变量，变量有三种</p>
+<ul>
+<li>值 value 本身</li>
+<li>指针，“指向”</li>
+<li>引用，“代表”，一定要设置初值，设置完成之后不能改变</li>
+</ul>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cpp" data-lang="cpp"><span style="color:#66d9ef">int</span> x <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>;
+<span style="color:#66d9ef">int</span><span style="color:#f92672">*</span> p <span style="color:#f92672">=</span> <span style="color:#f92672">&amp;</span>x;
+<span style="color:#66d9ef">int</span><span style="color:#f92672">&amp;</span> r <span style="color:#f92672">=</span> x;
+</code></pre></div><ul>
+<li>sizeof(x) == sizeof(r)</li>
+<li>&amp;x = &amp;r</li>
+<li>reference 是一种漂亮的 pointer</li>
+</ul>
+<p>编译器制造了一种假象，object 和其 reference 的大小相同，地址也相同</p>
+<h3 id="reference-的常见用途----参数传递">reference 的常见用途 &ndash; 参数传递</h3>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cpp" data-lang="cpp"><span style="color:#66d9ef">void</span> <span style="color:#a6e22e">func1</span>(Cls<span style="color:#f92672">*</span> pobj) { pobj<span style="color:#f92672">-&gt;</span>xxx(); }
+<span style="color:#66d9ef">void</span> <span style="color:#a6e22e">func2</span>(Cls  obj)  { obj.xxx(); }
+<span style="color:#66d9ef">void</span> <span style="color:#a6e22e">func3</span>(Cls<span style="color:#f92672">&amp;</span> obj)  { obj.xxx(); }  <span style="color:#75715e">// func2 和 func3 调用端写法相同，很好
+</span><span style="color:#75715e"></span>
+...
+Cls obj;
+func1(<span style="color:#f92672">&amp;</span>obj); <span style="color:#75715e">// 接口不同，困扰
+</span><span style="color:#75715e"></span>func2(obj);
+func3(obj);  <span style="color:#75715e">// func2 fun3 调用端接口相同，很好
+</span></code></pre></div><p>reference 通常不用于声明变量，而用于参数类型（parameters type）和返回类型（return type）的描述</p>
+<p>以下被认为是“same signature”（所以二者不能同时存在）：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cpp" data-lang="cpp"><span style="color:#66d9ef">double</span> <span style="color:#a6e22e">imag</span>(<span style="color:#66d9ef">const</span> <span style="color:#66d9ef">double</span><span style="color:#f92672">&amp;</span> im) { ... }  <span style="color:#75715e">// 传引用
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">double</span> <span style="color:#a6e22e">imag</span>(<span style="color:#66d9ef">const</span> <span style="color:#66d9ef">double</span>  im) { ... }  <span style="color:#75715e">// 传值，二者签名相同，Ambiguity
+</span></code></pre></div><ul>
+<li>成员函数加 const 是不是函数签名的一部分？是签名的一部分！</li>
+</ul>
+<h2 id="版权声明">版权声明</h2>
+<p>本作品采用<a href="http://creativecommons.org/licenses/by/4.0/">知识共享署名 4.0 国际许可协议</a>进行许可，转载时请注明原文链接。</p>
+
+    </div>
+  </article>
+
+  
+
+
+</main>
+
+      <footer class="footer">
+        <ul class="footer-links">
+          <li>
+            <a href="https://qiaoin.github.io">在桥边</a> © 2016 - 2021
+          </li>
+          <li>
+            <a href="https://gohugo.io/" class="footer-links-kudos">Made with <img src="/images/hugo-logo.png" alt="Img link to Hugo website" width="22" height="22"></a>
+          </li>
+        </ul>
+      </footer>
+
+    </div>
+    
+
+
+
+<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/highlight.min.js"></script>
+
+
+
+<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/languages/awk.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/languages/bash.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/languages/c.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/languages/c&#43;&#43;.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/languages/cmake.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/languages/go.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/languages/java.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/languages/python.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/languages/yaml.min.js"></script>
+<script>hljs.configure({languages: []}); hljs.initHighlightingOnLoad();</script>
+
+
+
+    
+
+    
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-EBLEJGMMQV"></script>
+<script>
+var doNotTrack = false;
+if (!doNotTrack) {
+	window.dataLayer = window.dataLayer || [];
+	function gtag(){dataLayer.push(arguments);}
+	gtag('js', new Date());
+	gtag('config', 'G-EBLEJGMMQV', { 'anonymize_ip': false });
+}
+</script>
+
+  </body>
+</html>
+

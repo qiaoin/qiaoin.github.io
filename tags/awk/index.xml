@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>AWK on 在桥边</title>
+    <link>https://qiaoin.github.io/tags/awk/</link>
+    <description>Recent content in AWK on 在桥边</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>en-us</language>
+    <lastBuildDate>Sun, 08 Sep 2019 00:00:00 +0000</lastBuildDate><atom:link href="https://qiaoin.github.io/tags/awk/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>AWK 学习使用</title>
+      <link>https://qiaoin.github.io/2019/09/08/learning-awk/</link>
+      <pubDate>Sun, 08 Sep 2019 00:00:00 +0000</pubDate>
+      
+      <guid>https://qiaoin.github.io/2019/09/08/learning-awk/</guid>
+      <description>由于经常需要跟命令行和文本处理打交道，也确实在实际使用中体会到了 AWK 的强大力量，决定系统学习一下 AWK，此之为学习使用的笔记整理 下文中引用部分</description>
+    </item>
+    
+  </channel>
+</rss>

@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>编程语言 on 在桥边</title>
+    <link>https://qiaoin.github.io/categories/%E7%BC%96%E7%A8%8B%E8%AF%AD%E8%A8%80/</link>
+    <description>Recent content in 编程语言 on 在桥边</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>en-us</language>
+    <lastBuildDate>Sun, 08 Sep 2019 00:00:00 +0000</lastBuildDate><atom:link href="https://qiaoin.github.io/categories/%E7%BC%96%E7%A8%8B%E8%AF%AD%E8%A8%80/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>AWK 学习使用</title>
+      <link>https://qiaoin.github.io/2019/09/08/learning-awk/</link>
+      <pubDate>Sun, 08 Sep 2019 00:00:00 +0000</pubDate>
+      
+      <guid>https://qiaoin.github.io/2019/09/08/learning-awk/</guid>
+      <description>由于经常需要跟命令行和文本处理打交道，也确实在实际使用中体会到了 AWK 的强大力量，决定系统学习一下 AWK，此之为学习使用的笔记整理 下文中引用部分</description>
+    </item>
+    
+    <item>
+      <title>C&#43;&#43; 面向对象程序设计</title>
+      <link>https://qiaoin.github.io/2019/07/27/object-based-and-object-oriented/</link>
+      <pubDate>Sat, 27 Jul 2019 00:00:00 +0000</pubDate>
+      
+      <guid>https://qiaoin.github.io/2019/07/27/object-based-and-object-oriented/</guid>
+      <description>写在最前面 侯捷老师翻译的 Effective C++，C++ 学习者人手必备一本。本系列博文是笔者在学习侯捷老师视频课程时整理的笔记，将课程内容的关键点与 Effective C++ 的对</description>
+    </item>
+    
+  </channel>
+</rss>
