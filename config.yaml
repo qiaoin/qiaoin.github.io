@@ -26,6 +26,7 @@ params:
   favicon: favicon.ico
   highlightjsCDN: //cdnjs.cloudflare.com/ajax/libs
   highlightjsLang:
+    - awk
     - bash
     - c
     - c++

@@ -64,3 +64,7 @@ Q1：如果填充字符串 `PS` 中存在 `00`，那如何确定 `PS` 和 `D` �
 [RFC 2313](https://tools.ietf.org/html/rfc2313) 中的 Notes 对此是有解释的：
 
 > For block type 00, the data D must begin with a nonzero octet or have known length so that the encryption block can be parsed unambiguously. For block types 01 and 02, the encryption block can be parsed unambiguously since **the padding string PS contains no octets with value 00** and the padding string is separated from the data D by an octet with value 00.
+
+## 版权声明
+
+本作品采用[知识共享署名 4.0 国际许可协议](http://creativecommons.org/licenses/by/4.0/)进行许可，转载时请注明原文链接。

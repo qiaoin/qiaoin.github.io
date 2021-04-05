@@ -243,3 +243,7 @@ public int nextInt(int bound) {
 for (int u = next(31); u - r + (bound - 1) < 0; u = next(31))
     r = u % bound;
 ```
+
+## 版权声明
+
+本作品采用[知识共享署名 4.0 国际许可协议](http://creativecommons.org/licenses/by/4.0/)进行许可，转载时请注明原文链接。
