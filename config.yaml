@@ -42,3 +42,8 @@ params:
     height: 50
     url: logo.png
     width: 50
+  utteranc:
+    enable: true
+    repo: "qiaoin/hugo-blog-comments" # 存储评论的Repo，格式为 owner/repo
+    issueTitle: "og:title"            # 表示你选择以那种方式让github issue的评论和你的文章关联可以选择默认的pathname。
+    theme: "github-light"             # 样式主题
