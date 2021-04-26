@@ -6,7 +6,16 @@
     <description>Recent content on 在桥边</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
-    <lastBuildDate>Tue, 09 Jun 2020 00:00:00 +0000</lastBuildDate><atom:link href="https://qiaoin.github.io/index.xml" rel="self" type="application/rss+xml" />
+    <lastBuildDate>Mon, 26 Apr 2021 00:00:00 +0000</lastBuildDate><atom:link href="https://qiaoin.github.io/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>来，我们写一个 Daemon（守护进程），不是 Demo</title>
+      <link>https://qiaoin.github.io/2021/04/26/write-a-daemon/</link>
+      <pubDate>Mon, 26 Apr 2021 00:00:00 +0000</pubDate>
+      
+      <guid>https://qiaoin.github.io/2021/04/26/write-a-daemon/</guid>
+      <description>什么是 Daemon？ 守护进程（daemon）是生存期长的一种进程。它们常常在系统引导装入时启动，仅在系统关闭时才终止。因为它们没有控制终端，</description>
+    </item>
+    
     <item>
       <title>想着自己应该再努力一把</title>
       <link>https://qiaoin.github.io/about/</link>

@@ -2,28 +2,37 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
   xmlns:xhtml="http://www.w3.org/1999/xhtml">
   <url>
+    <loc>https://qiaoin.github.io/categories/</loc>
+    <lastmod>2021-04-26T00:00:00+00:00</lastmod>
+  </url><url>
+    <loc>https://qiaoin.github.io/tags/daemon/</loc>
+    <lastmod>2021-04-26T00:00:00+00:00</lastmod>
+  </url><url>
+    <loc>https://qiaoin.github.io/categories/linux/</loc>
+    <lastmod>2021-04-26T00:00:00+00:00</lastmod>
+  </url><url>
+    <loc>https://qiaoin.github.io/post/</loc>
+    <lastmod>2021-04-26T00:00:00+00:00</lastmod>
+  </url><url>
+    <loc>https://qiaoin.github.io/tags/</loc>
+    <lastmod>2021-04-26T00:00:00+00:00</lastmod>
+  </url><url>
+    <loc>https://qiaoin.github.io/</loc>
+    <lastmod>2021-04-26T00:00:00+00:00</lastmod>
+  </url><url>
+    <loc>https://qiaoin.github.io/2021/04/26/write-a-daemon/</loc>
+    <lastmod>2021-04-26T00:00:00+00:00</lastmod>
+  </url><url>
     <loc>https://qiaoin.github.io/about/</loc>
     <lastmod>2021-04-05T00:00:00+00:00</lastmod>
   </url><url>
     <loc>https://qiaoin.github.io/categories/algorithm/</loc>
     <lastmod>2020-06-09T00:00:00+00:00</lastmod>
   </url><url>
-    <loc>https://qiaoin.github.io/categories/</loc>
-    <lastmod>2020-06-09T00:00:00+00:00</lastmod>
-  </url><url>
-    <loc>https://qiaoin.github.io/post/</loc>
-    <lastmod>2020-06-09T00:00:00+00:00</lastmod>
-  </url><url>
     <loc>https://qiaoin.github.io/tags/rsa/</loc>
     <lastmod>2020-06-09T00:00:00+00:00</lastmod>
   </url><url>
     <loc>https://qiaoin.github.io/2020/06/09/rsa/</loc>
-    <lastmod>2020-06-09T00:00:00+00:00</lastmod>
-  </url><url>
-    <loc>https://qiaoin.github.io/tags/</loc>
-    <lastmod>2020-06-09T00:00:00+00:00</lastmod>
-  </url><url>
-    <loc>https://qiaoin.github.io/</loc>
     <lastmod>2020-06-09T00:00:00+00:00</lastmod>
   </url><url>
     <loc>https://qiaoin.github.io/tags/awk/</loc>
