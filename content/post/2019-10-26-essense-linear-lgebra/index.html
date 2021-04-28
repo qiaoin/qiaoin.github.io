@@ -1,0 +1,1662 @@
+---
+title: 线性代数基础
+author: qiaoin
+date: '2019-10-26'
+slug: essense-linear-lgebra
+categories:
+  - math
+tags:
+  - 线性代数
+---
+
+<script src="{{< blogdown/postref >}}index_files/header-attrs/header-attrs.js"></script>
+
+
+<hr />
+<ul>
+<li><a href="https://www.bilibili.com/video/av6731067">线性代数的本质 - 系列合集</a></li>
+</ul>
+<hr />
+<p>我们学习了线性代数，却无法对下面的问题形成真正的理解：</p>
+<ol style="list-style-type: decimal">
+<li>为什么矩阵乘法要如此定义？（<strong>matrix multiplication</strong>）</li>
+</ol>
+<p><span class="math display">\[
+\begin{bmatrix}
+a &amp; b \\
+c &amp; d
+\end{bmatrix}
+\begin{bmatrix}
+e &amp; f \\
+g &amp; h
+\end{bmatrix}
+=
+\begin{bmatrix}
+ae + bg &amp; af + bh \\
+ce + dg &amp; cf + dh
+\end{bmatrix}
+\]</span></p>
+<ol start="2" style="list-style-type: decimal">
+<li>为什么叉积与行列式有所关联？（<strong>cross product</strong> and <strong>determinant</strong>）</li>
+</ol>
+<p><span class="math display">\[
+\overrightarrow{v} \times \overrightarrow{w} \overset{?}\longleftrightarrow \mathbf{Det}
+\]</span></p>
+<ol start="3" style="list-style-type: decimal">
+<li>特征值究竟代表了什么？（<strong>eigen value</strong>）</li>
+</ol>
+<p>数值运算（<strong>numeric operations</strong>） vs. 几何直观（<strong>geometric intuition</strong>）</p>
+<p>在数值水平和几何水平上理解线性代数有着根本性的差异，在几何水平上的理解能够让我们判断出解决特定问题需要用什么样的工具，感觉到它们为什么有用，以及如何解读最终结果；而数值水平上的理解则能够让我们顺利应用这些工具</p>
+<div id="向量究竟是什么essense-of-linear-algebra" class="section level2">
+<h2>向量究竟是什么？（Essense of Linear Algebra）</h2>
+<p>三种视角：</p>
+<ol style="list-style-type: decimal">
+<li>物理专业学生：<code>$\nearrow$</code> <strong>向量是空间中的箭头</strong>，决定一个向量的是它的长度和它所指的方向。但只要以上两个特征相同，我们就可以移动一个向量并保持它不变。向量按维度进行分类，平面上为二维向量，我们生活的空间为三维向量</li>
+<li>计算机专业学生：<code>$\begin{bmatrix}1 \\ 2\end{bmatrix}$</code> <strong>向量是有序的数字列表</strong>。例如，我们可以使用二维向量来对房屋进行建模（假设房屋有两个特征，大小和价格），在这里，“向量”只不过是“列表”的一种花哨说法，之所以这个向量是二维的，是因为这个列表的长度是 2</li>
+<li>数学家：<code>$\overrightarrow{v}$</code> 将以上两种说法进行概括，认为向量可以是任何东西，只要保证两个向量相加以及数字与向量相乘是有意义的即可。对向量的理解更加抽象</li>
+</ol>
+<div id="向量加法" class="section level3">
+<h3>向量加法</h3>
+<p><span class="math display">\[
+\overrightarrow{v} + \overrightarrow{w} 
+\]</span></p>
+<p>假设有两个向量，<code>$\overrightarrow{v}$</code> 和 <code>$\overrightarrow{w}$</code>，为了将它们相加，可以平移第二个向量，使它的起点与第一个向量的终点重合，然后画一个向量，它从第一个向量的起点出发，指向第二个向量（平移之后）的终点，这个新的向量就是 <code>$\overrightarrow{v}$</code> 和 <code>$\overrightarrow{w}$</code> 相加的和</p>
+<p>=&gt; 向量加法的定义差不多是线性代数中唯一允许向量离开原点的情形</p>
+<p>=&gt; 为什么这样的定义是合理的呢？为什么不用其他的方法去定义呢？<strong>将每个向量看做一种特定的运动</strong>，首先沿着第一个向量运动，然后再按照第二个向量所描述的运动方式进行运动，总体效果和直接沿着这两个向量的和向量运行无异</p>
+<p>=&gt; 理解为数轴上加法的一种扩展</p>
+<p>=&gt; 在向量是有序的数字列表的观点中，向量加法就是把对应项相加</p>
+</div>
+<div id="向量数乘" class="section level3">
+<h3>向量数乘</h3>
+<p><span class="math display">\[
+\lambda \overrightarrow{v}
+\]</span></p>
+<p>如果选择数字 <code>$\lambda = 2$</code>，把它和一个给定向量相乘，意味着将这个向量拉长为原向量的 2 倍；如果将向量乘以 <code>$\frac{1}{3}$</code>（即 <code>$\lambda = \frac{1}{3}$</code>），就意味着这个向量长度缩短为原来的 <code>$\frac{1}{3}$</code>；当向量与一个负数相乘时，比如 <code>$\lambda = -1.8$</code>，说明这个向量首先反向，然后伸长为原来的 1.8 倍</p>
+<p>=&gt; 这种拉伸（stretching）或压缩（squishing），有时又使向量反向（reversing）的过程被称为“<strong>缩放</strong>”（scaling）</p>
+<p>=&gt; <code>$\lambda$</code> 用于缩放向量，被称为“<strong>标量</strong>”（scalar）</p>
+<p>=&gt; 实际上，数字在线性代数中起到的主要作用就是缩放向量</p>
+<p>=&gt; 将向量看作一个有序的数字列表时，向量与标量相乘就是将向量中的每个分量与向量相乘。</p>
+<p>=&gt; 向量加法（addition）和向量乘法（multiplication）贯穿线性代数始终，二者起着很重要的作用。“<strong>线性代数围绕两种基本运算：向量加法与向量数乘</strong>”</p>
+<p>=&gt; 当我们讲述一个关于向量的新主题时，首先考虑是一个箭头 <code>$\nearrow$</code>，更具体地说，考虑这个箭头 <code>$\nearrow$</code> 落在某个坐标系中，比如 <code>$x-y$</code> 平面，并且箭头起点位于原点（origin）</p>
+<p>=&gt; 在线性代数中，向量经常以原点作为起点</p>
+</div>
+</div>
+<div id="向量的线性组合张成的空间和基linear-combinations-span-and-bases" class="section level2">
+<h2>向量的线性组合、张成的空间和基（Linear combinations, span and bases）</h2>
+<p>当我们看到一对描述向量的数时，比如 <code>(3, -2)</code>，将每个坐标看作一个标量，也就是说它们如何拉伸或压缩一个变量。在 <code>$x-y$</code> 坐标系中，有两个非常特别的向量：</p>
+<ol style="list-style-type: decimal">
+<li>一个指向正右方，长度为 1，通常表示为 <code>$\hat{i}$</code>，为 x 方向的单位向量</li>
+<li>一个指向正上方，长度为 1，通常表示为 <code>$\hat{j}$</code>，为 y 方向的单位向量</li>
+</ol>
+<p>=&gt; <code>$\hat{i}$</code> 、 <code>$\hat{j}$</code> 两个向量有着特殊的名称，它们合起来被称为 <code>x-y</code> 坐标系的“<strong>基向量</strong>”（basis vectors）</p>
+<p>向量 <code>(3, -2)</code> 的 x 坐标是一个标量，它将 <code>$\hat{i}$</code> 拉伸为原来的 3 倍，y 坐标也是一个标量，它将 <code>$\hat{j}$</code> 反向并拉伸为原来的 2 倍。从这个角度上看，这个向量实际上是两个经过缩放的向量的和 <code>$(3)\hat{i} + (-2)\hat{j}$</code></p>
+<p>=&gt; 缩放向量并且相加</p>
+<p>=&gt; 将坐标看做标量时，基向量（<code>$\hat{i}$</code>和<code>$\hat{j}$</code>）实际上就是这些标量缩放的对象</p>
+<p>使用基向量来确定 <code>$x-y$</code> 坐标系，如果我们选择不同的基向量会怎么样？我们可以选择不同的基向量，获得一个合理的新坐标系。这样一对新的基向量，同样允许我们在一对数和二维向量之间自由转化</p>
+<p>=&gt; 不同坐标系之间的关系？</p>
+<p>=&gt; 每当我们使用数字来描述向量时，它都依赖于我们正在使用的基向量</p>
+<p>两个数乘向量的和被称为这两个向量的线性组合，例如 <code>$\overrightarrow{v}$</code> 和 <code>$\overrightarrow{w}$</code> 的线性组合：</p>
+<p><span class="math display">\[
+a\overrightarrow{v} + b \overrightarrow{w}
+\]</span></p>
+<p>=&gt; 如果固定其中一个标量，让另一个标量自由变化，所产生的向量的终点会描出一条直线</p>
+<p>所有可以表示为给定向量线性组合的向量的集合被称为给定向量<strong>张成</strong>的空间（span）</p>
+<blockquote>
+<p>The ‘span’ of <code>$\overrightarrow{v}$</code> and <code>$\overrightarrow{w}$</code> is the set of all their linear combinations <code>$\to$</code> <code>$a\overrightarrow{v} + b \overrightarrow{w}$</code>, let <code>$a$</code> and <code>$b$</code> vary over all real numbers</p>
+</blockquote>
+<p><code>$\overrightarrow{v}$</code> 和 <code>$\overrightarrow{w}$</code> 全部的线性组合构成的向量集合称为“<strong>张成的空间</strong>”</p>
+<p>=&gt; 对于大部分二维向量来说，它们张成的空间是所有二维向量的集合（张成为一个平面）；但当共线时，它们张成的空间就是终点落在一条直线上的向量的集合（张成为一条线）</p>
+<p>=&gt; 两个向量张成的空间实际上是 <code>$\to$</code> 问仅通过<strong>向量加法</strong>与<strong>向量数乘</strong>这两种基本运算能够获得的所有可能的向量的集合是什么</p>
+<p><strong>向量 vs. 点</strong> 通常使用向量的终点来代表该向量，其起点默认位于原点</p>
+<ul>
+<li>单个向量看做箭头</li>
+<li>多个向量看做点</li>
+</ul>
+<p>如果我们再加上第三个向量，那么它们张成的空间又是什么样的呢？</p>
+<p>三个向量线性组合的定义：</p>
+<p><span class="math display">\[
+a\overrightarrow{v} + b \overrightarrow{w} + c \overrightarrow{u}
+\]</span></p>
+<p>选择三个标量 <code>$a, b, c$</code>，对三个向量 <code>$\overrightarrow{v}, \overrightarrow{w}, \overrightarrow{u}$</code> 分别进行缩放，然后把结果相加。这三个向量所有可能的线性组合构成了它们张成的空间，有以下两种情况：</p>
+<ol style="list-style-type: decimal">
+<li>如果第三个向量恰好落在前两个向量所张成的平面上，那么它们张成的空间并不改变，第三个向量的加入，进行线性组合形成的向量仍然困在该平面中</li>
+<li>如果随机选一个向量，并且不落在前两个向量所张成的平面中。这种情况下，由于第三个向量指向不同的方向，我们就能够得到所有的三维向量</li>
+</ol>
+<ul>
+<li>当我们缩放第三个向量时，它将前两个向量张成的平面沿它的方向来回移动， 从而扫过整个空间</li>
+<li>利用能够进行自由变换的三个标量，从而得到空间中的所有的三维向量</li>
+</ul>
+<p>=&gt; 当加入的第三个向量落在前两个向量所张成的空间中时，或者是两个向量恰好为共线的情况时，这样一组向量中存在<strong>冗余的</strong>（redundant）向量，对张成的空间没有做出任何贡献。我们有多个向量，并且可以移除其中一个而不减少张成的空间，当出现这种情况时，称它们是“<strong>线性相关</strong>”（linearly dependent）的；另一种表述方式是，其中一个向量可以表示为其他向量的线性组合，因为这个向量已经落在其他向量所张成的空间之中了。另一方面，如果所有的向量都给张成的空间增添了新的维度（即其中任何一个向量都不在其他向量张成的空间中），它们被称为是“<strong>线性无关</strong>”（linearly independent）的</p>
+<p>空间中的一组基是<strong>张成</strong>该空间的一个<strong>线性无关</strong>向量的集合</p>
+</div>
+<div id="线性变换与矩阵matrices-as-linear-transformations" class="section level2">
+<h2>线性变换与矩阵（Matrices as linear transformations）</h2>
+<p>线性变换的概念以及它和矩阵的关系 =&gt; 线性变换在二维空间中长什么样，以及它们如何与矩阵向量乘法相关联</p>
+<p>线性变换（linear transformation）</p>
+<ul>
+<li><p>“<strong>变换</strong>”（transformation）本质上是“函数”（function）的一种花哨的说法。在线性代数的情况下，输入一个向量，经由变换，输出一个向量，为“向量的函数”。为什么使用“变换”，而不是使用“函数”呢？因为使用“变换”是在暗示以某种特定方式来可视化这一输入-输出关系</p>
+<ul>
+<li>一种理解“向量的函数”的方法是使用运动。如果一个变换接收一个向量并输出一个向量，我们可以想象将这个输入变量移动到输出变量的位置。接下来，要理解整个变换，我们可以想象每一个输入向量都移动到对应输出向量的位置（空间中的所有点移动到其他点的位置）</li>
+</ul></li>
+<li><p>线性代数限制在一种特殊类型的变换上，<strong>线性</strong>变换。如果一个变换具有以下两条性质，我们就称它是线性的：</p>
+<ol style="list-style-type: decimal">
+<li>直线在变换后仍然保持为直线，不能有所弯曲</li>
+<li>原点必须保持固定</li>
+</ol>
+<p>=&gt; 保持网格线<strong>平行</strong>且<strong>等距分布</strong>的变换</p></li>
+</ul>
+<p>如何用数值去描述这些线性变换呢，使得我们给它一个向量的坐标，它能够给出变换后的向量的坐标呢？</p>
+<p><span class="math display">\[
+\begin{bmatrix}
+x_{in} \\
+y_{in}
+\end{bmatrix}
+\to
+????
+\to
+\begin{bmatrix}
+x_{out} \\
+y_{out}
+\end{bmatrix}
+\]</span></p>
+<p>=&gt; <strong>只需要记录两个基向量（<code>$\hat{i}$</code> 和 <code>$\hat{j}$</code>）变换后的位置，其他变量都会随之而动</strong></p>
+<p>例如对向量<code>$\begin{bmatrix}a \\ b\end{bmatrix}$</code>进行某种线性变换，即 <code>$\overrightarrow{v} = a\hat{i} + b\hat{j}$</code></p>
+<p>=&gt; 保持网格线<strong>平行</strong>且<strong>等距分布</strong>的性质，有一个重要的<strong>推论</strong>：变换后的向量 <code>$\overrightarrow{v}$</code> 的位置，是 <code>$a$</code> 与变换后的 <code>$\hat{i}$</code> 之积，加上 <code>$b$</code> 与变换后的 <code>$\hat{j}$</code> 之积。换句话说，向量 <code>$\overrightarrow{v}$</code> 是 <code>$\hat{i}$</code> 和 <code>$\hat{j}$</code> 的一个特定线性组合，那么变换后的向量 <code>$\overrightarrow{v}$</code> 也是变换后的 <code>$\hat{i}$</code> 和变换后的 <code>$\hat{j}$</code> 的同样的线性组合</p>
+<p>=&gt; 可以根据变换后的 <code>$\hat{i}$</code> 和 <code>$\hat{j}$</code> 推断出变换后的 <code>$\overrightarrow{v}$</code></p>
+<p>=&gt; 这样，一个二维线性变换就可以仅由四个数字完全确定</p>
+<p>考虑下面一个 <code>$2 \times 2$</code> 矩阵表示（矩阵在这里只是一个记号，它含有描述一个线性变换的信息）</p>
+<p><span class="math display">\[
+\begin{bmatrix}
+a &amp; b \\
+c &amp; d
+\end{bmatrix}
+\qquad
+\begin{bmatrix}
+x \\
+y
+\end{bmatrix}
+\]</span></p>
+<p>其中第一列表示变换后的第一个基向量 <code>$\begin{bmatrix}a \\ c\end{bmatrix}$</code>，第二列表示变换后的第二个基向量 <code>$\begin{bmatrix}b \\ d\end{bmatrix}$</code>，<code>$\begin{bmatrix}x \\ y\end{bmatrix}$</code> 为任意的初始向量，并将该线性变换作用于其上：</p>
+<p><span class="math display">\[
+\begin{bmatrix}
+a &amp; b \\
+c &amp; d
+\end{bmatrix}
+\begin{bmatrix}
+x \\
+y
+\end{bmatrix}
+=
+x
+\begin{bmatrix}
+a\\
+c
+\end{bmatrix}
++
+y
+\begin{bmatrix}
+b \\
+d
+\end{bmatrix}
+=
+\begin{bmatrix}
+ax + by \\
+cx + dy
+\end{bmatrix}
+\]</span></p>
+<p>矩阵向量乘法，矩阵放在向量左边，类似一个函数</p>
+<p>=&gt; 我们完全就可以<strong>将矩阵的列看作变化后的基向量，将矩阵向量乘法看作它们的线性组合</strong></p>
+<p>用矩阵来描述一些线性变换：</p>
+<ol style="list-style-type: decimal">
+<li>将整个空间逆时针旋转 90 度，那么 <code>$\hat{i}$</code> 落在坐标 <code>(0, 1)</code> 上，<code>$\hat{j}$</code> 落在坐标 <code>(-1, 0)</code> 上，因此 <code>$2 \times 2$</code> 的矩阵表示就是</li>
+</ol>
+<p><span class="math display">\[
+\begin{bmatrix}
+0 &amp; -1 \\
+1 &amp; 0
+\end{bmatrix}
+\]</span></p>
+<p>想计算出任意向量在逆时针旋转 90 度后的位置，只需要将向量与上面的矩阵相乘即可</p>
+<ol start="2" style="list-style-type: decimal">
+<li>剪切（shear，也称错切）变换，<code>$\hat{i}$</code> 保持不变，因此矩阵第一列为 <code>(1, 0)</code>，<code>$\hat{j}$</code> 移动到 <code>(1, 1)</code>，因此矩阵第二列是 <code>(1, 1)</code></li>
+</ol>
+<p><span class="math display">\[
+\begin{bmatrix}
+1 &amp; 1 \\
+0 &amp; 1
+\end{bmatrix}
+\]</span></p>
+<p>为了计算出给定向量在剪切变换之后的位置，只需要将矩阵和向量相乘即可</p>
+<p>=&gt; 如果变换后的 <code>$\hat{i}$</code> 和变换后的 <code>$\hat{j}$</code> 是线性相关的，意味着其中一个向量是另一个的倍数，那么这个线性变换将整个二维空间挤压到了它们所在的一条直线上，也就是这两个线性相关向量所张成的一维空间</p>
+<p>=&gt; 线性变换是操纵空间的一种手段，它保持网格线平行且等距分布，并且保持原点不动。这种变换可以使用变换后的基向量坐标进行描述，并使用这些基向量坐标作为矩阵的每一列（例如 <code>$2 \times 2$</code> 矩阵的每一列）进行线性变换表示。之后使用矩阵向量乘法来计算线性变换作用于特定的向量</p>
+<p>=&gt; <strong>每当看到一个矩阵时，我们都可以把它解读为对空间的一种特定变换</strong>。当我们将矩阵看作空间的变换之后，此后几乎所有主题（矩阵乘法、行列式、基变换、特征值等）都会更加容易理解</p>
+</div>
+<div id="线性变换复合与矩阵乘法matrix-multiplication-as-composition" class="section level2">
+<h2>线性变换复合与矩阵乘法（Matrix multiplication as composition）</h2>
+<p>很多时候，在进行一个变换之后，会紧接着继续进行另一个变换。例如，将整个平面逆时针旋转 90 度后，再进行一次剪切变换会发生什么呢？从头到尾的总体作用（这两个变换）是另一个线性变换，这个新的线性变换通常被称为前两个独立变换的“<strong>复合变换</strong>”（composition）。和其他线性变换一样，我们也可以通过对 <code>$\hat{i}$</code> 和 <code>$\hat{j}$</code> 变换前后的分析，用矩阵完全描述这个复合变换。在<strong>旋转</strong>和<strong>剪切</strong>的“复合变换”中，<code>$\hat{i}$</code> 在两个线性变换之后的最终落点是 <code>(1, 1)</code>，<code>$\hat{j}$</code> 在变换之后落在 <code>(-1, 0)</code>，因此表示为 <code>$2 \times 2$</code> 矩阵为：</p>
+<p><span class="math display">\[
+\begin{bmatrix}
+1 &amp; -1 \\
+1 &amp; 0
+\end{bmatrix}
+\]</span></p>
+<p>这个矩阵捕捉到了旋转然后剪切的总体效应，但它是一个单独的作用，而不是两个相继作用的合成</p>
+<p>向量 <code>$\begin{bmatrix}x \\ y\end{bmatrix}$</code>，将其进行旋转然后剪切，一个麻烦的计算方法是：首先将它左乘旋转矩阵（Rotation Matrix），然后将得到的结果再左乘剪切矩阵（Shear Matrix）。从数值角度看，这意味着对一个给定变量进行旋转然后剪切，但无论所选的变量是什么，结果都应该与复合变换作用的结果完全相同。因为新矩阵应当捕捉到了旋转然后剪切的总体效应（与先执行旋转然后剪切的效果相同）</p>
+<p><span class="math display">\[
+\underbrace{
+\begin{bmatrix}
+1 &amp; 1 \\
+0 &amp; 1
+\end{bmatrix}
+}_{\text{Shear}}
+\left(
+\underbrace{
+\begin{bmatrix}
+0 &amp; -1 \\
+1 &amp; 0
+\end{bmatrix}
+}_{\text{Rotation}}
+\begin{bmatrix}
+x \\
+y 
+\end{bmatrix}
+\right)
+=
+\underbrace{
+\begin{bmatrix}
+1 &amp; -1 \\
+1 &amp; 0
+\end{bmatrix}
+}_{\text{Composition}}
+\begin{bmatrix}
+x \\
+y 
+\end{bmatrix}
+\]</span></p>
+<p>因此，可以将这个新矩阵称为最初两个矩阵的<strong>积</strong>。谨记，<strong>两个矩阵相乘有着几何意义，也就是两个线性变换的相继作用</strong></p>
+<p><span class="math display">\[
+\underbrace{
+\begin{bmatrix}
+1 &amp; 1 \\
+0 &amp; 1
+\end{bmatrix}
+}_{\text{Shear}}
+\underbrace{
+\begin{bmatrix}
+0 &amp; -1 \\
+1 &amp; 0
+\end{bmatrix}
+}_{\text{Rotation}}
+=
+\underbrace{
+\begin{bmatrix}
+1 &amp; -1 \\
+1 &amp; 0
+\end{bmatrix}
+}_{\text{Composition}}
+\]</span></p>
+<p>=&gt; 这个乘积需要从右往左读，首先应用右侧矩阵所描述的变换，然后再应用左侧矩阵所描述的变换</p>
+<p>=&gt; 这种“从右向左”的习惯，起源于函数的记号，我们将函数写在变量左侧，因此，每次将两个函数进行复合时，总是要从右往左读</p>
+<p><span class="math display">\[
+f\left(g(x)\right)
+\]</span></p>
+<p>现在，我们使用 <code>$2 \times 2$</code> 矩阵来表示线性变换，首先作用 <code>$\mathbf{M}_1 = \begin{bmatrix}e &amp; f \\ g &amp; h\end{bmatrix}$</code>，然后作用 <code>$\mathbf{M}_2 = \begin{bmatrix}a &amp; b \\ c &amp; d\end{bmatrix}$</code></p>
+<p>=&gt; <code>$\hat{i}$</code> 去哪里了？首先找到 <code>$\mathbf{M}_1$</code> 的第一列 <code>$\begin{bmatrix}e \\ g\end{bmatrix}$</code>，这是 <code>$\hat{i}$</code> 首先达到的地方，再将这一列左乘 <code>$\mathbf{M}_2$</code> 就是 <code>$\hat{i}$</code> 在第二个变换作用后的结果了。因此复合矩阵的第一列为：</p>
+<p><span class="math display">\[
+\begin{bmatrix}
+a &amp; b \\
+c &amp; d
+\end{bmatrix}
+\begin{bmatrix}
+e \\
+g
+\end{bmatrix}
+=
+e
+\begin{bmatrix}
+a\\
+c
+\end{bmatrix}
++
+g
+\begin{bmatrix}
+b \\
+d
+\end{bmatrix}
+=
+\begin{bmatrix}
+ae + bg \\
+ce + dg
+\end{bmatrix}
+\]</span></p>
+<p>=&gt; <code>$\hat{j}$</code> 去哪里了？ <code>$\hat{j}$</code> 首先落在 <code>$\mathbf{M}_1$</code> 第二列<code>$\begin{bmatrix}f \\ h\end{bmatrix}$</code>所代表的位置上，<code>$\mathbf{M}_2$</code> 与这一列相乘就能得到 <code>$\hat{j}$</code> 的最终位置，对应复合矩阵的第二列</p>
+<p><span class="math display">\[
+\begin{bmatrix}
+a &amp; b \\
+c &amp; d
+\end{bmatrix}
+\begin{bmatrix}
+f \\
+h
+\end{bmatrix}
+=
+f
+\begin{bmatrix}
+a\\
+c
+\end{bmatrix}
++
+h
+\begin{bmatrix}
+b \\
+d
+\end{bmatrix}
+=
+\begin{bmatrix}
+af + bh \\
+cf + dh
+\end{bmatrix}
+\]</span></p>
+<p>因此，有以下表示：</p>
+<p><span class="math display">\[
+\overbrace{
+\begin{bmatrix}
+a &amp; b \\
+c &amp; d
+\end{bmatrix}
+}^{\mathbf{M}_2}
+\overbrace{
+\begin{bmatrix}
+e &amp; f \\
+g &amp; h
+\end{bmatrix}
+}^{\mathbf{M}_1}
+=
+\underbrace{
+\begin{bmatrix}
+ae + bg &amp; af + bh \\
+ce + dg &amp; cf + dh
+\end{bmatrix}
+}_{\text{Composition}}
+\]</span></p>
+<p><strong>思考矩阵乘法的意义</strong>，也就是两个变换相继作用</p>
+<p>=&gt; <code>$\mathbf{M}_2\mathbf{M}_1 \overset{??}= \mathbf{M}_1\mathbf{M}_2$</code> 即矩阵相乘时，它们的先后顺序会影响结果吗？</p>
+<ol style="list-style-type: decimal">
+<li>首先剪切，然后旋转 90 度，得到的复合矩阵为 <code>$\begin{bmatrix}0 &amp; -1 \\ 1 &amp; 1\end{bmatrix}$</code></li>
+<li>首先旋转 90 度，然后剪切，得到的复合矩阵为 <code>$\begin{bmatrix}1 &amp; -1 \\ 1 &amp; 0\end{bmatrix}$</code></li>
+</ol>
+<p>=&gt; 复合顺序不同的二者，总体效应明显不同，因此，<strong>乘积的顺序显然会有影响</strong>，即 <code>$\mathbf{M}_2\mathbf{M}_1 \neq \mathbf{M}_1\mathbf{M}_2$</code></p>
+<p>=&gt; 使用变换来进行思考，而不是直接进行矩阵运算</p>
+<p>=&gt; 这样就很容易理解矩阵乘法具有结合性了，即 <code>$(\mathbf{A}\mathbf{B})\mathbf{C} = \mathbf{A}(\mathbf{B}\mathbf{C})$</code>。使用线性变换相继作用的思想去考虑矩阵乘积，首先应用 <code>$\mathbf{C}$</code> 变换和 <code>$\mathbf{B}$</code> 变换，然后应用 <code>$\mathbf{A}$</code> 变换，二者都是使用同样的三个变换用同样的顺序一次作用而已</p>
+<p>=&gt; 想象两个不同的变换，思考它们依次作用之后会发生什么，然后用数值方法计算出矩阵乘积</p>
+</div>
+<div id="三维空间中的线性变换linear-transformations-in-three-dimensions" class="section level2">
+<h2>三维空间中的线性变换（Linear transformations in three dimensions）</h2>
+<p>基本与二维空间线性变换相同，表示为 <code>$3 \times 3$</code> 矩阵</p>
+</div>
+<div id="行列式the-determinant" class="section level2">
+<h2>行列式（The determinant）</h2>
+<p>线性变换 <code>$\to$</code> 向外拉伸空间 or 向内挤压空间 <code>$\to$</code> 测量变换究竟对空间有多少拉伸或挤压，更具体一点，就是测量一个<strong>给定区域面积增大或减少的比例</strong> <code>$\to$</code> 行列式</p>
+<p>行列式允许为负数值</p>
+<p>这和定向（orientation）的概念有关，例如某一个线性变换将空间给翻转了，这样的变换改变了空间的定向。我们可以这样考虑，在初始状态时，<code>$\hat{j}$</code> 在 <code>$\hat{i}$</code> 的左边；如果变换后，<code>$\hat{j}$</code> 处于 <code>$\hat{i}$</code> 的右边了，那么空间定向就发生了改变</p>
+<p>=&gt; 当空间定向改变时，行列式为负；但行列式的绝对值依然表示区域面积的缩放比例</p>
+<p>为什么负数值的面积缩放比例会自然地用来描述定向改变呢？</p>
+<p>=&gt; 行列式（<code>$\mathbf{Dat}$</code>）的变化走势</p>
+<p>在二维空间中是考虑 <code>$\hat{i}$</code> 和 <code>$\hat{j}$</code> 组成的 <code>$1 \times 1$</code> 的正方形，在三维空间中是 <code>$\hat{i}$</code>、<code>$\hat{j}$</code>和<code>$\hat{k}$</code>组成的 <code>$1 \times 1 \times 1$</code> 的正方体，变换之后为平行六面体（parallelepiped）</p>
+<p>怎么计算行列式？</p>
+<p>对于 <code>$2 \times 2$</code> 的矩阵，行列式计算公式为：</p>
+<p><span class="math display">\[
+\mathbf{Det}
+\left(
+\begin{bmatrix}
+a &amp; b \\
+c &amp; d
+\end{bmatrix}
+\right)
+=
+ad - bc
+\]</span></p>
+<p>对于 <code>$3 \times 3$</code> 的矩阵，行列式计算公式为：</p>
+<p><span class="math display">\[
+\mathbf{Det}
+\left(
+\begin{bmatrix}
+a &amp; b &amp; c \\
+d &amp; e &amp; f \\
+g &amp; h &amp; i
+\end{bmatrix}
+\right)
+= 
+a
+\mathbf{Det}
+\left(
+\begin{bmatrix}
+e &amp; f \\
+h &amp; i
+\end{bmatrix}
+\right)
+-
+b
+\mathbf{Det}
+\left(
+\begin{bmatrix}
+d &amp; f \\
+g &amp; i
+\end{bmatrix}
+\right)
++
+c
+\mathbf{Det}
+\left(
+\begin{bmatrix}
+d &amp; e \\
+g &amp; h
+\end{bmatrix}
+\right)
+\]</span></p>
+<p>=&gt; 这些计算过程并不属于线性代数的本质，但我确实认为理解行列式所代表的意义在它当中</p>
+<p>如果将两个矩阵相乘，乘积的行列式是否等于这两个矩阵的行列式的乘积呢</p>
+<p><span class="math display">\[
+\mathbf{Det}(\mathbf{M}_1\mathbf{M}_2) = \mathbf{Det}(\mathbf{M}_1)\mathbf{Det}(\mathbf{M}_2)
+\]</span></p>
+<p>=&gt; 以二维平面为例，1）矩阵表示对空间的变换，取行列式得到此变换后两个基向量围成的平行四边形的面积的变化倍数。2）一个矩阵表示一次变换，再左乘一个矩阵表示再进行一次变换。所以，<code>$\mathbf{Det}(\mathbf{M}_1\mathbf{M}_2)$</code> 表示两次变换后（即最终）平行四边形变化的倍数，显然等于一次变换后变化的倍数 <code>$\mathbf{Det}(\mathbf{M}_1)$</code> 乘以第二次变换后的倍数 <code>$\mathbf{Det}(\mathbf{M}_2)$</code></p>
+</div>
+<div id="逆矩阵列空间秩与零空间inverse-matrices-column-space-rank-and-null-space" class="section level1">
+<h1>逆矩阵、列空间、秩与零空间（Inverse matrices, column space, rank and null space）</h1>
+<blockquote>
+<p>线性方程组 Linear system of equations</p>
+</blockquote>
+<blockquote>
+<p>高斯消元法 Gaussian elimination</p>
+</blockquote>
+<blockquote>
+<p>行阶梯型 Row echelon form</p>
+</blockquote>
+<p>线性方程组（Linear system of equations）：有一系列未知量和一系列与之相关的方程， 在每个方程中，所有的未知量只具有常系数，这些未知量之间只进行加和。要整理这一特定的方程组，一个典型的方法是将未知量放在等号左边，剩下的常数项放在等号右边，并且将同一未知量竖直对齐（要做到这一点，可能需要在某个未知量不出现时在其前面添加 0 这个系数）</p>
+<p>$$
+2x + 5y + 3z = -3</p>
+<p>4x + 0y + 8z = 0</p>
+<p>1x + 3y + 0z = 2
+$$</p>
+<p>将所有的方程合并为一个向量方程，表示为：</p>
+<p><span class="math display">\[
+\overbrace{
+\begin{bmatrix}
+2 &amp; 5 &amp; 3 \\
+4 &amp; 0 &amp; 8 \\
+1 &amp; 3 &amp; 0
+\end{bmatrix}
+}^{\text{Coefficients}}
+\overbrace{
+\begin{bmatrix}
+x \\
+y \\
+z
+\end{bmatrix}
+}^{\text{Variables}}
+=
+\overbrace{
+\begin{bmatrix}
+-3 \\
+0 \\
+2
+\end{bmatrix}
+}^{\text{Constants}}
+\]</span></p>
+<p>简化表示为：</p>
+<p><span class="math display">\[
+\mathbf{A}\mathbf{\overrightarrow{x}} = \mathbf{\overrightarrow{v}}
+\]</span></p>
+<p>矩阵 <code>$\mathbf{A}$</code> 代表一种线性变换，所以求解 <code>$\mathbf{A}\mathbf{\overrightarrow{x}} = \mathbf{\overrightarrow{v}}$</code> 意味着去寻找一个向量 <code>$\mathbf{\overrightarrow{x}}$</code> 使得它在变换后与 <code>$\mathbf{\overrightarrow{v}}$</code> 重合</p>
+<p>=&gt; 这个方程的解依赖于矩阵 <code>$\mathbf{A}$</code> 所代表的变换</p>
+<ol style="list-style-type: decimal">
+<li><code>$\mathbf{A}$</code> 将空间压缩到更低的维度上，即 <code>$\mathbf{Det}(\mathbf{A}) = 0$</code>；</li>
+<li><code>$\mathbf{A}$</code> 保持空间的维度，即 <code>$\mathbf{Det}(\mathbf{A}) \neq 0$</code></li>
+</ol>
+<p><strong>当 <code>$\mathbf{Det}(\mathbf{A}) \neq 0$</code> 时</strong>，在这种情况下，有且仅有一个向量在变换后能够与 <code>$\mathbf{\overrightarrow{v}}$</code> 重合，并且可以通过逆向进行变换来找到这个向量</p>
+<p>当逆向进行变换时，它实际上对应了另一个线性变换，通常称为“<strong><code>$\mathbf{A}$</code> 的逆</strong>”，记为 <code>$\mathbf{A}^{-1}$</code>。例如，<code>$\mathbf{A}$</code> 表示为逆时针旋转 90 度的变换，那么 <code>$\mathbf{A}^{-1}$</code> 就是顺时针旋转 90 度的变换。总的来说，“<strong><code>$\mathbf{A}$</code> 的逆</strong>”是满足以下性质的唯一变换，首先应用 <code>$\mathbf{A}$</code> 代表的变换，再应用 <code>$\mathbf{A}^{-1}$</code> 代表的变换，就能够回到原始状态。两个变换相继作用在代数上表示为矩阵乘法。所以 <code>$\mathbf{A}^{-1}$</code> 的核心性质在于，矩阵乘法 <code>$\mathbf{A}^{-1}\mathbf{A}$</code> 得到一个表示“什么都不做”的矩阵。这个“什么都不做”的变换称为“<strong>恒等变换</strong>”（Identity transformation），其保持基不变</p>
+<p>一旦找到了 <code>$\mathbf{A}^{-1}$</code>，就可以在等式 <code>$\mathbf{A}\mathbf{\overrightarrow{x}} = \mathbf{\overrightarrow{v}}$</code> 两边同时乘以 <code>$\mathbf{A}^{-1}$</code> 来求解向量方程：</p>
+<p><span class="math display">\[
+\underbrace{\mathbf{A}^{-1}\mathbf{A}}_{\text{&quot;do nothing&quot; matrix}}
+\mathbf{\overrightarrow{x}} = \mathbf{A}^{-1}\mathbf{\overrightarrow{v}}
+\]</span></p>
+<p>将恒等变换去掉之后表示为：</p>
+<p><span class="math display">\[
+\mathbf{\overrightarrow{x}} = \mathbf{A}^{-1}\mathbf{\overrightarrow{v}}
+\]</span></p>
+<p>这个过程就是在 <code>$\mathbf{\overrightarrow{v}}$</code> 上进行线性变换 <code>$\mathbf{A}^{-1}$</code>，逆向进行变换并追踪 <code>$\mathbf{\overrightarrow{v}}$</code> 的动向</p>
+<p>=&gt; <code>$\mathbf{Det}(\mathbf{A}) \neq 0$</code> <code>$\to$</code> 存在逆变换 <code>$\mathbf{A}^{-1}$</code></p>
+<p><strong>当 <code>$\mathbf{Det}(\mathbf{A}) = 0$</code> 时</strong>，与这个方程组相关的变换将空间压缩到更低的维度上，此时没有逆变换。虽然 <code>$\mathbf{Det}(\mathbf{A}) = 0$</code>，但解仍然可能存在，假设一个线性变换将一个二维平面压缩为一条直线，若 <code>$\mathbf{\overrightarrow{v}}$</code> 恰好在这条直线上，则解存在，否则不存在解</p>
+<p>一些零行列式的情况比其他的更加严格，例如一个三维变换 <code>$3 \times 3$</code> 矩阵，</p>
+<ol style="list-style-type: decimal">
+<li>将空间压缩为一条直线</li>
+<li>将空间压缩为一个平面</li>
+</ol>
+<p>虽然这两种情况下行列式均为 0，但当压缩为一条直线时，此时解存在的难度就更高了</p>
+<p>当变换的结果为一条直线时，也就是说结果是一维的，称这个变换的秩为 1；如果变换后的向量落在某个二维平面上，称这个变换的秩为 2 =&gt; “<strong>秩</strong>”（rank）代表着变换后空间的维数</p>
+<p>对于 <code>$2 \times 2$</code> 矩阵，它的秩最大为 2，意味着基向量仍旧能张成整个二维空间，并且矩阵的行列式不为 0；但对于 <code>$3 \times 3$</code> 矩阵，秩为 2 意味着空间被压缩了，但是和秩为 1 相比，压缩并没有那么严重</p>
+<p>=&gt; 不管是一条直线、一个平面还是三维空间等，所有可能的变换结果的集合（所有可能的输出向量 <code>$\mathbf{A}\mathbf{\overrightarrow{x}}$</code> 构成的集合），称为矩阵 <code>$\mathbf{A}$</code> 的<strong>列空间</strong>（Column space）</p>
+<p>=&gt; 矩阵的列告诉我们基向量变换后的位置，<strong>这些变换后的基向量张成的空间就是所有可能的变换结果</strong>，列空间就是矩阵的列张成的空间</p>
+<p>=&gt; 秩表示列空间的维数。当秩达到最大值时，意味着秩与列数相等，“满秩”</p>
+<p>=&gt; 零向量一定会被包含在列空间中，因为线性变换必须保持原点位置不变。对于一个满秩变换来说，唯一能在变换后落在原点的就是零向量本身；但对一个非满秩的矩阵来说，它将空间压缩到一个更低的维度上，也就是说会有一系列向量在变换后成为零向量</p>
+<p>变换后落在原点的向量的集合，称为矩阵的“零空间”（null space）或“核”（kernel），变换后的一些向量落在零向量上，而“零空间”正是这些向量所构成的空间</p>
+<p>对于线性方程组来说，当 <code>$\mathbf{\overrightarrow{v}}$</code> 恰好为零向量时，零空间给出的就是这个向量方程所有可能的解</p>
+<p>=&gt; 每个方程组都有一个线性变换与之联系，当逆变换存在时，可以使用逆变换求解方程。否则，列空间的概念能够帮助我们清楚什么时候存在解，零空间的概念有助于我们理解所有可能的解的集合是什么样的</p>
+<p>=&gt; 如何进行计算？</p>
+<p>=&gt; 方程数目与未知量数目相等？</p>
+<div id="非方阵non-square-matrices" class="section level2">
+<h2>非方阵（Non-square matrices）</h2>
+<p>在前面我们讲到线性变换时，用 <code>$2 \times 2$</code> 矩阵来表示二维向量到二维向量的变换，用 <code>$3 \times 3$</code> 矩阵来表示三维向量到三维向量的变换。讨论不同维数之间的变换是完全合理的，比如一个二维向量到三维向量的变换</p>
+<p><span class="math display">\[
+\underbrace{
+\begin{bmatrix}
+2 \\ 
+7
+\end{bmatrix}
+}_{\text{2d input}}
+\to
+\mathbf{L}(\mathbf{\overrightarrow{v}})
+\to 
+\underbrace{
+\begin{bmatrix}
+1 \\
+8 \\
+2
+\end{bmatrix}
+}_{\text{3d output}}
+\]</span></p>
+<p>如果网格线保持平行且等距分布，并且原点映射为自身，就称它是线性的。输入的二维向量与输出的三维向量是完全不同的“物种”，它们在没有任何关联的空间当中。用矩阵代表这样一个变换则和之前的方法相同，找到每个基向量变换后的位置，然后将变换后的基向量的坐标作为矩阵的列。例如一个 <code>$3 \times 2$</code> 矩阵，其几何意义是将二维空间映射到三维空间上，因为矩阵有两列，表明输入空间有两个基向量，有三行，表明每一个基向量在变换后都用三个独立的坐标来描述。类似地，当看到一个两行三列的 <code>$2 \times 3$</code> 矩阵时，表示将三维空间映射到二维空间上，三列表明原始空间有三个基向量，两行表明这三个基向量在变换后都仅用两个坐标来描述</p>
+<p>还可以有二维空间到一维空间的变换，一维空间实际上就是数轴（number line），所以这样的变换接受二维向量，然后产生数</p>
+<p><span class="math display">\[
+\underbrace{
+\begin{bmatrix}
+2 \\ 
+7
+\end{bmatrix}
+}_{\text{2d input}}
+\to
+\mathbf{L}(\mathbf{\overrightarrow{v}})
+\to 
+\underbrace{
+\begin{bmatrix}
+1.8
+\end{bmatrix}
+}_{\text{1d output}}
+\]</span></p>
+<p>这样的变换由一个 <code>$1 \times 2$</code> 矩阵表示，这个矩阵的两列都只有一个数，分别代表了变换后的基向量，而它们都只需要一个数字，即变换后基向量在数轴上的位置。这实际上是一类非常有意义的变换，与点积紧密相关</p>
+<p>=&gt; 在不同维度间进行线性变换，思考矩阵乘积和线性方程组等概念</p>
+</div>
+<div id="点积与对偶性dot-products-and-duality" class="section level2">
+<h2>点积与对偶性（Dot products and duality）</h2>
+<p>虽然引入点积的标准方法只需要向量的基础认识即可，但是要更进一步理解点积所发挥的作用只能从<strong>线性变换</strong>的角度才能完成</p>
+<div id="引入点积的标准方法" class="section level3">
+<h3>引入点积的标准方法</h3>
+<p>两个维数相同的向量，或者两个长度相同的数组，求它们的点积即是将相应坐标配对，求出每一对坐标的乘积，然后将结果相加</p>
+<p>点积计算有一个完美的几何解释，求两个向量 <code>$\mathbf{\overrightarrow{v}}$</code> 和 <code>$\mathbf{\overrightarrow{w}}$</code> 的点积，可以想象是将向量 <code>$\mathbf{\overrightarrow{w}}$</code> 朝着过原点和向量 <code>$\mathbf{\overrightarrow{v}}$</code> 终点的直线上的正交投影，将投影的长度与向量 <code>$\mathbf{\overrightarrow{v}}$</code> 的长度相乘。除非 <code>$\mathbf{\overrightarrow{w}}$</code> 的投影与 <code>$\mathbf{\overrightarrow{v}}$</code> 的方向相反，这种情况下点积为负值。当两个向量的指向大致相同时，点积为正；当它们互相垂直时，意味着一个向量在另一个向量上的投影为零向量，点积为 0；当它们的指向基本相反时，点积为负</p>
+<p><span class="math display">\[
+\underbrace{
+\begin{bmatrix}
+4 \\ 
+1
+\end{bmatrix}
+}_{\mathbf{\overrightarrow{v}}}
+\cdot
+\underbrace{
+\begin{bmatrix}
+2 \\ 
+-1
+\end{bmatrix}
+}_{\mathbf{\overrightarrow{w}}}
+=
+(\text{Length of projected }\mathbf{\overrightarrow{w}})
+(\text{Length of }\mathbf{\overrightarrow{v}})
+\]</span></p>
+<p>进行点积运算时，两个向量的顺序没有关系。可以将 <code>$\mathbf{\overrightarrow{v}}$</code> 投影到 <code>$\mathbf{\overrightarrow{w}}$</code> 上，将 <code>$\mathbf{\overrightarrow{v}}$</code> 的投影长度与 <code>$\mathbf{\overrightarrow{w}}$</code> 的长度相乘，点积得到相同的结果</p>
+<p><span class="math display">\[
+\underbrace{
+\begin{bmatrix}
+4 \\ 
+1
+\end{bmatrix}
+}_{\mathbf{\overrightarrow{v}}}
+\cdot
+\underbrace{
+\begin{bmatrix}
+2 \\ 
+-1
+\end{bmatrix}
+}_{\mathbf{\overrightarrow{w}}}
+=
+(\text{Length of projected }\mathbf{\overrightarrow{v}})
+(\text{Length of }\mathbf{\overrightarrow{w}})
+\]</span></p>
+<p>那为什么点积与向量投影的顺序无关呢？如果 <code>$\mathbf{\overrightarrow{v}}$</code> 和 <code>$\mathbf{\overrightarrow{w}}$</code> 的长度恰好相同，可以利用其中的对称性（Symmetry），因为 <code>$\mathbf{\overrightarrow{w}}$</code> 向 <code>$\mathbf{\overrightarrow{v}}$</code> 上投影，并将 <code>$\mathbf{\overrightarrow{w}}$</code> 的投影长度与 <code>$\mathbf{\overrightarrow{v}}$</code> 的长度相乘，和 <code>$\mathbf{\overrightarrow{v}}$</code> 向 <code>$\mathbf{\overrightarrow{w}}$</code> 上投影，并将 <code>$\mathbf{\overrightarrow{v}}$</code> 的投影长度与 <code>$\mathbf{\overrightarrow{w}}$</code> 的长度相乘，互为镜像。如果将其中一个缩放若干倍，比如将 <code>$\mathbf{\overrightarrow{v}}$</code> 变为原来的两倍，使得 <code>$\mathbf{\overrightarrow{v}}$</code> 和 <code>$\mathbf{\overrightarrow{w}}$</code> 长度不同，对称性也就破坏了。但我们可以这样解读新向量 <code>$2\mathbf{\overrightarrow{v}}$</code> 和 <code>$\mathbf{\overrightarrow{w}}$</code> 的点积：</p>
+<ol style="list-style-type: decimal">
+<li><code>$\mathbf{\overrightarrow{w}}$</code> 向 <code>$\mathbf{\overrightarrow{v}}$</code> 上投影，那么 <code>$2\mathbf{\overrightarrow{v}}$</code> 点乘 <code>$\mathbf{\overrightarrow{w}}$</code> 就恰好等于 <code>$\mathbf{\overrightarrow{v}}$</code> 点乘 <code>$\mathbf{\overrightarrow{w}}$</code> 的两倍，这是因为将 <code>$\mathbf{\overrightarrow{v}}$</code> 放大两倍并不会改变 <code>$\mathbf{\overrightarrow{w}}$</code> 在 <code>$\mathbf{\overrightarrow{v}}$</code> 上的投影长度，而仅仅将 <code>$\mathbf{\overrightarrow{v}}$</code> 的长度变为原来的两倍</li>
+</ol>
+<p><span class="math display">\[
+(2\mathbf{\overrightarrow{v}}) \cdot \mathbf{\overrightarrow{w}} = 
+2(\mathbf{\overrightarrow{v}} \cdot \mathbf{\overrightarrow{w}})
+\]</span></p>
+<ol start="2" style="list-style-type: decimal">
+<li><code>$\mathbf{\overrightarrow{v}}$</code> 向 <code>$\mathbf{\overrightarrow{w}}$</code> 上投影，由于将 <code>$\mathbf{\overrightarrow{v}}$</code> 变为了原来的两倍，这次的投影长度同样变为原来的两倍，但是 <code>$\mathbf{\overrightarrow{w}}$</code> 的长度保持不变。所以整体效果仍然是点积变为两倍</li>
+</ol>
+<p>=&gt; 在两种不同的理解方式下，缩放向量对点积结果的影响是相同的</p>
+<p>为什么点积这一运算过程，也就是对应坐标相乘并将结果相加，和投影有所联系？</p>
+<p>对偶性（duality）</p>
+<p>对维空间到一维空间（数轴）的线性变换</p>
+<p><span class="math display">\[
+\underbrace{
+\begin{bmatrix}
+2 \\ 
+7
+\end{bmatrix}
+}_{\text{2d input}}
+\to
+\mathbf{L}(\mathbf{\overrightarrow{v}})
+\to 
+\underbrace{
+\begin{bmatrix}
+1.8
+\end{bmatrix}
+}_{\text{1d output}}
+\]</span></p>
+<p>回顾几个重要的要点：</p>
+<ul>
+<li>如果我们有一系列等距分布于一条直线上的点，然后应用变换，<strong>线性变换</strong>会保持这些点等距分布在输出空间中，也就是数轴上；否则，如果在变换后这些点没有等距分布，那么这个变换就不是线性的</li>
+<li>这些线性变换完全由它对 <code>$\hat{i}$</code> 和 <code>$\hat{j}$</code> 的变换决定。但是将二维空间变换到数轴上，这些基向量只落在一个数上，因此当我们将 <code>$\hat{i}$</code> 和 <code>$\hat{j}$</code> 变换后的位置记录为矩阵的列时，矩阵的每一列上只是一个单独的数</li>
+</ul>
+<p>矩阵向量乘积 vs. 点积</p>
+<p><span class="math display">\[
+\begin{bmatrix}
+u_x &amp; u_y
+\end{bmatrix}
+\begin{bmatrix}
+x \\
+y
+\end{bmatrix} 
+= u_x \cdot x + u_y \cdot y
+\quad
+\textbf{vs.}
+\quad
+\begin{bmatrix}
+u_x \\
+u_y
+\end{bmatrix}
+\begin{bmatrix}
+x \\
+y
+\end{bmatrix} 
+= u_x \cdot x + u_y \cdot y
+\]</span></p>
+<ol style="list-style-type: decimal">
+<li>向量与单位向量的点积可以解读为，将向量投影到单位向量所在的直线上所得到的投影长度</li>
+<li>向量与非单位向量的点积可以解读为，首先朝给定向量投影，然后将投影的值与给定向量的长度相乘</li>
+</ol>
+<p>在任何时候看到一个线性变换，它的输出空间是一维数轴，无论它是如何定义的，空间中会存在唯一的向量 <code>$\mathbf{\overrightarrow{v}}$</code> 与之相关，就这一意义而言，应用变换和与 <code>$\mathbf{\overrightarrow{v}}$</code> 做点积是一样的</p>
+<p>对偶性贯穿数学始终，在多个方面均有体现，而实际定义它却是比较棘手的。粗略地说，对偶性指的是两种数学事物之间自然而又出乎意料的对应关系</p>
+<p>=&gt; 一个向量的<strong>对偶</strong>是由它定义的线性变换</p>
+<p>=&gt; 一个多维空间到一维空间的线性变换的<strong>对偶</strong>是多维空间中某个特定向量</p>
+<p>总结一下，表面上看，点积是理解投影的有利几何工具，并且方便检测两个向量的指向是否相同，这大概也是我们需要记住的点积中最为重要的部分。不过，更进一步讲，两个向量点乘，就是将其中一个向量转化为线性变换</p>
+<p><span class="math display">\[
+\begin{bmatrix}
+x_1 \\
+y_1
+\end{bmatrix}
+\begin{bmatrix}
+x_2 \\
+y_2
+\end{bmatrix} 
+\to
+\begin{bmatrix}
+x_1 &amp; y_1
+\end{bmatrix}
+\begin{bmatrix}
+x_2 \\
+y_2
+\end{bmatrix}
+\]</span></p>
+<p>同样，在数值上强调它可能显得没有意义，因为自始至终我们都是在和向量打交道，真正了解向量的“个性”也是在此，<strong>不是将向量理解为空间中的箭头</strong>，而是<strong>将向量看做线性变换的物质载体</strong>，这样能够更容易地理解向量。<strong>向量就仿佛一个特定变换的概念性记号</strong></p>
+</div>
+</div>
+<div id="以线性变换的眼光看叉积cross-products-in-the-light-of-linear-transformations" class="section level2">
+<h2>以线性变换的眼光看叉积（Cross products in the light of linear transformations）</h2>
+<div id="叉积的标准介绍" class="section level3">
+<h3>叉积的标准介绍</h3>
+<p>以二维空间为例，有两个变量 <code>$\mathbf{\overrightarrow{v}}$</code> 和 <code>$\mathbf{\overrightarrow{w}}$</code>，考虑它们所张成的平行四边形（parallelogram）。这话的意思是，取一份 <code>$\mathbf{\overrightarrow{v}}$</code> 的副本，将它的起点移动到 <code>$\mathbf{\overrightarrow{w}}$</code> 的终点，再取一份 <code>$\mathbf{\overrightarrow{w}}$</code> 的副本，将它的起点移动到 <code>$\mathbf{\overrightarrow{v}}$</code> 的终点，这四个向量就会围成一个平行四边形。<code>$\mathbf{\overrightarrow{v}}$</code> 和 <code>$\mathbf{\overrightarrow{w}}$</code> 的叉积就是这个平行四边形的面积</p>
+<p><span class="math display">\[
+\mathbf{\overrightarrow{v}} \times \mathbf{\overrightarrow{w}} = \text{Area of parallelogram}
+\]</span></p>
+<p>两个向量运算的顺序会对叉积有影响</p>
+<p><span class="math display">\[
+\mathbf{\overrightarrow{v}} \times \mathbf{\overrightarrow{w}}
+=
+- \mathbf{\overrightarrow{w}} \times \mathbf{\overrightarrow{v}}
+\]</span></p>
+<p>按序计算两个基向量的叉积，即 <code>$\hat{i} \times \hat{j}$</code>，结果为 <code>$+1$</code>。实际上，基向量的顺序就是定向的基础</p>
+<p>如何直接计算向量围成的平行四边形的面积？行列式就在这里作用了</p>
+<p>对于二维向量的叉积，<code>$\mathbf{\overrightarrow{v}} \times \mathbf{\overrightarrow{w}}$</code>，其中，<code>$\mathbf{\overrightarrow{v}} = \begin{bmatrix}3 \\ 1\end{bmatrix}$</code>，<code>$\mathbf{\overrightarrow{w}} = \begin{bmatrix}2 \\ -1\end{bmatrix}$</code>，将 <code>$\mathbf{\overrightarrow{v}}$</code> 的坐标作为矩阵的第一列，<code>$\mathbf{\overrightarrow{w}}$</code> 的坐标作为矩阵的第二列，然后直接计算行列式即可</p>
+<p><span class="math display">\[
+\mathbf{\overrightarrow{v}} \times \mathbf{\overrightarrow{w}}
+=
+\mathbf{Det}
+\left(
+\begin{bmatrix}
+3 &amp; 2 \\
+1 &amp; -1
+\end{bmatrix}
+\right)
+\]</span></p>
+<p><font color=red>这是因为</font>，由 <code>$\mathbf{\overrightarrow{v}}$</code> 和 <code>$\mathbf{\overrightarrow{w}}$</code> 的坐标为列所构成的矩阵，与一个将 <code>$\hat{i}$</code> 和 <code>$\hat{j}$</code> 分别移至 <code>$\mathbf{\overrightarrow{v}}$</code> 和 <code>$\mathbf{\overrightarrow{w}}$</code> 的线性变换相对应</p>
+<p>行列式就是变换前后面积变化比例的度量，而我们关注的就是以 <code>$\hat{i}$</code> 和 <code>$\hat{j}$</code> 为边的单位正方形，在进行线性变换之后，这个单位正方形变成两个向量所围成的平行四边形。所以，用于度量面积变化比例的行列式，也即为平行四边形的面积，因为这个平行四边形来源于面积为 1 的正方形</p>
+<p>=&gt; 这里将向量写作矩阵的列，而教科书中大多将向量写作矩阵的行。两种结果没有差异，因为转置不改变矩阵行列式的值。这里选择按列处理向量是为了更加直观</p>
+<p>真正的叉积是通过两个三维向量生成一个新的三维向量，有以下公式：</p>
+<p><span class="math display">\[
+\begin{bmatrix}
+v_1 \\
+v_2 \\
+v_3
+\end{bmatrix}
+\times
+\begin{bmatrix}
+w_1 \\
+w_2 \\
+w_3
+\end{bmatrix}
+=
+\begin{bmatrix}
+v_2 \cdot w_3 - w_2 \cdot v_3\\
+v_3 \cdot w_1 - w_3 \cdot v_1 \\
+v_1 \cdot w_2 - w_1 \cdot v_2
+\end{bmatrix}
+\]</span></p>
+<p>但是它可以由一个三阶行列式代替，使这种计算记忆起来更加简便，如下：</p>
+<p><span class="math display">\[
+\begin{bmatrix}
+v_1 \\
+v_2 \\
+v_3
+\end{bmatrix}
+\times
+\begin{bmatrix}
+w_1 \\
+w_2 \\
+w_3
+\end{bmatrix}
+=
+\mathbf{Det}
+\left(
+\begin{bmatrix}
+\hat{i} &amp; v_1 &amp; w_1 \\
+\hat{j} &amp; v_2 &amp; w_2 \\
+\hat{k} &amp; v_3 &amp; w_3
+\end{bmatrix}
+\right) 
+=
+\hat{i}(v_2w_3 - v_3w_2) - \hat{j}(v_1w_3 - v_3w_1) + \hat{k}(v_1w_2 - v_2w_1)
+\]</span></p>
+<p>=&gt; 同样，这里选择按列处理向量是为了更加直观</p>
+<p><span class="math display">\[
+\mathbf{\overrightarrow{v}} \times \mathbf{\overrightarrow{w}} = \mathbf{\overrightarrow{p}}
+\]</span></p>
+<p>让向量作为矩阵元是什么意思？这个线性组合所决定的向量是唯一一个与 <code>$\mathbf{\overrightarrow{v}}$</code> 和 <code>$\mathbf{\overrightarrow{w}}$</code> 垂直，长度为 <code>$\mathbf{\overrightarrow{v}}$</code> 和 <code>$\mathbf{\overrightarrow{w}}$</code> 围成的平行四边形的面积，并且遵守右手定则的向量。但是这样进行线性组合是有原因的，行列式重要性的体现并非完全巧合，基向量作为矩阵元也不是信手而为，要理解这些，需要用到上面介绍到的对偶思想，在下一节进行说明，理解叉积所得向量的几何意义</p>
+</div>
+<div id="以线性变换的眼光看叉积" class="section level3">
+<h3>以线性变换的眼光看叉积</h3>
+<p><span class="math display">\[
+\mathbf{\overrightarrow{v}} \times \mathbf{\overrightarrow{w}} = \mathbf{\overrightarrow{p}}
+\]</span></p>
+<p>最终得到的向量有以下几何性质：</p>
+<ol style="list-style-type: decimal">
+<li>其长度等于 <code>$\mathbf{\overrightarrow{v}}$</code> 和 <code>$\mathbf{\overrightarrow{w}}$</code> 围成的平行四边形的面积</li>
+<li>其方向同时与 <code>$\mathbf{\overrightarrow{v}}$</code> 和 <code>$\mathbf{\overrightarrow{w}}$</code> 垂直</li>
+<li>满足右手定则，即右手食指指向 <code>$\mathbf{\overrightarrow{v}}$</code> 的方向，中指 指向 <code>$\mathbf{\overrightarrow{w}}$</code> 的方向，那么大拇指指向所得向量的方向</li>
+</ol>
+<ul>
+<li>点积，表示对单位正方形的缩放比例大小</li>
+<li>对偶性，其思想在于，每当我们看到一个（多维）空间到数轴的线性变换时，它都与那个空间中的唯一一个向量相对应，也就是说，应用线性变换和与这个向量点乘等价。数值上说，这是因为这类线性变换可以用一个只有一行的矩阵来描述，它的每一列给出了变换后基向量的位置，将这个矩阵与某个向量 <code>$\mathbf{\overrightarrow{v}}$</code> 相乘，在计算上与将矩阵转置得到的向量和向量 <code>$\mathbf{\overrightarrow{v}}$</code> 点乘相同</li>
+</ul>
+<p><span class="math display">\[
+\underbrace{
+\begin{bmatrix}
+2 \\
+1
+\end{bmatrix}
+\overbrace{
+\begin{bmatrix}
+x \\
+y
+\end{bmatrix}
+}^{\mathbf{\overrightarrow{v}}}
+}_{\text{Dot product}}
+= 
+\underbrace{
+\begin{bmatrix}
+2 &amp; 1
+\end{bmatrix}
+}_{\text{Transform}}
+\overbrace{
+\begin{bmatrix}
+x \\
+y
+\end{bmatrix}
+}^{\mathbf{\overrightarrow{v}}}
+\]</span></p>
+<p>=&gt; 每当看到一个从空间到数轴的线性变换，我们都能够找到一个向量，被称为这个线性变换的对偶向量（Dual vector），使得线性变换和与对偶向量点乘等价</p>
+<p>叉积运算的线性变换解释：</p>
+<ol style="list-style-type: decimal">
+<li>根据 <code>$\mathbf{\overrightarrow{v}}$</code> 和 <code>$\mathbf{\overrightarrow{w}}$</code> 定义一个从三维空间到数轴的特定线性变换；</li>
+<li>找到该线性变换的对偶向量；</li>
+<li>说明这个对偶向量就是 <code>$\mathbf{\overrightarrow{v}} \times \mathbf{\overrightarrow{w}}$</code></li>
+</ol>
+<p>=&gt; 理解这个变换，能够更为清楚地理解叉积的计算过程和几何含义之间的关系</p>
+<p>如何在二维空间中计算向量的叉积呢？</p>
+<p>对于二维向量的叉积，<code>$\mathbf{\overrightarrow{v}} \times \mathbf{\overrightarrow{w}}$</code>，其中，<code>$\mathbf{\overrightarrow{v}} = \begin{bmatrix}3 \\ 1\end{bmatrix}$</code>，<code>$\mathbf{\overrightarrow{w}} = \begin{bmatrix}2 \\ -1\end{bmatrix}$</code>，将 <code>$\mathbf{\overrightarrow{v}}$</code> 的坐标作为矩阵的第一列，<code>$\mathbf{\overrightarrow{w}}$</code> 的坐标作为矩阵的第二列，然后直接计算行列式即可，结果就是一个数，从几何上说，它给出了两个向量张成的萍乡四边形的面积，它还可能出现负值，取决于两个向量的定向</p>
+<p><span class="math display">\[
+\mathbf{\overrightarrow{v}} \times \mathbf{\overrightarrow{w}}
+=
+\mathbf{Det}
+\left(
+\begin{bmatrix}
+3 &amp; 2 \\
+1 &amp; -1
+\end{bmatrix}
+\right)
+\]</span></p>
+<p>我们基于二维向量的叉积，尝试外推三维向量的叉积，其涉及三个向量 <code>$\mathbf{\overrightarrow{u}}$</code>、<code>$\mathbf{\overrightarrow{v}}$</code> 和 <code>$\mathbf{\overrightarrow{w}}$</code></p>
+<p><span class="math display">\[
+\mathbf{\overrightarrow{u}} \times \mathbf{\overrightarrow{v}} \times \mathbf{\overrightarrow{w}}
+= 
+\underbrace{
+\mathbf{Det}
+\left(
+\begin{bmatrix}
+u_1 &amp; v_1 &amp; w_1 \\
+u_2 &amp; v_2 &amp; w_2 \\
+u_3 &amp; v_3 &amp; w_3
+\end{bmatrix}
+\right)
+}_{\text{A number}}
+\]</span></p>
+<p>从几何上讲，右侧代表的是三个向量张成的平行六面体的体积，外加一个正负号，取决于这三个向量是否满足右手定则</p>
+<p>但是这个表示并不是三维向量的叉积，真正的三维向量的叉积接收两个向量并输出一个向量，而不是接收三个向量输出一个数值</p>
+<p><span class="math display">\[
+\mathbf{\overrightarrow{v}} \times \mathbf{\overrightarrow{w}} = \mathbf{\overrightarrow{p}}
+\]</span></p>
+<p>这个想法已经非常接近真实的叉积了。将第一个向量 <code>$\mathbf{\overrightarrow{u}}$</code> 看做可变向量，比如 <code>$\begin{bmatrix}x \\ y \\ z\end{bmatrix}$</code>，保持 <code>$\mathbf{\overrightarrow{v}}$</code> 和 <code>$\mathbf{\overrightarrow{w}}$</code> 不变，这样就有一个从三维空间到数轴的函数：输入一个向量 <code>$\begin{bmatrix}x \\ y \\ z\end{bmatrix}$</code>，然后通过矩阵的行列式得到一个数</p>
+<p><span class="math display">\[
+f\left(
+\begin{bmatrix}x \\ y \\ z\end{bmatrix}
+\right)
+= 
+\mathbf{Det}
+\left(
+\begin{bmatrix}
+x &amp; v_1 &amp; w_1 \\
+y &amp; v_2 &amp; w_2 \\
+z &amp; v_3 &amp; w_3
+\end{bmatrix}
+\right)
+\]</span></p>
+<p>这里函数的几何意义是，对于任一输入向量 <code>$\begin{bmatrix}x \\ y \\ z\end{bmatrix}$</code>，考虑由它和 <code>$\mathbf{\overrightarrow{v}}$</code> 和 <code>$\mathbf{\overrightarrow{w}}$</code> 确定的平行六面体，得到它的体积，然后根据定向确定符号</p>
+<p>=&gt; 这个函数是哪里来的？为什么要这样定义？</p>
+<p><code>$f(\left(\begin{bmatrix}x \\ y \\ z\end{bmatrix}\right))$</code> 的一个至关重要的性质是它是线性的（使用行列式的性质说明为什么是线性的），我们就能开始引入对偶思想了。</p>
+<p>一旦知道 <code>$f(\left(\begin{bmatrix}x \\ y \\ z\end{bmatrix}\right))$</code> 是线性的，就可以通过矩阵乘法来描述这个函数。具体来说，因为函数 <code>$f$</code> 从三维空间到一维空间，就会存在一个 <code>$1 \times 3$</code> 矩阵来表示这一变换</p>
+<p><span class="math display">\[
+\begin{bmatrix}
+? &amp; ? &amp; ?
+\end{bmatrix}
+\begin{bmatrix}
+x \\ 
+y \\
+z
+\end{bmatrix}
+= 
+\mathbf{Det}
+\left(
+\begin{bmatrix}
+x &amp; v_1 &amp; w_1 \\
+y &amp; v_2 &amp; w_2 \\
+z &amp; v_3 &amp; w_3
+\end{bmatrix}
+\right)
+\]</span></p>
+<p>对偶性的整体思路是，从三维空间到一维空间，我们可以找到该线性变换的对偶向量（即将矩阵给立起来），并且将整个变换看做与这个特定向量的点积</p>
+<p><span class="math display">\[
+\begin{bmatrix}
+? \\
+? \\
+?
+\end{bmatrix}
+\cdot
+\begin{bmatrix}
+x \\ 
+y \\
+z
+\end{bmatrix}
+= 
+\mathbf{Det}
+\left(
+\begin{bmatrix}
+x &amp; v_1 &amp; w_1 \\
+y &amp; v_2 &amp; w_2 \\
+z &amp; v_3 &amp; w_3
+\end{bmatrix}
+\right)
+\]</span></p>
+<p>我们要找的这个特殊的三维向量称之为 <code>$\mathbf{\overrightarrow{p}}$</code>，使得 <code>$\mathbf{\overrightarrow{p}}$</code> 与其中任一向量 <code>$\begin{bmatrix}x \\ y \\ z\end{bmatrix}$</code> 的点积等于一个 <code>$3 \times 3$</code> 矩阵的行列式：</p>
+<p><span class="math display">\[
+\begin{bmatrix}
+p_1 \\ 
+p_2 \\ 
+p_3
+\end{bmatrix}
+\cdot
+\begin{bmatrix}
+x \\ 
+y \\
+z
+\end{bmatrix}
+= 
+\mathbf{Det}
+\left(
+\begin{bmatrix}
+x &amp; v_1 &amp; w_1 \\
+y &amp; v_2 &amp; w_2 \\
+z &amp; v_3 &amp; w_3
+\end{bmatrix}
+\right)
+\]</span></p>
+<p>专注它的计算意义：<code>$\mathbf{\overrightarrow{p}}$</code> 和 <code>$\begin{bmatrix}x \\ y \\ z\end{bmatrix}$</code> 的点乘给出的结果是</p>
+<p><span class="math display">\[
+\begin{bmatrix}
+p_1 \\ 
+p_2 \\ 
+p_3
+\end{bmatrix}
+\cdot
+\begin{bmatrix}
+x \\ 
+y \\
+z
+\end{bmatrix}
+= 
+p_1 \cdot x + p_2 \cdot y + p_3 \cdot z
+\]</span></p>
+<p>当计算等号右侧的行列式时，可以将其整理为：</p>
+<p><span class="math display">\[
+\mathbf{Det}
+\left(
+\begin{bmatrix}
+x &amp; v_1 &amp; w_1 \\
+y &amp; v_2 &amp; w_2 \\
+z &amp; v_3 &amp; w_3
+\end{bmatrix}
+\right)
+=
+x(v_2 \cdot w_3 - v_3 \cdot w_2) + y(v_3 \cdot w_1 - v_1 \cdot w_3) + z(v1 \cdot w_2 - v_2 \cdot w_1)
+\]</span></p>
+<p>于是我们可以得到向量 <code>$\mathbf{\overrightarrow{p}}$</code> 的坐标：</p>
+<p><span class="math display">\[
+p_1 = v_2 \cdot w_3 - v_3 \cdot w_2
+\]</span></p>
+<p><span class="math display">\[
+p_2 = v_3 \cdot w_1 - v_1 \cdot w_3 
+\]</span></p>
+<p><span class="math display">\[
+p_3 = v1 \cdot w_2 - v_2 \cdot w_1
+\]</span></p>
+<p>=&gt; 在叉积的计算公式中插入 <code>$\hat{i}$</code>、<code>$\hat{j}$</code> 和 <code>$\hat{k}$</code> 是在传递一个重要的信息，告诉我们应该把这些系数理解为一个向量的坐标</p>
+<p>当将向量 <code>$\mathbf{\overrightarrow{p}}$</code> 与某个向量 <code>$\begin{bmatrix}x \\ y \\ z\end{bmatrix}$</code> 点乘时，所得结果等于一个 <code>$3 \times 3$</code> 矩阵的行列式，这个矩阵的第一列为 <code>$\begin{bmatrix}x \\ y \\ z\end{bmatrix}$</code>，其余两列为 <code>$\mathbf{\overrightarrow{v}}$</code> 和 <code>$\mathbf{\overrightarrow{w}}$</code> 的坐标，什么样的向量 <code>$\mathbf{\overrightarrow{p}}$</code> 才能满足这一特殊性质？</p>
+<p><span class="math display">\[
+\begin{bmatrix}
+p_1 \\ 
+p_2 \\ 
+p_3
+\end{bmatrix}
+\cdot
+\begin{bmatrix}
+x \\ 
+y \\
+z
+\end{bmatrix}
+= 
+\mathbf{Det}
+\left(
+\begin{bmatrix}
+x &amp; v_1 &amp; w_1 \\
+y &amp; v_2 &amp; w_2 \\
+z &amp; v_3 &amp; w_3
+\end{bmatrix}
+\right)
+\]</span></p>
+<p>=&gt; 将以上的内容与叉积的几何意义联系起来</p>
+<p>从几何角度思考下述问题：</p>
+<p>当将向量 <code>$\mathbf{\overrightarrow{p}}$</code> 与某个向量 <code>$\begin{bmatrix}x \\ y \\ z\end{bmatrix}$</code> 点乘时，所得结果等于一个由 <code>$\begin{bmatrix}x \\ y \\ z\end{bmatrix}$</code> 和 <code>$\mathbf{\overrightarrow{v}}$</code> 与 <code>$\mathbf{\overrightarrow{w}}$</code> 确定的平行六面体的有向体积，什么样的向量 <code>$\mathbf{\overrightarrow{p}}$</code> 才能满足这一特殊性质？</p>
+<p>向量 <code>$\mathbf{\overrightarrow{p}}$</code> 与其他向量的点积的几何解释：是将其他向量投影到 <code>$\mathbf{\overrightarrow{p}}$</code> 上，然后将投影长度与 <code>$\mathbf{\overrightarrow{p}}$</code> 的长度相乘</p>
+<p><span class="math display">\[
+\mathbf{\overrightarrow{p}}
+\cdot
+\begin{bmatrix}
+x \\
+y \\
+z
+\end{bmatrix}
+=
+(\text{Length of projection})
+(\text{Length of }\mathbf{\overrightarrow{p}})
+\]</span></p>
+<p>对于我们所关心的平行六面体的体积，有这样一种思考方法：首先获得由 <code>$\mathbf{\overrightarrow{v}}$</code> 与 <code>$\mathbf{\overrightarrow{w}}$</code> 确定的平行四边形的面积，乘以向量 <code>$\begin{bmatrix}x \\ y \\ z\end{bmatrix}$</code> 在垂直与平行四边形方向上的分量（不是 <code>$\begin{bmatrix}x \\ y \\ z\end{bmatrix}$</code> 的长度）</p>
+<p><span class="math display">\[
+(\text{Area of parallelogram}) \times (\text{Component of} \begin{bmatrix}x \\ y \\ z\end{bmatrix} \text{perpendicular  to} \mathbf{\overrightarrow{v}} \text{and} \mathbf{\overrightarrow{w}})
+\]</span></p>
+<p>换句话说，我们找到的线性函数对于给定向量的作用是将这个向量投影到垂直于 <code>$\mathbf{\overrightarrow{v}}$</code> 与 <code>$\mathbf{\overrightarrow{w}}$</code> 的直线上，然后将投影长度与 <code>$\mathbf{\overrightarrow{v}}$</code> 与 <code>$\mathbf{\overrightarrow{w}}$</code> 张成的平行四边形的面积相乘</p>
+<p>这和垂直于 <code>$\mathbf{\overrightarrow{v}}$</code> 与 <code>$\mathbf{\overrightarrow{w}}$</code> 且长度为平行四边形面积的向量与 <code>$\begin{bmatrix}x \\ y \\ z\end{bmatrix}$</code> 点乘是同一回事（该向量方向垂直于 <code>$\mathbf{\overrightarrow{v}}$</code> 与 <code>$\mathbf{\overrightarrow{w}}$</code>，长度为 <code>$\mathbf{\overrightarrow{v}}$</code> 与 <code>$\mathbf{\overrightarrow{w}}$</code> 张成的平行四边形的面积）</p>
+<p>总结，根据 <code>$\mathbf{\overrightarrow{v}}$</code> 和 <code>$\mathbf{\overrightarrow{w}}$</code> 定义一个从三维空间到数轴的线性变换，然后通过两种不同的方式（即直接应用这个变换和与对偶向量点乘等价）来考虑这个变换的对偶向量。一方面，计算方法引导得出下面技巧：在矩阵第一列插入 <code>$\hat{i}$</code>、<code>$\hat{j}$</code> 和 <code>$\hat{k}$</code>，然后计算行列式。另一方面，从几何角度考虑，可以推断出这个对偶向量必须和<code>$\mathbf{\overrightarrow{v}}$</code> 与 <code>$\mathbf{\overrightarrow{w}}$</code> 垂直，并且其，长度为 <code>$\mathbf{\overrightarrow{v}}$</code> 与 <code>$\mathbf{\overrightarrow{w}}$</code> 张成的平行四边形的面积。这两种方法给出了同一变换的对偶向量，因此这两个向量必然相同</p>
+</div>
+</div>
+<div id="基变换change-of-basis" class="section level2">
+<h2>基变换（Change of basis）</h2>
+<p>对于二维空间中的一个向量，我们可以用坐标来对其进行表示，例如 <code>$\begin{bmatrix}3 \\ 2\end{bmatrix}$</code>，意味着它的起点到它的尖端，需要向右移动 3 个单位，并向上移动 2 个单位。以更加线性代数的方法来描述坐标，将这些数看作拉伸或压缩向量的标量，将 3 看做是缩放 <code>$\hat{i}$</code> 的标量，2 看做缩放 <code>$\hat{j}$</code> 的标量，这两个经过缩放的向量的和就是坐标所要描述的向量</p>
+<p>=&gt; 将 <code>$\hat{i}$</code> 和 <code>$\hat{j}$</code> 这两个特殊的向量看做封装坐标系的隐含假设，第一个坐标表示向右的移动，第二个坐标表示向上的移动，并且 <code>$\hat{i}$</code> 和 <code>$\hat{j}$</code> 均为单位长度。这些所有的事实都与 <code>$\hat{i}$</code> 和 <code>$\hat{j}$</code> 的选取有密切的联系，因为这两个向量正是标量缩放的对象</p>
+<p>=&gt; 发生在向量和一组数之间的任意一种转换，都被称为一个<strong>坐标系</strong>（Coordinate system），其中两个特殊的向量 <code>$\hat{i}$</code> 和 <code>$\hat{j}$</code> 被称为这个标准坐标系的<strong>基向量</strong>（Basis vectors）</p>
+<p>使用另一组基向量会怎么样？</p>
+<p>例如选择另一组基向量 <code>$\hat{b}_1$</code> 和 <code>$\hat{b}_2$</code>，在 <code>$\hat{i} = \begin{bmatrix}1 \\ 0\end{bmatrix}$</code> 和 <code>$\hat{j} = \begin{bmatrix}0 \\ 1\end{bmatrix}$</code> 表示的坐标系中分别表示为 <code>$\hat{b}_1 = \begin{bmatrix}2 \\ 1\end{bmatrix}$</code> 和 <code>$\hat{b}_2 = \begin{bmatrix}-1 \\ 1\end{bmatrix}$</code>。但这里需要注意的一点是，从选择基向量 基向量 <code>$\hat{b}_1$</code> 和 <code>$\hat{b}_2$</code> 的角度来看，<code>$\hat{b}_1 = \begin{bmatrix}1 \\ 0\end{bmatrix}$</code> 和 <code>$\hat{b}_2 = \begin{bmatrix}0 \\ 1\end{bmatrix}$</code>，因为这两个基向量就是定义坐标 <code>$\begin{bmatrix}1 \\ 0\end{bmatrix}$</code> 和 <code>$\begin{bmatrix}0 \\ 1\end{bmatrix}$</code> 含义的向量</p>
+<p>=&gt; 选择不同的基向量，实际上就是说着不同的“语言”，对于空间中的同一个向量，相比于 <code>$\hat{i}$</code> 和 <code>$\hat{j}$</code>（表示为 <code>$\begin{bmatrix}3 \\ 2\end{bmatrix}$</code> ），站在基向量 <code>$\hat{b}_1$</code> 和 <code>$\hat{b}_2$</code> 的角度是使用不同的语言和数字来描述同一个空间中的向量的</p>
+<p>=&gt; 坐标系的确立依赖于我们对基向量的选择</p>
+<p>=&gt; 空间本身并没有内蕴的网格，网格可以作为理解坐标含义的可视化工具</p>
+<p>=&gt; 不同的基向量所确定的坐标轴的方向和网格（人为的）间距会有所不同</p>
+<p>如何在不同的坐标系之间进行转化？在基向量 <code>$\hat{b}_1$</code> 和 <code>$\hat{b}_2$</code> 下的坐标 <code>$\begin{bmatrix}-1 \\ 2\end{bmatrix}$</code> 所描述的一个向量，这个向量在 <code>$\hat{i} = \begin{bmatrix}1 \\ 0\end{bmatrix}$</code> 和 <code>$\hat{j} = \begin{bmatrix}0 \\ 1\end{bmatrix}$</code> 所表示的坐标系中该如何描述呢？</p>
+<p><span class="math display">\[
+-1 \hat{b}_1 + 2 \hat{b}_2
+\]</span></p>
+<p>将 <code>$\hat{b}_1 = \begin{bmatrix}2 \\ 1\end{bmatrix}$</code> 和 <code>$\hat{b}_2 = \begin{bmatrix}-1 \\ 1\end{bmatrix}$</code> 代入得：</p>
+<p><span class="math display">\[
+\begin{bmatrix}? \\ ?\end{bmatrix}
+=
+-1 \begin{bmatrix}2 \\ 1\end{bmatrix} + 2 \begin{bmatrix}-1 \\ 1\end{bmatrix} 
+=
+\begin{bmatrix}-4 \\ 1\end{bmatrix}
+\]</span></p>
+<p>在基向量 <code>$\hat{b}_1$</code> 和 <code>$\hat{b}_2$</code> 下的坐标 <code>$\begin{bmatrix}-1 \\ 2\end{bmatrix}$</code>，在 <code>$\hat{i} = \begin{bmatrix}1 \\ 0\end{bmatrix}$</code> 和 <code>$\hat{j} = \begin{bmatrix}0 \\ 1\end{bmatrix}$</code> 所表示的坐标系中表示为 <code>$\begin{bmatrix}-4 \\ 1\end{bmatrix}$</code>。就是用这个向量的特定坐标与其基向量数乘，然后将结果相加。这就是矩阵向量乘法，这里矩阵的每一列为基于 <code>$\hat{i}$</code> 和 <code>$\hat{j}$</code> 下表达的另一组基向量</p>
+<p><span class="math display">\[
+\underbrace{
+\begin{bmatrix}
+2 &amp; -1 \\
+1 &amp; 1
+\end{bmatrix}
+}_{\text{Transformation}}
+\begin{bmatrix}
+-1 \\
+2
+\end{bmatrix}
+=
+-1 \begin{bmatrix}2 \\ 1\end{bmatrix} + 2 \begin{bmatrix}-1 \\ 1\end{bmatrix} 
+=
+\begin{bmatrix}-4 \\ 1\end{bmatrix}
+\]</span></p>
+<p>在前面的讲解中，将矩阵向量乘法理解为应用一个特定的线性变换，则矩阵 <code>$\begin{bmatrix} 2 &amp; -1 \\ 1 &amp; 1 \end{bmatrix}$</code> 可以看作一个线性变换，将基向量 <code>$\hat{i} = \begin{bmatrix}1 \\ 0\end{bmatrix}$</code> 和 <code>$\hat{j} = \begin{bmatrix}0 \\ 1\end{bmatrix}$</code> 变换成另一组基向量 <code>$\hat{b}_1 = \begin{bmatrix}2 \\ 1\end{bmatrix}$</code> 和 <code>$\hat{b}_2 = \begin{bmatrix}-1 \\ 1\end{bmatrix}$</code>。感觉有点颠倒了。在几何上，这个矩阵 <code>$\begin{bmatrix} 2 &amp; -1 \\ 1 &amp; 1 \end{bmatrix}$</code> 将 <code>$\hat{i}$</code> 和 <code>$\hat{j}$</code> 构成的网格变换为 <code>$\hat{b}_1$</code> 和 <code>$\hat{b}_2$</code> 构成的网格；但是从数值上来理解，是将基于 <code>$\hat{b}_1$</code> 和 <code>$\hat{b}_2$</code> 坐标系下的向量坐标（<code>$\begin{bmatrix}-1 \\ 2\end{bmatrix}$</code>）表示变换为了 <code>$\hat{i}$</code> 和 <code>$\hat{j}$</code> 作为基底的坐标表示（<code>$\begin{bmatrix}-4 \\ 1\end{bmatrix}$</code>）</p>
+<p>=&gt; 线性变换的一个重要特性在于，变换后的向量仍旧是相同的线性组合，不过使用的是新的基向量</p>
+<p>如果从相反的方向来思考呢？</p>
+<p>在 <code>$\hat{i} = \begin{bmatrix}1 \\ 0\end{bmatrix}$</code> 和 <code>$\hat{j} = \begin{bmatrix}0 \\ 1\end{bmatrix}$</code> 所表示的坐标系中，有一个向量为 <code>$\begin{bmatrix}3 \\ 2\end{bmatrix}$</code>，那么，在 <code>$\hat{b}_1 = \begin{bmatrix}2 \\ 1\end{bmatrix}$</code> 和 <code>$\hat{b}_2 = \begin{bmatrix}-1 \\ 1\end{bmatrix}$</code> 所确定的坐标系中应该表示为 <code>$\begin{bmatrix}? \\ ?\end{bmatrix}$</code> 呢？</p>
+<ul>
+<li>以 <code>$\hat{i} = \begin{bmatrix}1 \\ 0\end{bmatrix}$</code> 和 <code>$\hat{j} = \begin{bmatrix}0 \\ 1\end{bmatrix}$</code> 确定的坐标系 <code>$\to$</code> <code>$\mathbf{A}$</code> 语言</li>
+<li><code>$\hat{b}_1 = \begin{bmatrix}2 \\ 1\end{bmatrix}$</code> 和 <code>$\hat{b}_2 = \begin{bmatrix}-1 \\ 1\end{bmatrix}$</code> 确定的坐标系 <code>$\to$</code> <code>$\mathbf{B}$</code> 语言</li>
+</ul>
+<p>这里我们取变换矩阵的逆：</p>
+<p><span class="math display">\[
+\begin{bmatrix} 2 &amp; -1 \\ 1 &amp; 1 \end{bmatrix}
+\to
+\underbrace{
+\begin{bmatrix} 2 &amp; -1 \\ 1 &amp; 1 \end{bmatrix}^{-1}
+}_{\text{Inverse}}
+=
+\begin{bmatrix}
+1/3 &amp; 1/3 \\ 
+-1/3 &amp; 2/3
+\end{bmatrix}
+\]</span></p>
+<p>一个变换的逆是一个新的变换，将所选的变换逆向进行</p>
+<p>给出一个例子，用 <code>$\mathbf{A}$</code> 语言描述的向量 <code>$\begin{bmatrix}3 \\ 2\end{bmatrix}$</code>，在 <code>$\mathbf{B}$</code> 语言下如何表示呢？</p>
+<p><span class="math display">\[
+\underbrace{
+\begin{bmatrix}
+1/3 &amp; 1/3 \\ 
+-1/3 &amp; 2/3
+\end{bmatrix}
+}_{\text{Inverse}}
+\underbrace{
+\begin{bmatrix}
+3 \\
+2
+\end{bmatrix}
+}_{\text{In }\mathbf{A}}
+=
+\underbrace{
+\begin{bmatrix}
+5/3 \\
+1/3
+\end{bmatrix}
+}_{\text{In }\mathbf{B}}
+\]</span></p>
+<p>=&gt; 以上就是如何在坐标系之间对单个向量的描述进行相互转化</p>
+<p>一个矩阵的列代表的是 <code>$\mathbf{B}$</code> 语言的基向量，是用基于 <code>$\mathbf{A}$</code> 语言的坐标来描述的 <code>$\mathbf{T} = \begin{bmatrix} 2 &amp; -1 \\ 1 &amp; 1 \end{bmatrix}$</code>，对于一个向量，这个变换矩阵将 <code>$\mathbf{B}$</code> 语言的描述转化为 <code>$\mathbf{A}$</code> 语言的描述</p>
+<p><span class="math display">\[
+\mathbf{T}
+\begin{bmatrix}x_B \\ y_B\end{bmatrix}
+=
+\begin{bmatrix}x_A \\ y_A\end{bmatrix}
+\]</span></p>
+<p>逆向量则与之相反：</p>
+<p><span class="math display">\[
+\begin{bmatrix}x_B \\ y_B\end{bmatrix}
+=
+\mathbf{T}^{-1}
+\begin{bmatrix}x_A \\ y_A\end{bmatrix}
+\]</span></p>
+<p>向量并不是唯一用坐标表示的东西</p>
+<p>需要前面的预备知识：</p>
+<ol style="list-style-type: decimal">
+<li>矩阵代表线性变换</li>
+<li>矩阵乘积代表线性变换复合</li>
+</ol>
+<p>考虑某个线性变换，譬如逆时针旋转 90°，追踪 <code>$\hat{i}$</code> 和 <code>$\hat{j}$</code> 的变化，<code>$\hat{i}$</code> 在变换后处于坐标 <code>$\begin{bmatrix} 0 \\ 1 \end{bmatrix}$</code>，<code>$\hat{j}$</code> 变换后处于坐标 <code>$\begin{bmatrix} -1 \\ 0 \end{bmatrix}$</code>，则变换矩阵为 <code>$\begin{bmatrix} 0 &amp; -1 \\ 1 &amp; 0 \end{bmatrix}$</code>，但这种表示与我们对基向量的选择密切相关，因为跟踪的是我们所选择的基向量 <code>$\hat{i}$</code> 和 <code>$\hat{j}$</code>，并且是在 <code>$\hat{i}$</code> 和 <code>$\hat{j}$</code> 所确定的坐标系中去记录它们变换后的去向（即使用的是 <code>$\mathbf{A}$</code> 语言来进行描述）</p>
+<p>如何使用 <code>$\mathbf{A}$</code> 语言来描述同样的空间 90° 旋转呢？</p>
+<p>矩阵 <code>$\begin{bmatrix} 0 &amp; -1 \\ 1 &amp; 0 \end{bmatrix}$</code> 中的列代表的是 <code>$\mathbf{A}$</code> 语言的基向量的变换，而不是 <code>$\mathbf{B}$</code> 语言的基向量的变换。这里我们需要找到 <code>$\mathbf{B}$</code> 语言的基向量变换后的去向，并且是使用 <code>$\mathbf{B}$</code> 语言进行描述</p>
+<p><span class="math display">\[
+\overbrace{
+\underbrace{
+\begin{bmatrix} 2 &amp; -1 \\ 1 &amp; 1 \end{bmatrix}^{-1}
+}_{\text{Inverse change of basis matrix}}
+\overbrace{
+\underbrace{
+\begin{bmatrix} 0 &amp; -1 \\ 1 &amp; 0 \end{bmatrix}
+}_{\text{Transformation matrix in }\mathbf{A}}
+\overbrace{
+\underbrace{
+\begin{bmatrix} 2 &amp; -1 \\ 1 &amp; 1 \end{bmatrix}
+}_{\text{Change of basis matrix}}
+\underbrace{
+\begin{bmatrix}x_B \\ y_B\end{bmatrix}
+}_{\text{In }\mathbf{B}}
+}^{\text{Same vector in }\mathbf{A}}
+}^{\text{Transformed vector in }\mathbf{A}}
+}^{\text{Transformed vector in }\mathbf{B}}
+\]</span></p>
+<ol style="list-style-type: decimal">
+<li>从 <code>$\mathbf{B}$</code> 语言描述的任一向量出发，用基变换矩阵转化为 <code>$\mathbf{A}$</code> 语言的描述，这个基变换矩阵的列代表的是用 <code>$\mathbf{A}$</code> 语言描述的 <code>$\mathbf{B}$</code> 的基向量。此时得到的是同一个向量，只是转换为是用 <code>$\mathbf{A}$</code> 语言进行描述</li>
+<li>将所得结果左乘线性变换矩阵，得到变换后的向量，仍然使用 <code>$\mathbf{A}$</code> 语言进行描述</li>
+<li>将所得结果左乘基变换矩阵的逆，从而得到变换后的向量，使用 <code>$\mathbf{B}$</code> 语言进行描述</li>
+</ol>
+<p>=&gt; 对 <code>$\mathbf{B}$</code> 语言描述的任一向量，首先应用基变换，然后应用线性变换，最后应用基变换的逆</p>
+<p>=&gt; 这三个矩阵的复合给出的就是 <code>$\mathbf{B}$</code> 语言描述的线性变换，它接收 <code>$\mathbf{B}$</code> 语言描述的向量，输出用 <code>$\mathbf{B}$</code> 语言描述的变换后的向量</p>
+<p>总的来说，表达式 <code>$\mathbf{A}^{-1}\mathbf{M}\mathbf{A}$</code> 暗示着一种数学上的转移（empathy）作用，中间的矩阵 <code>$\mathbf{M}$</code> 代表一种在 <code>$\mathbf{B}$</code> 语言描述的坐标系中的变换，而外侧两个矩阵代表着转移，即视角上的转化。<code>$\mathbf{A}^{-1}\mathbf{M}\mathbf{A}$</code> 的矩阵乘积仍然代表着同一个变换，只不过是从其他人的角度（以 <code>$\mathbf{B}$</code> 语言进行描述的坐标系）来看的。</p>
+</div>
+<div id="特征向量与特征值eigenvectors-and-eigenvalues" class="section level2">
+<h2>特征向量与特征值（Eigenvectors and eigenvalues）</h2>
+<ul>
+<li>为什么要这么做？</li>
+<li>它究竟以为着什么？</li>
+</ul>
+<p>需要的预备知识：</p>
+<ol style="list-style-type: decimal">
+<li>将矩阵看作线性变换</li>
+<li>行列式</li>
+<li>线性方程组</li>
+<li>基变换</li>
+</ol>
+<p>考虑二维空间中的某个线性变换，将 <code>$\hat{i}$</code> 变换到坐标 <code>$\begin{bmatrix}3 \\ 0\end{bmatrix}$</code>，<code>$\hat{j}$</code> 变换到坐标 <code>$\begin{bmatrix}1 \\ 2\end{bmatrix}$</code>，可以使用 <code>$2 \times 2$</code> 矩阵来表示 <code>$\begin{bmatrix}3 &amp; 1 \\ 0 &amp; 2\end{bmatrix}$</code>，关注此变换对一个特定向量的作用，考虑这个向量长成的空间（即通过原点和向量尖端的直线），大部分向量在变换中离开了其张成的空间，不过，某些特殊变量的确留在它们张成的空间里，变换矩阵对这些特殊向量的作用仅仅是拉伸或者压缩而已（向量留在了它所张成的空间里），如同一个标量。对于 <code>$\begin{bmatrix}3 &amp; 1 \\ 0 &amp; 2\end{bmatrix}$</code>，基向量 <code>$\hat{i}$</code> 就是这样的特殊变量，<code>$\hat{i}$</code> 张成的空间是 <code>$x$</code> 轴，而从矩阵的第一列 <code>$\begin{bmatrix}3 \\ 0\end{bmatrix}$</code> 可以看出，<code>$\hat{i}$</code> 变成了原来的 3 倍，仍然留在 <code>$x$</code> 轴。此外，由于线性变换的性质，<code>$x$</code> 轴上的任何其他向量都只是被拉伸为原来的 3 倍，因此就留在其张成的空间里。有一个略显隐蔽的向量 <code>$\begin{bmatrix}-1 \\ 1\end{bmatrix}$</code>，它在变换中也留在自己张成的空间里，最终被拉伸为原来的 2 倍，同上，线性性质也暗示着一点，处在它所张成的对角线上的其他任何一个向量也仅仅被拉伸为原来的 2 倍。对于矩阵变换 <code>$\begin{bmatrix}3 &amp; 1 \\ 0 &amp; 2\end{bmatrix}$</code>，以上就是所有拥有这一特殊性质（留在它们张成的空间里）的向量，<code>$x$</code> 轴上的向量经变换后拉伸为原来的 3 倍，而这条对角线上的向量被拉伸为原来的 2 倍，任何其他向量在变换中都或多或少的旋转，从而离开它张成的直线</p>
+<p>=&gt; 这些特殊向量就被称为变换的“<strong>特征向量</strong>”，每个特征向量都有一个所属的值，被称为“<strong>特征值</strong>”，即衡量特征向量在变换中拉伸或压缩比例的因子</p>
+<p>=&gt; 特征值可以为正也可以为负，为正就是直接拉伸或压缩，为负就是需要进行反向，重点在于，其仍然停留在张成的直线上，并未发生旋转</p>
+<p>=&gt; 三维旋转，确定这个旋转的特征向量，也就是留在它所张成的空间里的向量，那么就是找到了旋转轴（axis of rotation），将一个三维旋转看成绕某个轴旋转一定角度，要比考虑相应的 <code>$3 \times 3$</code> 矩阵要直观得多。在这种情况下，相应的特征值必须为 1，因为旋转并不缩放任何一个向量，所以向量的长度保持不变</p>
+<p>对于任一矩阵描述的线性变换，可以将矩阵的列看作变换后的基向量来理解，但以 <code>\hat{i}</code> 和 <code>\hat{j}</code> 所确立的坐标系在其中占了太大的比重</p>
+<p>理解线性变换的关键是较少地依赖特定坐标系，更好的方法是求出它的特征向量和特征值</p>
+<div id="特征向量的符号表示" class="section level3">
+<h3>特征向量的符号表示</h3>
+<p><span class="math display">\[
+\mathbf{A}\mathbf{\overrightarrow{v}} = \lambda \mathbf{\overrightarrow{v}}
+\]</span></p>
+<ul>
+<li><code>$\mathbf{A}$</code> 表示某个变换的矩阵</li>
+<li><code>$\mathbf{\overrightarrow{v}}$</code> 是特征向量</li>
+<li><code>$\lambda$</code> 是一个数，即是对应的特征值</li>
+</ul>
+<p>矩阵 <code>$\mathbf{A}$</code> 与特征向量 <code>$\mathbf{\overrightarrow{v}}$</code> 的乘积，等于特征向量 <code>$\mathbf{\overrightarrow{v}}$</code> 乘以某个数 <code>$\lambda$</code>，因此求解矩阵 <code>$\mathbf{A}$</code> 的特征向量和特征值，就是求解满足这个等式的向量 <code>$\mathbf{\overrightarrow{v}}$</code> 和数 <code>$\lambda$</code></p>
+<p>将等号右侧重写为某个矩阵向量乘积，其中矩阵的作用效果（变换效果）就是将一个向量乘以 <code>$\lambda$</code>，这个矩阵的列代表的就是变换后的基向量（即将基向量与 <code>$\lambda$</code> 相乘），所以这个矩阵的对角元素均为 <code>$\lambda$</code>，其余位置都是 0。通常的书写方法是提出因子 <code>$\lambda$</code>，写作 <code>$\lambda$</code> 乘以 <code>$\mathbf{I}$</code>，这里的 <code>$\mathbf{I}$</code> 就是单位矩阵，对角元素都是 1</p>
+<p><span class="math display">\[
+\mathbf{A}\mathbf{\overrightarrow{v}} = 
+\lambda \mathbf{\overrightarrow{v}}
+\to
+\begin{bmatrix}
+\lambda &amp; 0 &amp; 0 \\
+0 &amp; \lambda &amp; 0 \\
+0 &amp; 0 &amp; \lambda
+\end{bmatrix}
+\mathbf{\overrightarrow{v}}
+\to
+(\lambda \mathbf{I}) \mathbf{\overrightarrow{v}}
+\]</span></p>
+<p>就有：</p>
+<p><span class="math display">\[
+\mathbf{A}\mathbf{\overrightarrow{v}} - 
+(\lambda \mathbf{I}) \mathbf{\overrightarrow{v}}
+=
+\mathbf{\overrightarrow{0}}
+\]</span></p>
+<p><span class="math display">\[
+(\mathbf{A} - \lambda \mathbf{I}) \mathbf{\overrightarrow{v}}
+=
+\mathbf{\overrightarrow{0}}
+\]</span></p>
+<p>现在我们就得到了一个新的矩阵：<code>$\mathbf{A} - \lambda \mathbf{I}$</code>，我们需要寻找一个向量 <code>$\mathbf{\overrightarrow{v}}$</code>，使得这个新矩阵与 <code>$\mathbf{\overrightarrow{v}}$</code> 相乘结果为 <code>$\mathbf{\overrightarrow{0}}$</code></p>
+<ul>
+<li>如果 <code>$\mathbf{\overrightarrow{v}}$</code> 就是零向量，这个等式恒成立</li>
+<li><code>$\mathbf{\overrightarrow{v}}$</code> 为非零特征向量。当且仅当矩阵代表的变换将空间压缩到更低的维度时，才会存在一个非零向量，使得矩阵和它的乘积为零向量，而空间压缩（squishification）对应的就是矩阵的行列式为零</li>
+</ul>
+<p><span class="math display">\[
+\mathbf{Det}(\mathbf{A} - \lambda\mathbf{I}) = 0
+\]</span></p>
+<p>找到一个 <code>$\lambda$</code> 使得这个行列式为 0，也就是说调整后的变换将空间压缩到一个更低的维度上，即存在一个非零向量 <code>$\mathbf{\overrightarrow{v}}$</code>，使得 <code>$\mathbf{A} - \lambda \mathbf{I}$</code> 乘以 <code>$\mathbf{\overrightarrow{v}}$</code> 等于零向量，这样得到了 <code>$\mathbf{A}\mathbf{\overrightarrow{v}} =  \lambda \mathbf{\overrightarrow{v}}$</code>，<code>$\mathbf{\overrightarrow{v}}$</code> 就是矩阵 <code>$\mathbf{A}$</code> 的一个特征向量，在变换后停留在它张成的空间里</p>
+<p>=&gt; 充分理解行列式，以及它为什么与线性方程组存在非零解有所联系</p>
+<p>以本节开头的例子为例，对于矩阵 <code>$\begin{bmatrix}3 &amp; 1 \\ 0 &amp; 2\end{bmatrix}$</code>，为了求解特征值 <code>$\lambda$</code>，将矩阵的对角元素减去 <code>$\lambda$</code>，然后计算行列式</p>
+<p><span class="math display">\[
+\mathbf{Det}
+\left(
+\begin{bmatrix}
+3 - \lambda &amp; 1 \\
+0 &amp; 2 - \lambda
+\end{bmatrix}
+\right)
+=
+(3 - \lambda)(2 - \lambda)
+=
+0
+\]</span></p>
+<p>得到一个关于 <code>$\lambda$</code> 的二元多项式，<code>$\lambda$</code> 为特征值，<code>$\lambda = 2$</code> 或者 <code>$\lambda = 3$</code>。为了求出属于某个特征值的特征向量，比如 <code>$\lambda = 2$</code>，将 <code>$\lambda = 2$</code> 带入变换矩阵中，然后求解出在这个对角线变化的矩阵变换之后成为零向量的向量，如果进行计算，如同求解其他线性方程组一样，所有的解全部落在由向量 <code>$\begin{bmatrix}-1 \\ 1\end{bmatrix}$</code> 张成的对角线上</p>
+<p><span class="math display">\[
+\begin{bmatrix}
+3 - 2 &amp; 1 \\
+0 &amp; 2 - 2
+\end{bmatrix}
+\begin{bmatrix}
+x \\
+y
+\end{bmatrix}
+=
+\begin{bmatrix}
+0 \\
+0
+\end{bmatrix}
+\]</span></p>
+<p>与之对应的就是原始矩阵 <code>$\begin{bmatrix}3 &amp; 0 \\ 0 &amp; 2\end{bmatrix}$</code> 将这个对角线上的这些向量拉伸为原来的 2 倍</p>
+<p>=&gt; 二维线性变换可能不存在特征向量。例如，90° 旋转（使用变换矩阵表示为 <code>$\begin{bmatrix}0 &amp; -1 \\ 1 &amp; 0\end{bmatrix}$</code>），它没有特征向量，因为每一个向量都发生了旋转并且离开了其张成的空间。如果我们按照上面的方法计算特征值，得到多项式 <code>$\lambda^{2} + 1 = 0$</code>，其根为虚数 <code>$i$</code> 和 <code>$-i$</code>。没有实数解表示它没有特征向量</p>
+<p><span class="math display">\[
+\mathbf{Det}
+\left(
+\begin{bmatrix}
+-\lambda &amp; -1 \\
+1 &amp; -\lambda
+\end{bmatrix}
+\right)
+=
+\lambda^{2} + 1
+=
+0
+\]</span></p>
+<p><code>$\to$</code> 不过有意思的是，与 <code>$i$</code> 相乘在复平面中表现为 90° 旋转和 <code>$i$</code> 是这个二维实向量旋转变换的特征值有所关联。这部分的细节有待进一步学习，但是注意一点，特征值出现负数的情况一般对应于变换中的某种旋转</p>
+<p>=&gt; 剪切变换，使用变换矩阵表示为 <code>$\begin{bmatrix}1 &amp; 1 \\ 0 &amp; 1\end{bmatrix}$</code>，所有 <code>$x$</code> 轴上的向量都是属于特征值 1 的特征向量，因为它们都保持不变；并且它们是所有的特征向量</p>
+<p><span class="math display">\[
+\mathbf{Det}
+\left(
+\begin{bmatrix}
+1 - \lambda &amp; 1 \\
+0 &amp; 1 - \lambda
+\end{bmatrix}
+\right)
+=
+(1 - \lambda)^{2}
+=
+0
+\]</span></p>
+<p>=&gt; 属于单个特征值的特征向量可以不止在一条直线上。例如，将所有的向量变为原来的两倍，其变换矩阵表示为 <code>$\begin{bmatrix}2 &amp; 0 \\ 0 &amp; 2\end{bmatrix}$</code>，唯一的特征值是 2，但是平面内每一个向量都是属于这个特征值的特征向量</p>
+</div>
+<div id="特征基eigenbasis" class="section level3">
+<h3>特征基（eigenbasis）</h3>
+<p>如果基向量恰好是特征向量会发生什么？例如，<code>$\hat{i}$</code> 变为原来的 -1 倍，<code>$\hat{j}$</code> 变为原来的 2 倍，变换矩阵表示为 <code>$\begin{bmatrix}-1 &amp; 0 \\ 0 &amp; 2\end{bmatrix}$</code>，它们的倍数 -1 和 2 刚好是 <code>$\hat{i}$</code> 和 <code>$\hat{j}$</code> 所属的特征值，位于矩阵的对角线上，而其他元素均为 0</p>
+<p>=&gt; 除了对角线上的元素，其他元素均为 0 的矩阵被称为对角矩阵（Diagonal matrix），所有基向量都是特征向量，矩阵的对角元素是它们对应所属的特征值</p>
+<p>对角矩阵的用处之一，求解矩阵与自己多次相乘的结果，因为对角矩阵仅仅让基向量与某个特征值相乘，所以多次应用矩阵乘法，比如 <code>$n$</code> 次，也只是将每个基向量与对应特征值的 <code>$n$</code> 次幂相乘</p>
+<p><span class="math display">\[
+\underbrace{
+\begin{bmatrix}
+3 &amp; 0 \\
+0 &amp; 2
+\end{bmatrix}
+\cdots
+\begin{bmatrix}
+3 &amp; 0 \\
+0 &amp; 2
+\end{bmatrix}
+}_{\text{n times}}
+\begin{bmatrix}
+x \\
+y
+\end{bmatrix}
+=
+\begin{bmatrix}
+3^{n} &amp; 0 \\
+0 &amp; 2^{n}
+\end{bmatrix}
+\begin{bmatrix}
+x \\
+y
+\end{bmatrix}
+\]</span></p>
+<p>如果基向量不是特征向量，但是如果变换中有许多特征向量，多到我们能够选出一个张成全空间的集合（能够张成全空间的特征向量），那么我们可以变换坐标系，使得这些特征向量就是基向量（用特征向量作为基向量）</p>
+<p>=&gt; 如何在另一个坐标系表达当前坐标系所描述的变换</p>
+<p>以本节开头的例子为例，对于矩阵 <code>$\begin{bmatrix}3 &amp; 1 \\ 0 &amp; 2\end{bmatrix}$</code></p>
+<ol style="list-style-type: decimal">
+<li>取出想用作新基的向量的坐标，在这里指两个特征向量，构成基变换矩阵 <code>$\begin{bmatrix}1 &amp; -1 \\ 0 &amp; 1\end{bmatrix}$</code></li>
+<li>在该变换的右侧写下基变换矩阵</li>
+<li>在该变换的左侧写下基变换矩阵的逆</li>
+<li>将原始变换矩阵置于二者中间</li>
+</ol>
+<p><span class="math display">\[
+\begin{bmatrix}1 &amp; -1 \\ 0 &amp; 1\end{bmatrix}^{-1}
+\begin{bmatrix}3 &amp; 1 \\ 0 &amp; 2\end{bmatrix}
+\begin{bmatrix}1 &amp; -1 \\ 0 &amp; 1\end{bmatrix}
+=
+\begin{bmatrix}3 &amp; 0 \\ 0 &amp; 2\end{bmatrix}
+\]</span></p>
+<p>=&gt; 所得的矩阵代表的是同一变换，不过是从新基向量构成的坐标系的角度来看的</p>
+<p>=&gt; 使用特征向量来作为新基向量的意义在于，这个所得矩阵必定是对角的，并且对角元素为对应的特征值。这是因为，它所在的坐标系的基向量在变换中只是进行了缩放</p>
+<p>=&gt; 一组由特征向量组成的基向量所构成的集合被称为一组“特征基”（eigenbasis）</p>
+<p>=&gt; 要计算某一个非对角矩阵的 <code>$n$</code> 次幂，一种更为简单的做法是先变换到特征基，在那个坐标系中计算 <code>$n$</code> 次幂，然后转换回标准坐标系。<strong>这个具体怎么做？</strong></p>
+<p>并非所有矩阵都能对角化：不是所有变换都能进行这一过程，比如剪切变换，其特征向量只有一个，并不能张成全空间。如果能够找到一组特征基（能够张成全空间的特征向量），矩阵运算就回变得非常轻松</p>
+</div>
+<div id="problem-set" class="section level3">
+<h3>Problem set</h3>
+<p>取下面这个矩阵：</p>
+<p><span class="math display">\[
+\mathbf{A} = 
+\begin{bmatrix}
+0 &amp; 1 \\
+1 &amp; 1 
+\end{bmatrix}
+\]</span></p>
+<p>首先手动计算它的前几次幂，如 <code>$\mathbf{A}^2$</code>、<code>$\mathbf{A}^3$</code> 等，看看发现了什么规律？是不是有一种计算这个矩阵任意次幂 <code>$\mathbf{A}^n$</code> 的有效方法？</p>
+<p>这个矩阵的两个特征向量如下所示：</p>
+<p><span class="math display">\[
+\mathbf{\overrightarrow{v}}_1 =
+\begin{bmatrix}
+2 \\
+1 + \sqrt{5}
+\end{bmatrix}
+\qquad
+\mathbf{\overrightarrow{v}}_2 =
+\begin{bmatrix}
+2 \\
+1 - \sqrt{5}
+\end{bmatrix}
+\]</span></p>
+<p>试试看我们能否通过以下方式计算出 <code>$\mathbf{A}^n$</code>：首先转换为特征基，在新基所描述的坐标系下计算出 <code>$\mathbf{A}^n$</code>，然后转换回我们标准基。最终得到的公式能告诉我们什么？</p>
+</div>
+<div id="解答" class="section level3">
+<h3>解答</h3>
+<ul>
+<li>求 <code>$\mathbf{A}$</code> 的特征值</li>
+</ul>
+<p><span class="math display">\[
+\mathbf{Det}
+\left(
+\begin{bmatrix}
+0 - \lambda &amp; 1 \\
+1 &amp; 1 - \lambda
+\end{bmatrix}
+\right)
+=
+\lambda ^ 2 - \lambda - 1
+=
+0
+\]</span></p>
+<p>得到 <code>$\lambda_1 = \frac{1 + \sqrt{5}}{2}$</code> 和 <code>$\lambda_2 = \frac{1 - \sqrt{5}}{2}$</code></p>
+<ul>
+<li>得到对应特征值的特征向量</li>
+</ul>
+<p>当 <code>$\lambda = \frac{1 + \sqrt{5}}{2}$</code>，求解线性方程组 <code>$(\mathbf{A} - \lambda \mathbf{I})\mathbf{\overrightarrow{v}} = \mathbf{\overrightarrow{0}}$</code></p>
+<p><span class="math display">\[
+(\mathbf{A} - \lambda \mathbf{I}) = 
+\begin{bmatrix}
+-\frac{1 + \sqrt{5}}{2} &amp; 1 \\
+1 &amp; \frac{1 - \sqrt{5}}{2}
+\end{bmatrix}
+\]</span></p>
+<p>对应有：</p>
+<p><span class="math display">\[
+-\frac{1 + \sqrt{5}}{2} x_1 + x_2 = 0
+\]</span></p>
+<p><span class="math display">\[
+x_1 + \frac{1 - \sqrt{5}}{2} x_2 = 0
+\]</span></p>
+<p>上述两个等式等价（将第一个等式左右两边乘以 <code>$\frac{1 - \sqrt{5}}{2}$</code> 可以得到第二个等式），所以令 <code>$x_2 = 1 + \sqrt{5}$</code>，<code>$x_1 = 2$</code>，特征值 <code>$\frac{1 + \sqrt{5}}{2}$</code> 对应的特征向量为 <code>$\begin{bmatrix}2 \\ 1 + \sqrt{5}\end{bmatrix}$</code></p>
+<p>同理，特征值 <code>$\frac{1 - \sqrt{5}}{2}$</code> 对应的特征向量为 <code>$\begin{bmatrix}2 \\ 1 - \sqrt{5}\end{bmatrix}$</code></p>
+</div>
+</div>
+<div id="抽象向量空间abstract-vector-spaces" class="section level2">
+<h2>抽象向量空间（Abstract vector spaces）</h2>
+<p>=&gt; 为什么数学家只考虑向量加法与向量数乘这两种运算，并且又是如何将它们抽象出来的，不管选择什么代表向量都与之无关。实际上，无论怎么去看待向量都无所谓，或把向量看作空间中的箭头（有对应的数值表示），或把向量看作有序的数字列表（有对应的几何意义）。线性代数的效用很少体现在这些观点的其中一个上，更多地体现在它能够在这些观点之间相互转化</p>
+<p>什么是向量？在二维平面中，从根本上说，它是平面内的一个箭头，而为了方便起见，我们可以用坐标来描述它；或者说，它是一个实数对，我们将其形象理解为平面内的一个箭头；又或者，这两种观点只是更深层次的某种抽象的体现？</p>
+<p>线性代数中的核心话题，如行列式和特征向量等，与所选坐标系无关</p>
+<ul>
+<li>行列式：一个变换对面积的缩放比例</li>
+<li>特征向量：在变换中留在它所张成的空间中的向量</li>
+</ul>
+<p>=&gt; 这二者都是暗含于空间中的性质，我们可以随意选取坐标系，这并不会改变它们最根本的值</p>
+<p>“空间”（space） “空间性”（spatial）</p>
+<p>同样具有向量特性的东西：函数（functions）</p>
+<p>从某种意义上说，函数实际上只是另一种对象。类比两个向量相加的方法，可以将两个函数 <code>$f$</code> 和 <code>$g$</code> 相加，从而获得一个新函数 <code>$f + g$</code>，这个新函数在任意一点处的值就是 <code>$f$</code> 和 <code>$g$</code>，这和向量对应坐标相加非常相似，只不过在某种程度上说，它有无穷多个坐标要相加</p>
+<p><span class="math display">\[
+(f + g)(x) = f(x) + g(x)
+\]</span></p>
+<p>类似地，函数与一个实数相乘也有合理的解释，将输出的值与那个数相乘。这再次和向量对应数乘类似, 只是同时需要与无穷多个数值相乘</p>
+<p>向量支持的两种操作：相加和数乘，所以最初以空间中的箭头为背景考虑的线性代数的合理概念和解决问题的手段，能够被原样应用于函数</p>
+<p>函数的<strong>线性变换</strong>（<strong>线性算子</strong>）有一个完美的解释，这个变换接收一个函数，并把它变成另一个函数。从微积分中可以找到一个常见的例子——导数（derivative），它将一个函数变换为另一个函数</p>
+<p>“一个函数变换是线性”的是什么意思？线性的严格定义是相对抽象而符号繁重的，但是，抽象性带来的好处是我们能得到一般性的结论，它不仅适用于箭头，也适用于函数。满足以下两条性质的变换是线性的：</p>
+<ol style="list-style-type: decimal">
+<li>可加性（Additivity）：<code>$\mathbf{L}(\mathbf{\overrightarrow{v}} + \mathbf{\overrightarrow{w}}) = \mathbf{L}(\mathbf{\overrightarrow{v}}) + \mathbf{L}(\mathbf{\overrightarrow{w}})$</code></li>
+</ol>
+<p>将两个向量 <code>$\mathbf{\overrightarrow{v}}$</code> 和 <code>$\mathbf{\overrightarrow{w}}$</code> 相加，然后对它们的和应用变换，得到的结果和变换后的 <code>$\mathbf{\overrightarrow{v}}$</code> 与变换后的 <code>$\mathbf{\overrightarrow{v}}$</code> 相加一致</p>
+<ol start="2" style="list-style-type: decimal">
+<li>成比例（Scaling，一阶齐次）：<code>$\mathbf{L}(c\mathbf{\overrightarrow{v}}) = c\mathbf{L}(\mathbf{\overrightarrow{v}})$</code></li>
+</ol>
+<p>将一个向量 <code>$\mathbf{\overrightarrow{v}}$</code> 与某个数相乘，然后应用变换，得到的结果和变换后的 <code>$\mathbf{\overrightarrow{v}}$</code> 与这个数相乘一致</p>
+<p>=&gt; 线性变换保持向量加法运算和数乘运算</p>
+<p>=&gt; 网格线保持平行且等距分布，是上述两条性质在二维空间这一特殊情况下的体现</p>
+<p>=&gt; 这两条性质的一个最重要的推论是，一个线性变换可以通过它对基向量的作用来完全描述，这使得矩阵向量乘法成为可能。因为任一向量都能表达为基向量以某种方式进行线性组合，所以求一个向量变换后的结果，实际上就是求出变换后的基向量以相同方式进行线性组合的结果</p>
+<p>微分算子（<code>$\frac{d}{dx}$</code>）是线性的，即求导具有可加性和成比例性（求导满足线性性质）</p>
+<p>可加性：</p>
+<p><span class="math display">\[
+\mathbf{L}(\mathbf{\overrightarrow{v}} + \mathbf{\overrightarrow{w}}) = \mathbf{L}(\mathbf{\overrightarrow{v}}) + \mathbf{L}(\mathbf{\overrightarrow{w}})
+\]</span></p>
+<p><span class="math display">\[
+\frac{d}{dx}(x^3 + x^2) = \frac{d}{dx}(x^3) + \frac{d}{dx}(x^2)
+\]</span></p>
+<p>成比例性：</p>
+<p><span class="math display">\[
+\mathbf{L}(c\mathbf{\overrightarrow{v}}) = c\mathbf{L}(\mathbf{\overrightarrow{v}})
+\]</span></p>
+<p><span class="math display">\[
+\frac{d}{dx}(4x^3) = 4\frac{d}{dx}(x^3)
+\]</span></p>
+<p>为了真正掌握这里的类比关系，我们来看看<strong>用矩阵描述求导</strong>是什么样子的？</p>
+<p>函数空间倾向于有无穷维</p>
+<p>某一空间中的每一个多项式都只有有限项，但是整个空间应该包含任意高次的多项式</p>
+<ul>
+<li>首先给这个空间赋予坐标含义，需要选取一组基。因为多项式已经是数乘 <code>$x$</code> 的不同次幂再加和的形式了，即已经写成了线性组合的形式了，可以选择 <code>$x$</code> 的不同次幂作为基函数。因为多项式的次数可以任意高，所以这个基函数集也是无穷大的。这样，讲我们把多项式当做向量来处理时，它们会对应无穷多个坐标</li>
+</ul>
+<p><span class="math display">\[
+b_0(x) = 1
+\]</span></p>
+<p><span class="math display">\[
+b_1(x) = x^1
+\]</span></p>
+<p><span class="math display">\[
+b_2(x) = x^2
+\]</span></p>
+<p><span class="math display">\[
+b_3(x) = x^3
+\]</span></p>
+<p><span class="math display">\[
+\vdots
+\]</span></p>
+<ul>
+<li>比如多项式 <code>$x^2 + 3x + 5$</code>，用坐标来描述就表示为：</li>
+</ul>
+<p><span class="math display">\[
+1 \cdot x^2 + 3 \cdot x + 5 \cdot 1 = 
+\begin{bmatrix}
+5 \\
+3 \\
+1 \\
+0 \\
+\vdots \\
+0
+\end{bmatrix}
+\]</span></p>
+<ul>
+<li>由于每一个多项式都只有有限项，所以它的坐标表示就是有限长的一串数，再加上无限长的一串零</li>
+</ul>
+<p><span class="math display">\[
+a_nx^n + a_{n-1}x^{n-1} + \cdots + a_1x + a_0 = 
+\begin{bmatrix}
+a_0 \\
+a_1 \\
+\vdots \\
+a_{n-1} \\
+a_n \\
+0 \\
+\vdots
+\end{bmatrix}
+\]</span></p>
+<ul>
+<li>在这样一个坐标系中，求导是用一个无限阶矩阵来描述的，其中绝大部分为 0，次对角线上按序排列着正整数。矩阵的每一列为，求每一基函数的导数，然后把结果放在对应列，…</li>
+</ul>
+<p><span class="math display">\[
+\frac{d}{dx} = 
+\begin{bmatrix}
+0 &amp; 1 &amp; 0 &amp; 0 &amp; \cdots \\
+0 &amp; 0 &amp; 2 &amp; 0 &amp; \cdots \\
+0 &amp; 0 &amp; 0 &amp; 3 &amp; \cdots \\
+0 &amp; 0 &amp; 0 &amp; 0 &amp; \cdots \\
+\vdots &amp; \vdots &amp; \vdots &amp; \vdots &amp; \ddots
+\end{bmatrix}
+\]</span></p>
+<ul>
+<li>取出多项式 <code>$x^3 + 5x^2 + 4x + 5$</code> 的坐标，将其放置在导数变换描述的矩阵右侧。对结果的第一个坐标有贡献的只有 1 乘以 4 这一项，这对应这 <code>$4x$</code> 的导数是常数 4，以此类推</li>
+</ul>
+<p><span class="math display">\[
+\frac{d}{dx}(x^3 + 5x^2 + 4x + 5) = 
+\begin{bmatrix}
+0 &amp; 1 &amp; 0 &amp; 0 &amp; \cdots \\
+0 &amp; 0 &amp; 2 &amp; 0 &amp; \cdots \\
+0 &amp; 0 &amp; 0 &amp; 3 &amp; \cdots \\
+0 &amp; 0 &amp; 0 &amp; 0 &amp; \cdots \\
+\vdots &amp; \vdots &amp; \vdots &amp; \vdots &amp; \ddots
+\end{bmatrix}
+\begin{bmatrix}
+5 \\
+4 \\
+5 \\
+1 \\
+\vdots
+\end{bmatrix}
+=
+\begin{bmatrix}
+1 \cdot 4 \\
+2 \cdot 5 \\
+3 \cdot 1 \\
+0 \\
+\vdots
+\end{bmatrix}
+\]</span></p>
+<p>=&gt; 矩阵向量乘法看似与求导过程毫不相干，但其实它们有隐含联系。实际上，上文中所讨论的大部分关于向量（空间中的箭头）的概念，比如说点积或特征向量，在函数的世界中都有直接的类比（名称可能会不一样）</p>
+<table>
+<thead>
+<tr class="header">
+<th>线性代数中的概念</th>
+<th>应用于函数时的别名</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>线性变换（Linear transformations）</td>
+<td>线性算子（Linear operators）</td>
+</tr>
+<tr class="even">
+<td>点积（Dot products）</td>
+<td>内积（Inner products）</td>
+</tr>
+<tr class="odd">
+<td>特征向量（Eigenvectors）</td>
+<td>特征函数（Eigenfunctions）</td>
+</tr>
+</tbody>
+</table>
+<div id="向量是什么" class="section level3">
+<h3>“向量是什么？”</h3>
+<p>=&gt; 有很多类似向量的不同事物，只要我们处理的对象集具有合理的数乘和相加的概念，不管是空间中的箭头、一组数、或是函数的集合。线性代数中所有关于向量、线性变换和其他的概念都应该适用于它，不只对一个特殊情况适用，对其他类似向量的事物都有普适性</p>
+<p>=&gt; 这些类似向量的事物，比如箭头、一组数、函数等，它们构成的集合被称为“向量空间”</p>
+<p>一系列向量加法和数乘必须遵守的规则，这些规则被称为“公理”（Axioms）</p>
+<ol style="list-style-type: decimal">
+<li>向量加法满足结合律</li>
+</ol>
+<p><span class="math display">\[
+\mathbf{\overrightarrow{u}} + (\mathbf{\overrightarrow{v}} + \mathbf{\overrightarrow{w}}) = (\mathbf{\overrightarrow{u}} + \mathbf{\overrightarrow{v}}) + \mathbf{\overrightarrow{w}}
+\]</span></p>
+<ol start="2" style="list-style-type: decimal">
+<li>向量加法满足交换律</li>
+</ol>
+<p><span class="math display">\[
+\mathbf{\overrightarrow{v}} + \mathbf{\overrightarrow{w}} =
+\mathbf{\overrightarrow{w}} + \mathbf{\overrightarrow{v}}
+\]</span></p>
+<ol start="3" style="list-style-type: decimal">
+<li>向量加法的单位元存在</li>
+</ol>
+<p>There is a vector <code>$\mathbf{\overrightarrow{0}}$</code> such that <code>$\mathbf{\overrightarrow{0}} + \mathbf{\overrightarrow{v}} = \mathbf{\overrightarrow{v}}$</code> for all <code>$\mathbf{\overrightarrow{v}}$</code></p>
+<ol start="4" style="list-style-type: decimal">
+<li>每个向量的加法逆元均存在</li>
+</ol>
+<p>For every vector <code>$\mathbf{\overrightarrow{v}}$</code> there is a vector <code>$-\mathbf{\overrightarrow{v}}$</code> so that <code>$\mathbf{\overrightarrow{v}} + (-\mathbf{\overrightarrow{v}}) = \mathbf{\overrightarrow{0}}$</code></p>
+<ol start="5" style="list-style-type: decimal">
+<li>标量乘法与标量域乘法相容</li>
+</ol>
+<p><span class="math display">\[
+a(b\mathbf{\overrightarrow{v}}) = (ab)\mathbf{\overrightarrow{v}}
+\]</span></p>
+<ol start="6" style="list-style-type: decimal">
+<li>标量乘法的单位元存在</li>
+</ol>
+<p><span class="math display">\[
+1 \cdot \mathbf{\overrightarrow{v}} = \mathbf{\overrightarrow{v}}
+\]</span></p>
+<ol start="7" style="list-style-type: decimal">
+<li>标量乘法对向量乘法满足分配律</li>
+</ol>
+<p><span class="math display">\[
+a(\mathbf{\overrightarrow{v}} + \mathbf{\overrightarrow{w}}) =
+a \mathbf{\overrightarrow{v}} + b \mathbf{\overrightarrow{w}}
+\]</span></p>
+<ol start="8" style="list-style-type: decimal">
+<li>标量乘法对域加法满足分配律</li>
+</ol>
+<p><span class="math display">\[
+(a + b)\mathbf{\overrightarrow{v}} = a \mathbf{\overrightarrow{v}} + b \mathbf{\overrightarrow{v}}
+\]</span></p>
+<p>=&gt; 在线性代数的现代理论中，如果要让所有已经建立好的理论和概念适用于一个向量空间，那么它必须满足这八条公理</p>
+<p>=&gt; 人们往往是将所有的结论抽象地表述出来，也就是说仅仅根据这些公理表述，而不是集中于某一特定的向量上，像空间中的箭头或者函数等</p>
+<p>这就是为什么每一本线性代数教科书都会根据可加性和成比例性来定义线性变换，而不是用网格线保持平行且等距分布来定义。所以对于“向量是什么？”这个问题，数学家会直接忽略不作答，在现代理论中，<strong>向量的形式并不重要</strong>，箭头、一组数、函数等都无所谓，向量可以是任何东西，只要向量相加和数乘的概念遵守以上八条性质即可</p>
+<p>向量有多种体现，但是数学将其抽象成“向量空间”这样一个无形的概念</p>
+<p><strong>普适的代价是抽象</strong>（Abstractness is the price of generality）</p>
+</div>
+</div>
+</div>
