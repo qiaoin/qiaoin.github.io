@@ -26,6 +26,15 @@
     </item>
     
     <item>
+      <title>线性代数基础</title>
+      <link>https://qiaoin.github.io/2019/10/26/essense-linear-lgebra/</link>
+      <pubDate>Sat, 26 Oct 2019 00:00:00 +0000</pubDate>
+      
+      <guid>https://qiaoin.github.io/2019/10/26/essense-linear-lgebra/</guid>
+      <description>线性代数的本质 - 系列合集 我们学习了线性代数，却无法对下面的问题形成真正的理解： 为什么矩阵乘法要如此定义？（matrix multiplicat</description>
+    </item>
+    
+    <item>
       <title>AWK 学习使用</title>
       <link>https://qiaoin.github.io/2019/09/08/learning-awk/</link>
       <pubDate>Sun, 08 Sep 2019 00:00:00 +0000</pubDate>
