@@ -11,6 +11,12 @@ tags:
 
 > 由于经常需要跟命令行和文本处理打交道，也确实在实际使用中体会到了 AWK 的强大力量，决定系统学习一下 AWK，此之为学习使用的笔记整理
 
+---
+
+{{< toc >}}
+
+---
+
 **下文中引用部分若无标注，均引用自《The AWK Programming Language》**，优先阅读 Chapter 1&2&8
 
 > An awk program is a sequence of **patterns** and **actions** that tell what to look for in the input data and what to do when it's found. Awk searches a set of files for lines matched by any of the patterns; when a matching line is found, the corresponding action is performed. A **pattern** can select lines by combinations of regular expressions and comparison operations on **strings**, **numbers**, **fields**, **variables**, and **array elements**. **Actions** may perform arbitrary processing on selected lines; the action language looks like C but there are **no declarations (不需要声明)**, and strings and numbers are built-in types.

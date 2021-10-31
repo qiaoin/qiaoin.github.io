@@ -9,6 +9,12 @@ tags:
   - Daemon
 ---
 
+---
+
+{{< toc >}}
+
+---
+
 ## 什么是 Daemon？
 
 守护进程（daemon）是生存期长的一种进程。它们常常在系统引导装入时启动，仅在系统关闭时才终止。因为它们没有控制终端，所以说它们是在后台运行的。Unix 中有很多守护进程，它们执行系统任务。
@@ -253,6 +259,8 @@ int createPidFile(const char* progName, const char* pidFile, int flags) {
 ## 版权声明
 
 本作品采用[知识共享署名 4.0 国际许可协议](http://creativecommons.org/licenses/by/4.0/)进行许可，转载时请注明原文链接。
+
+## References
 
 [^1]: LINUX PID 1 和 SYSTEMD https://coolshell.cn/articles/17998.html
 

@@ -32,8 +32,12 @@ params:
     - c++
     - cmake
     - go
+    - html
     - java
+    - javascript
     - python
+    - rust
+    - typescript
     - yaml
   highlightjsTheme: monokai
   highlightjsVersion: 10.7.1

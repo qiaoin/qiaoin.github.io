@@ -2,18 +2,24 @@
 title: 线性代数基础
 author: qiaoin
 date: '2019-10-26'
-slug: essense-linear-lgebra
+slug: essence-of-linear-algebra
 categories:
   - math
 tags:
   - 线性代数
+output:
+  blogdown::html_page:
+    toc: true
+    toc_depth: 3  # upto three depths of headings (specified by #, ## and ###)
 ---
 
 ---
 
-- [线性代数的本质 - 系列合集](https://www.bilibili.com/video/av6731067)
+- [线性代数的本质 - 系列合集](https://www.bilibili.com/video/BV1ys411472E)
 
 ---
+
+## 序言（Introduction）
 
 我们学习了线性代数，却无法对下面的问题形成真正的理解：
 
@@ -47,7 +53,7 @@ $$
 
 在数值水平和几何水平上理解线性代数有着根本性的差异，在几何水平上的理解能够让我们判断出解决特定问题需要用什么样的工具，感觉到它们为什么有用，以及如何解读最终结果；而数值水平上的理解则能够让我们顺利应用这些工具
 
-## 向量究竟是什么？（Essense of Linear Algebra）
+## 向量究竟是什么？（Essence of Linear Algebra）
 
 三种视角：
 
@@ -544,7 +550,7 @@ $$
 
 => 以二维平面为例，1）矩阵表示对空间的变换，取行列式得到此变换后两个基向量围成的平行四边形的面积的变化倍数。2）一个矩阵表示一次变换，再左乘一个矩阵表示再进行一次变换。所以，`$\mathbf{Det}(\mathbf{M}_1\mathbf{M}_2)$` 表示两次变换后（即最终）平行四边形变化的倍数，显然等于一次变换后变化的倍数 `$\mathbf{Det}(\mathbf{M}_1)$` 乘以第二次变换后的倍数 `$\mathbf{Det}(\mathbf{M}_2)$`
 
-# 逆矩阵、列空间、秩与零空间（Inverse matrices, column space, rank and null space）
+## 逆矩阵、列空间、秩与零空间（Inverse matrices, column space, rank and null space）
 
 > 线性方程组 Linear system of equations
 
@@ -554,13 +560,11 @@ $$
 
 线性方程组（Linear system of equations）：有一系列未知量和一系列与之相关的方程， 在每个方程中，所有的未知量只具有常系数，这些未知量之间只进行加和。要整理这一特定的方程组，一个典型的方法是将未知量放在等号左边，剩下的常数项放在等号右边，并且将同一未知量竖直对齐（要做到这一点，可能需要在某个未知量不出现时在其前面添加 0 这个系数）
 
-$$
-2x + 5y + 3z = -3 
+> 2x + 5y + 3z = -3 
 
-4x + 0y + 8z = 0 
+> 4x + 0y + 8z = 0 
 
-1x + 3y + 0z = 2
-$$
+> 1x + 3y + 0z = 2
 
 将所有的方程合并为一个向量方程，表示为：
 
@@ -1950,3 +1954,7 @@ $$
 向量有多种体现，但是数学将其抽象成“向量空间”这样一个无形的概念
 
 **普适的代价是抽象**（Abstractness is the price of generality）
+
+## 版权声明
+
+本作品采用[知识共享署名 4.0 国际许可协议](http://creativecommons.org/licenses/by/4.0/)进行许可，转载时请注明原文链接。

@@ -12,6 +12,12 @@ tags:
 
 下文为一个 step-by-step 的 CMake 使用入门教程，它包含了我们使用 CMake 来构建系统所需要使用的一些常用命令。我们在这个教程中所使用到的所有文件都可以在 [Tests/Tutorial](https://gitlab.kitware.com/cmake/cmake/tree/master/Tests/Tutorial/) 文件夹下找到，对应每一步都有一个单独的文件夹。
 
+---
+
+{{< toc >}}
+
+---
+
 ## Step1 Hello, CMake!
 
 我们从最为简单的一个项目开始着手，其包含一些源代码文件，用来产生最后的可执行文件。那么，在 `CMakeLists.txt` 文件中仅需包含三条语句就可以了：

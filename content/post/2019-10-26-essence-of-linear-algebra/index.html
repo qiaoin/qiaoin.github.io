@@ -2,21 +2,66 @@
 title: 线性代数基础
 author: qiaoin
 date: '2019-10-26'
-slug: essense-linear-lgebra
+slug: essence-of-linear-algebra
 categories:
   - math
 tags:
   - 线性代数
+output:
+  blogdown::html_page:
+    toc: true
+    toc_depth: 3  # upto three depths of headings (specified by #, ## and ###)
 ---
 
 <script src="{{< blogdown/postref >}}index_files/header-attrs/header-attrs.js"></script>
 
+<div id="TOC">
+<ul>
+<li><a href="#序言introduction">序言（Introduction）</a></li>
+<li><a href="#向量究竟是什么essence-of-linear-algebra">向量究竟是什么？（Essence of Linear Algebra）</a>
+<ul>
+<li><a href="#向量加法">向量加法</a></li>
+<li><a href="#向量数乘">向量数乘</a></li>
+</ul></li>
+<li><a href="#向量的线性组合张成的空间和基linear-combinations-span-and-bases">向量的线性组合、张成的空间和基（Linear combinations, span and bases）</a></li>
+<li><a href="#线性变换与矩阵matrices-as-linear-transformations">线性变换与矩阵（Matrices as linear transformations）</a></li>
+<li><a href="#线性变换复合与矩阵乘法matrix-multiplication-as-composition">线性变换复合与矩阵乘法（Matrix multiplication as composition）</a></li>
+<li><a href="#三维空间中的线性变换linear-transformations-in-three-dimensions">三维空间中的线性变换（Linear transformations in three dimensions）</a></li>
+<li><a href="#行列式the-determinant">行列式（The determinant）</a></li>
+<li><a href="#逆矩阵列空间秩与零空间inverse-matrices-column-space-rank-and-null-space">逆矩阵、列空间、秩与零空间（Inverse matrices, column space, rank and null space）</a></li>
+<li><a href="#非方阵non-square-matrices">非方阵（Non-square matrices）</a></li>
+<li><a href="#点积与对偶性dot-products-and-duality">点积与对偶性（Dot products and duality）</a>
+<ul>
+<li><a href="#引入点积的标准方法">引入点积的标准方法</a></li>
+</ul></li>
+<li><a href="#以线性变换的眼光看叉积cross-products-in-the-light-of-linear-transformations">以线性变换的眼光看叉积（Cross products in the light of linear transformations）</a>
+<ul>
+<li><a href="#叉积的标准介绍">叉积的标准介绍</a></li>
+<li><a href="#以线性变换的眼光看叉积">以线性变换的眼光看叉积</a></li>
+</ul></li>
+<li><a href="#基变换change-of-basis">基变换（Change of basis）</a></li>
+<li><a href="#特征向量与特征值eigenvectors-and-eigenvalues">特征向量与特征值（Eigenvectors and eigenvalues）</a>
+<ul>
+<li><a href="#特征向量的符号表示">特征向量的符号表示</a></li>
+<li><a href="#特征基eigenbasis">特征基（eigenbasis）</a></li>
+<li><a href="#problem-set">Problem set</a></li>
+<li><a href="#解答">解答</a></li>
+</ul></li>
+<li><a href="#抽象向量空间abstract-vector-spaces">抽象向量空间（Abstract vector spaces）</a>
+<ul>
+<li><a href="#向量是什么">“向量是什么？”</a></li>
+</ul></li>
+<li><a href="#版权声明">版权声明</a></li>
+</ul>
+</div>
 
 <hr />
 <ul>
-<li><a href="https://www.bilibili.com/video/av6731067">线性代数的本质 - 系列合集</a></li>
+<li><a href="https://www.bilibili.com/video/BV1ys411472E">线性代数的本质 - 系列合集</a></li>
 </ul>
 <hr />
+<div id="序言introduction" class="section level2">
+<h2>序言（Introduction）</h2>
 <p>我们学习了线性代数，却无法对下面的问题形成真正的理解：</p>
 <ol style="list-style-type: decimal">
 <li>为什么矩阵乘法要如此定义？（<strong>matrix multiplication</strong>）</li>
@@ -47,8 +92,9 @@ ce + dg &amp; cf + dh
 </ol>
 <p>数值运算（<strong>numeric operations</strong>） vs. 几何直观（<strong>geometric intuition</strong>）</p>
 <p>在数值水平和几何水平上理解线性代数有着根本性的差异，在几何水平上的理解能够让我们判断出解决特定问题需要用什么样的工具，感觉到它们为什么有用，以及如何解读最终结果；而数值水平上的理解则能够让我们顺利应用这些工具</p>
-<div id="向量究竟是什么essense-of-linear-algebra" class="section level2">
-<h2>向量究竟是什么？（Essense of Linear Algebra）</h2>
+</div>
+<div id="向量究竟是什么essence-of-linear-algebra" class="section level2">
+<h2>向量究竟是什么？（Essence of Linear Algebra）</h2>
 <p>三种视角：</p>
 <ol style="list-style-type: decimal">
 <li>物理专业学生：<code>$\nearrow$</code> <strong>向量是空间中的箭头</strong>，决定一个向量的是它的长度和它所指的方向。但只要以上两个特征相同，我们就可以移动一个向量并保持它不变。向量按维度进行分类，平面上为二维向量，我们生活的空间为三维向量</li>
@@ -461,8 +507,8 @@ g &amp; h
 \]</span></p>
 <p>=&gt; 以二维平面为例，1）矩阵表示对空间的变换，取行列式得到此变换后两个基向量围成的平行四边形的面积的变化倍数。2）一个矩阵表示一次变换，再左乘一个矩阵表示再进行一次变换。所以，<code>$\mathbf{Det}(\mathbf{M}_1\mathbf{M}_2)$</code> 表示两次变换后（即最终）平行四边形变化的倍数，显然等于一次变换后变化的倍数 <code>$\mathbf{Det}(\mathbf{M}_1)$</code> 乘以第二次变换后的倍数 <code>$\mathbf{Det}(\mathbf{M}_2)$</code></p>
 </div>
-<div id="逆矩阵列空间秩与零空间inverse-matrices-column-space-rank-and-null-space" class="section level1">
-<h1>逆矩阵、列空间、秩与零空间（Inverse matrices, column space, rank and null space）</h1>
+<div id="逆矩阵列空间秩与零空间inverse-matrices-column-space-rank-and-null-space" class="section level2">
+<h2>逆矩阵、列空间、秩与零空间（Inverse matrices, column space, rank and null space）</h2>
 <blockquote>
 <p>线性方程组 Linear system of equations</p>
 </blockquote>
@@ -473,11 +519,15 @@ g &amp; h
 <p>行阶梯型 Row echelon form</p>
 </blockquote>
 <p>线性方程组（Linear system of equations）：有一系列未知量和一系列与之相关的方程， 在每个方程中，所有的未知量只具有常系数，这些未知量之间只进行加和。要整理这一特定的方程组，一个典型的方法是将未知量放在等号左边，剩下的常数项放在等号右边，并且将同一未知量竖直对齐（要做到这一点，可能需要在某个未知量不出现时在其前面添加 0 这个系数）</p>
-<p>$$
-2x + 5y + 3z = -3</p>
+<blockquote>
+<p>2x + 5y + 3z = -3</p>
+</blockquote>
+<blockquote>
 <p>4x + 0y + 8z = 0</p>
-<p>1x + 3y + 0z = 2
-$$</p>
+</blockquote>
+<blockquote>
+<p>1x + 3y + 0z = 2</p>
+</blockquote>
 <p>将所有的方程合并为一个向量方程，表示为：</p>
 <p><span class="math display">\[
 \overbrace{
@@ -544,6 +594,7 @@ z
 <p>=&gt; 每个方程组都有一个线性变换与之联系，当逆变换存在时，可以使用逆变换求解方程。否则，列空间的概念能够帮助我们清楚什么时候存在解，零空间的概念有助于我们理解所有可能的解的集合是什么样的</p>
 <p>=&gt; 如何进行计算？</p>
 <p>=&gt; 方程数目与未知量数目相等？</p>
+</div>
 <div id="非方阵non-square-matrices" class="section level2">
 <h2>非方阵（Non-square matrices）</h2>
 <p>在前面我们讲到线性变换时，用 <code>$2 \times 2$</code> 矩阵来表示二维向量到二维向量的变换，用 <code>$3 \times 3$</code> 矩阵来表示三维向量到三维向量的变换。讨论不同维数之间的变换是完全合理的，比如一个二维向量到三维向量的变换</p>
@@ -1659,4 +1710,7 @@ a \mathbf{\overrightarrow{v}} + b \mathbf{\overrightarrow{w}}
 <p><strong>普适的代价是抽象</strong>（Abstractness is the price of generality）</p>
 </div>
 </div>
+<div id="版权声明" class="section level2">
+<h2>版权声明</h2>
+<p>本作品采用<a href="http://creativecommons.org/licenses/by/4.0/">知识共享署名 4.0 国际许可协议</a>进行许可，转载时请注明原文链接。</p>
 </div>
