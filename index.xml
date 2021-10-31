@@ -8,6 +8,15 @@
     <language>en-us</language>
     <lastBuildDate>Mon, 26 Apr 2021 00:00:00 +0000</lastBuildDate><atom:link href="https://qiaoin.github.io/index.xml" rel="self" type="application/rss+xml" />
     <item>
+      <title>重学计算机基础</title>
+      <link>https://qiaoin.github.io/re-learning-cs/</link>
+      <pubDate>Sun, 31 Oct 2021 00:00:00 +0000</pubDate>
+      
+      <guid>https://qiaoin.github.io/re-learning-cs/</guid>
+      <description>工作两年，越发觉得基础的重要，以及自己基础的薄弱，因此重学基础 操作系统 学习课程 清华大学学堂在线-操作系统课程-自主模式 课程主页 可以下载得到课</description>
+    </item>
+    
+    <item>
       <title>来，我们写一个 Daemon（守护进程），不是 Demo</title>
       <link>https://qiaoin.github.io/2021/04/26/write-a-daemon/</link>
       <pubDate>Mon, 26 Apr 2021 00:00:00 +0000</pubDate>
