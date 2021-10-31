@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Refactor on 在桥边</title>
+    <link>https://qiaoin.github.io/tags/refactor/</link>
+    <description>Recent content in Refactor on 在桥边</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>en-us</language>
+    <lastBuildDate>Tue, 02 Apr 2019 00:00:00 +0000</lastBuildDate><atom:link href="https://qiaoin.github.io/tags/refactor/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>《程序设计实践》读书笔记</title>
+      <link>https://qiaoin.github.io/2019/04/02/practice-of-programming-notes/</link>
+      <pubDate>Tue, 02 Apr 2019 00:00:00 +0000</pubDate>
+      
+      <guid>https://qiaoin.github.io/2019/04/02/practice-of-programming-notes/</guid>
+      <description>很早以前就知道有这本书了，一直没有机会找来看，当然这只能说明自己比较懒，现在终于有了空闲和心情，遂找来看看，The Practice of Programming</description>
+    </item>
+    
+  </channel>
+</rss>

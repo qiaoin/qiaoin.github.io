@@ -46,6 +46,8 @@
 
   <ul class="nav-links">
     
+    <li><a href="/re-learning-cs/">重学基础</a></li>
+    
     <li><a href="/about/">About</a></li>
     
     <li><a href="https://github.com/qiaoin">GitHub</a></li>
@@ -60,7 +62,7 @@
 
   <article class="article">
     
-    <span class="article-duration">23 min read</span>
+    <span class="article-duration">24 min read</span>
     
 
     <h1 class="article-title">C&#43;&#43; 面向对象程序设计</h1>
@@ -70,7 +72,131 @@
     
 
     <div class="article-content">
-      <h2 id="写在最前面">写在最前面</h2>
+      <hr>
+<div class="toc">
+    <details>
+        <summary>Table of contents</summary>
+        <nav id="TableOfContents">
+  <ul>
+    <li><a href="#写在最前面">写在最前面</a></li>
+    <li><a href="#00-目标">0.0 目标</a></li>
+    <li><a href="#术语">术语</a></li>
+    <li><a href="#header头文件中的防御式编程">Header（头文件）中的防御式编程</a></li>
+    <li><a href="#inline-函数">inline 函数</a></li>
+    <li><a href="#构造函数-constructor">构造函数 constructor</a>
+      <ul>
+        <li><a href="#区分赋值和初始化assignment-and-initialization">区分赋值和初始化（assignment and initialization）</a></li>
+        <li><a href="#不同编译单元内定义的-non-local-static-对象">不同编译单元内定义的 non-local static 对象</a></li>
+        <li><a href="#将构造函数放在-private-域单例模式singleton">将构造函数放在 private 域，单例模式（Singleton）</a></li>
+      </ul>
+    </li>
+    <li><a href="#const">const</a></li>
+    <li><a href="#常量成员函数">常量成员函数</a></li>
+    <li><a href="#参数传递-pass-by-value-vs-pass-by-reference-to-const">参数传递 pass by value vs. pass by reference (to const)</a></li>
+    <li><a href="#返回值传递-return-by-value-vs-return-by-reference-to-const">返回值传递 return by value vs. return by reference (to const)</a>
+      <ul>
+        <li><a href="#临时对象">临时对象</a></li>
+      </ul>
+    </li>
+    <li><a href="#友元-friend">友元 friend</a></li>
+    <li><a href="#operator-overloading-操作符重载">operator overloading 操作符重载</a>
+      <ul>
+        <li><a href="#成员函数">成员函数</a></li>
+        <li><a href="#非成员函数全域函数无-this-指针">非成员函数（全域函数），无 this 指针</a></li>
+        <li><a href="#输入输出操作符重载">输入输出操作符重载</a></li>
+        <li><a href="#cout">cout</a></li>
+      </ul>
+    </li>
+    <li><a href="#小结">小结</a></li>
+    <li><a href="#big-three-三个特殊函数">Big Three 三个特殊函数</a>
+      <ul>
+        <li><a href="#拷贝构造函数和拷贝赋值函数">拷贝构造函数和拷贝赋值函数</a></li>
+        <li><a href="#浅拷贝">浅拷贝</a></li>
+        <li><a href="#深拷贝">深拷贝</a></li>
+      </ul>
+    </li>
+    <li><a href="#何谓栈stack何谓堆heap">何谓栈（stack），何谓堆（heap）</a>
+      <ul>
+        <li><a href="#生命周期">生命周期</a></li>
+      </ul>
+    </li>
+    <li><a href="#new-和-delete">new 和 delete</a>
+      <ul>
+        <li><a href="#new">new</a></li>
+        <li><a href="#delete">delete</a></li>
+        <li><a href="#单一对象的内存布局示意图">单一对象的内存布局示意图</a></li>
+        <li><a href="#对象数组的内存布局示意图">对象数组的内存布局示意图</a></li>
+      </ul>
+    </li>
+    <li><a href="#static">static</a></li>
+    <li><a href="#类模版-class-template">类模版 class template</a></li>
+    <li><a href="#函数模版-function-template">函数模版 function template</a></li>
+    <li><a href="#namespace">namespace</a></li>
+    <li><a href="#面向对象编程面向对象设计">面向对象编程（面向对象设计）</a></li>
+    <li><a href="#composition-复合表示-has-a">Composition 复合，表示 has-a</a>
+      <ul>
+        <li><a href="#composition-关系下的构造和析构">Composition 关系下的构造和析构</a></li>
+      </ul>
+    </li>
+    <li><a href="#delegation-委托composition-by-reference">Delegation 委托，Composition by reference</a></li>
+    <li><a href="#inheritance-继承表示-is-a">Inheritance 继承，表示 is-a</a>
+      <ul>
+        <li><a href="#inheritance继承关系下的构造和析构">Inheritance（继承）关系下的构造和析构</a></li>
+        <li><a href="#inheritance继承with-virtual-function虚函数">Inheritance（继承）with virtual function（虚函数）</a></li>
+        <li><a href="#inheritancecomposition-关系下的构造和析构">Inheritance+Composition 关系下的构造和析构</a></li>
+        <li><a href="#delegation委托inheritance继承">Delegation（委托）+Inheritance（继承）</a></li>
+      </ul>
+    </li>
+    <li><a href="#10-目标">1.0 目标</a></li>
+    <li><a href="#更多细节">更多细节</a></li>
+    <li><a href="#conversion-function-转换函数">conversion function 转换函数</a></li>
+    <li><a href="#non-explicit-one-argument-ctor">non-explicit-one-argument ctor</a></li>
+    <li><a href="#pointer-like-classes">pointer-like classes</a>
+      <ul>
+        <li><a href="#shared-ptr-关于智能指针">shared-ptr 关于智能指针</a></li>
+        <li><a href="#iter-关于迭代器">iter 关于迭代器</a></li>
+      </ul>
+    </li>
+    <li><a href="#function-like-classes-所谓仿函数">function-like classes 所谓仿函数</a>
+      <ul>
+        <li><a href="#标准库中仿函数所使用的奇特的-base-classes">标准库中，仿函数所使用的奇特的 base classes</a></li>
+      </ul>
+    </li>
+    <li><a href="#template-模版">template 模版</a>
+      <ul>
+        <li><a href="#class-template-类模版">class template 类模版</a></li>
+        <li><a href="#function-template-函数模版">function template 函数模版</a></li>
+        <li><a href="#member-template-成员模版">member template 成员模版</a></li>
+      </ul>
+    </li>
+    <li><a href="#specialization-模版特化">specialization 模版特化</a></li>
+    <li><a href="#partial-specialization-偏特化">partial specialization 偏特化</a>
+      <ul>
+        <li><a href="#个数上的偏">个数上的偏</a></li>
+        <li><a href="#范围上的偏">范围上的偏</a></li>
+      </ul>
+    </li>
+    <li><a href="#template-template-parameter-模版模版参数">template template parameter 模版模版参数</a>
+      <ul>
+        <li><a href="#这不是模版模版参数">这不是模版模版参数</a></li>
+      </ul>
+    </li>
+    <li><a href="#c-标准库">C++ 标准库</a></li>
+    <li><a href="#c11variadic-template-数量不定的模版参数">C++11：variadic template 数量不定的模版参数</a></li>
+    <li><a href="#c11-auto">C++11: auto</a></li>
+    <li><a href="#c11-range-base-for-loop">C++11: range-base for loop</a></li>
+    <li><a href="#reference-引用">Reference 引用</a>
+      <ul>
+        <li><a href="#reference-的常见用途----参数传递">reference 的常见用途 &ndash; 参数传递</a></li>
+      </ul>
+    </li>
+    <li><a href="#版权声明">版权声明</a></li>
+  </ul>
+</nav>
+    </details>
+</div>
+<hr>
+<h2 id="写在最前面">写在最前面</h2>
 <p>侯捷老师翻译的 <a href="https://book.douban.com/subject/5387403/">Effective C++</a>，C++ 学习者人手必备一本。本系列博文是笔者在学习侯捷老师视频课程时整理的笔记，将课程内容的关键点与 Effective C++ 的对应条款做了一下联动，希望能对你有些许帮助。</p>
 <blockquote>
 <ol>
@@ -1272,8 +1398,12 @@ func3(obj);  <span style="color:#75715e">// func2 fun3 调用端接口相同，�
 <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/languages/c&#43;&#43;.min.js"></script>
 <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/languages/cmake.min.js"></script>
 <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/languages/go.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/languages/html.min.js"></script>
 <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/languages/java.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/languages/javascript.min.js"></script>
 <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/languages/python.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/languages/rust.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/languages/typescript.min.js"></script>
 <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/languages/yaml.min.js"></script>
 <script>hljs.configure({languages: []}); hljs.initHighlightingOnLoad();</script>
 

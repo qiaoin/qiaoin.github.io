@@ -1,0 +1,811 @@
+<!DOCTYPE html>
+<html lang="en-us">
+  <head>
+    <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="generator" content="Hugo 0.82.0" />
+
+
+<title>传输层模块的 RDMA 实现 - 在桥边</title>
+<meta property="og:title" content="传输层模块的 RDMA 实现 - 在桥边">
+
+
+  <link href='https://qiaoin.github.io/favicon.ico' rel='icon' type='image/x-icon'/>
+
+
+
+  
+
+
+
+
+
+
+
+
+<link href='//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/styles/monokai.min.css' rel='stylesheet' type='text/css' />
+
+
+
+<link rel="stylesheet" href="/css/fonts.css" media="all">
+<link rel="stylesheet" href="/css/main.css" media="all">
+
+
+
+  </head>
+  <body>
+    <div class="wrapper">
+      <header class="header">
+        <nav class="nav">
+  <a href="/" class="nav-logo">
+    <img src="/images/logo.png"
+         width="50"
+         height="50"
+         alt="Logo">
+  </a>
+
+  <ul class="nav-links">
+    
+    <li><a href="/re-learning-cs/">重学基础</a></li>
+    
+    <li><a href="/about/">About</a></li>
+    
+    <li><a href="https://github.com/qiaoin">GitHub</a></li>
+    
+  </ul>
+</nav>
+
+      </header>
+
+
+<main class="content" role="main">
+
+  <article class="article">
+    
+    <span class="article-duration">18 min read</span>
+    
+
+    <h1 class="article-title">传输层模块的 RDMA 实现</h1>
+
+    
+    <span class="article-date">2018-06-16</span>
+    
+
+    <div class="article-content">
+      <hr>
+<div class="toc">
+    <details>
+        <summary>Table of contents</summary>
+        <nav id="TableOfContents">
+  <ul>
+    <li><a href="#什么是-rdma-">什么是 RDMA ？</a></li>
+    <li><a href="#rdma-中的一些基础概念">RDMA 中的一些基础概念</a></li>
+    <li><a href="#一个典型的-rdma-应用的流程">一个典型的 RDMA 应用的流程</a></li>
+    <li><a href="#gloo-的底层传输-rdma-实现">Gloo 的底层传输 RDMA 实现</a>
+      <ul>
+        <li><a href="#addresscc--addressh">address.cc / address.h</a></li>
+        <li><a href="#devicecc--deviceh">device.cc / device.h</a></li>
+        <li><a href="#paircc--pairh">pair.cc / pair.h</a></li>
+        <li><a href="#memory_regioncc--memory_regionh">memory_region.cc / memory_region.h</a></li>
+        <li><a href="#buffercc--bufferh">buffer.cc / buffer.h</a></li>
+      </ul>
+    </li>
+    <li><a href="#references">References</a></li>
+    <li><a href="#版权声明">版权声明</a></li>
+  </ul>
+</nav>
+    </details>
+</div>
+<hr>
+<h2 id="什么是-rdma-">什么是 RDMA ？</h2>
+<p>DMA（Direct Memory Access）直接内存访问，直接访问主机内存而不需要 CPU的参与。RDMA（Remote DMA）远程直接内存访问，访问一个远程机器的内存，而不需要远端机器 CPU的参与。</p>
+<h2 id="rdma-中的一些基础概念">RDMA 中的一些基础概念</h2>
+<h2 id="一个典型的-rdma-应用的流程">一个典型的 RDMA 应用的流程</h2>
+<ul>
+<li>
+<p>得到设备列表</p>
+<p>得到主机上的所有可用的 IB 设备列表，每一个 IB 设备都有一个 name 和 GUID 域，唯一标识</p>
+</li>
+<li>
+<p>打开请求的设备</p>
+<p>查找设备列表，根据指定的 name 或者 GUID 打开所请求的 IB 设备</p>
+</li>
+<li>
+<p>查询设备的功能</p>
+</li>
+<li>
+<p>分配保护域 PD（Protection Domain）来保存资源</p>
+</li>
+<li>
+<p>注册 RDMA 内存，内存注册耗时，gloo RDMA</p>
+<p>模块是怎么做的呢？查看 Minimizing the Hidden Cost of RDMA 论文</p>
+</li>
+<li>
+<p>创建 CQ （Completion Queue）</p>
+</li>
+<li>
+<p>创建 QP （Queue Pair）</p>
+</li>
+<li>
+<p>改变 QP 的状态</p>
+</li>
+<li>
+<p>开始处理请求和传输数据，并可以开始对 poll 到请求是否完成</p>
+</li>
+<li>
+<p>释放资源</p>
+</li>
+</ul>
+<h2 id="gloo-的底层传输-rdma-实现">Gloo 的底层传输 RDMA 实现</h2>
+<blockquote>
+<p><a href="https://github.com/facebookincubator/gloo">https://github.com/facebookincubator/gloo</a></p>
+</blockquote>
+<p>结合 <code>gloo/transport/ibverbs</code> 目录下的源码详细解析</p>
+<h3 id="addresscc--addressh">address.cc / address.h</h3>
+<p>定义了为创建 QP 的连接所需要交换的数据，即调用 <code>Pair::connect(const std::vector&lt;char&gt;&amp; bytes)</code> 来将 QP的状态从 <code>INIT</code> -&gt; <code>RTR</code> -&gt; <code>RTS</code> 进行迁移，传入的参数 <code>bytes</code> 就是所需要的远端 QP 的地址信息。其中， <code>INIT</code> -&gt; <code>RTR</code> 的状态转移是需要用到远端 QP 的一些信息的。在 <code>address.h</code> 中有 <code>addr_</code> 变量，其定义如下：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c++" data-lang="c++"><span style="color:#66d9ef">struct</span> {
+  <span style="color:#66d9ef">uint32_t</span> lid;
+  <span style="color:#66d9ef">uint32_t</span> qpn;
+  <span style="color:#66d9ef">uint32_t</span> psn;
+  <span style="color:#66d9ef">union</span> <span style="color:#a6e22e">ibv_gid</span> ibv_gid;
+} addr_;
+</code></pre></div><ul>
+<li><code>lid</code> Local Identifiers &ndash; 子网内标识</li>
+<li><code>qpn</code> QP Number &ndash; 标识 QP，在执行 <code>ibv_create_qp()</code> 之后即可通过返回的 <code>struct ibv_qp *</code> 对象 <code>qp_-&gt;qp_num</code> 拿到</li>
+<li><code>psn</code> Packet Sequence Number &ndash; 随机值，<code>rand() &amp; 0xffffff</code></li>
+<li><code>gid</code> Global Identifiers &ndash; 子网间标识，执行 <code>ibv_query_gid()</code> 来进行填充</li>
+</ul>
+<p><strong>Q0：</strong> 在 Gloo 的 transport 层实现中，会何时来填充这些值？</p>
+<p>在 <code>Pair.cc</code> 的构造函数中填充 <code>Address self_;</code> 变量</p>
+<p><strong>Q1：</strong> 为什么 <code>psn</code> 是使用一个随机数来表示的？</p>
+<p>这个在 <code>pair.cc</code> 的构造函数中有注释进行了说明，摘录如下：</p>
+<blockquote>
+<p>The Packet Sequence Number field (PSN) is <strong>random</strong> which makes that the remote end of this pair needs to have the contents of the <strong>full</strong> address struct in order to connect, and vice versa.</p>
+</blockquote>
+<p>个人感觉这个解释有些牵强；或者说在何种情况下，本端收到的远端的 <code>Address peer_;</code> 对象实例所包含的 <code>addr_</code> 结构体是不完整的？</p>
+<p><code>address.cc / address.h</code> 中定义了两个比较重要的函数：</p>
+<ul>
+<li><code>explicit Address(const std::vector&lt;char&gt;&amp;);</code></li>
+<li><code>virtual std::vector&lt;char&gt; bytes() const override;</code></li>
+</ul>
+<p>这两个函数是一个相互转换的关系，在 Gloo 的实现中，如何去拿到远端的 QP 相关的信息，是使用一个第三方的 <code>store</code> 来做的，例如 <code>redis</code> ，每一个 Pair 在创建完成（即 Pair 的构造函数执行）之后，都能够知道自身的 <code>self_</code> 信息，调用 <code>Address::bytes()</code> 将 <code>self_</code> 的 <code>addr_</code> 转换为一个 char 类型的 vector。每个设备与其他设备在初始化阶段均会创建 Pair，这样每台设备将自身所有的 Pairs 的 <code>self_</code> 信息（假设集群中总共连接的设备有 N 个，每台设备上创建的 Pairs 的个数就是 N-1 个）写入 <code>store</code> 中，之后再从 <code>store</code> 中取出来</p>
+<h3 id="devicecc--deviceh">device.cc / device.h</h3>
+<p>持有一些与设备相关的信息，例如：</p>
+<ul>
+<li><code>attr_</code> 包含 IB 设备名，IB 端口号</li>
+<li><code>pciBusID_</code></li>
+<li><code>hasNvPeerMem_</code></li>
+<li><code>context_</code> IB 设备的上下文信息</li>
+<li><code>deviceAttr_</code></li>
+<li><code>portAttr_</code></li>
+<li><code>pd_</code> 保护域</li>
+<li><code>comp_channel_</code> 与 CQ 相关联的 channel，从而 <strong>Arm</strong> 上一个事件通知机制 <strong>TODO</strong> 为什么一个设备仅有一个 Completion Channel？</li>
+</ul>
+<p><strong>device.h</strong> 中可以知道哪些资源是设备相关的，每台设备仅有一个 IB 上下文 <code>context_</code>，设备属性 <code>deviceAttr_</code> 和端口信息 <code>portAttr</code>，保护域 <code>pd_</code>，以及为了给 CQ 添加通知机制的 <code>channel_</code>，这些资源都是每台设备（集群中的每一台机器）所独有的，而且仅有一份。</p>
+<p>device.cc / device.h 对外提供的接口主要有:</p>
+<ul>
+<li>
+<p><code>std::shared_ptr&lt;::gloo::transport::Device&gt; CreateDevice(const struct attr&amp;);</code> 创建一个 Device 对象，并起一个轮询线程，监听完成事件的产生</p>
+</li>
+<li>
+<p><code>virtual std::unique_ptr&lt;::gloo::transport::Pair&gt; createPair(std::chrono::milliseconds timeout) override;</code> 新建一个 Pair 对象，其具体执行流程在对 Pair 的构造函数进行讲解时给出</p>
+</li>
+</ul>
+<p>另外还有几个重要的函数：</p>
+<ul>
+<li><code>Device(const struct attr&amp; attr, ibv_context* context);</code> Device 的构造函数</li>
+<li><code>void loop();</code> 事件监听函数，用于起一个 loop 线程</li>
+</ul>
+<p>IbvDevice 类负责取得 IB 设备列表，在 <code>CreateDivece()</code> 中打开所请求的 IB 设备（如果没有指定 IB 设备，就打开第一个 IB 设备），之后调用 Device 的构造函数，执行以下操作：</p>
+<ul>
+<li>
+<p>获得设备相关的属性</p>
+<p><code>ibv_query_devie(context, device_attr)</code></p>
+</li>
+<li>
+<p>获取给定端口号的相关属性</p>
+<p><code>ibv_query_port(context, port_num, port_attr)</code>，需要注意的是第二个参数 <code>port_num</code> 是物理端口号，1 是第一个端口编号</p>
+</li>
+<li>
+<p>分配保护域 <code>pd_ = ibv_alloc_pd(context)</code></p>
+</li>
+<li>
+<p>创建 Completion Channel</p>
+<p><code>comp_channel_ = ibv_create_comp_channel(context)</code> 为什么要创建 Completion Channel 呢？这个问题留在 Pair 的构造函数中再解释。这里我们只需要知道每一个设备仅有一个 Completion Channel</p>
+<blockquote>
+<p>A completion channel is a mechanism for the user to receive
+notifications when a new completion queue event (CQE) is placed on
+a completion queue (CQ).</p>
+<ul>
+<li>
+<p>A <strong>completion channel</strong> is an abstraction introduced by the
+<strong>libibverbs</strong> library that does <strong>not</strong> exist in the
+InfiniBand architecture verbs specification. A completion
+channel is essentially a file descriptor that is used to
+deliver completion notifications to a userspace process. When
+a completion event is generated for a completion queue (CQ),
+the event is delivered through the completion channel attached
+to that CQ. This process might be useful to send completion
+events to different threads by using multiple completion
+channels.</p>
+</li>
+<li>
+<p>The ibv destroycompchannel() function fails if any CQs are
+still associated with the completion event channel that is
+being destroyed.</p>
+</li>
+</ul>
+</blockquote>
+</li>
+<li>
+<p>新起一个线程，运行 <code>Device::lop()</code>，一直在轮询是否有完成事件（ WQE ）产生</p>
+<p><code>ibv_create_comp_channel(context)</code> 调用成功返回的结构体为 <code>struct ibv_comp_channel</code>（其各个域如下），监听该 <code>fd</code> 上是否有 <code>POLLIN</code> 事件产生，然后进行一些处理</p>
+</li>
+</ul>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c++" data-lang="c++">  <span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">ibv_comp_channel</span> {
+    <span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">ibv_context</span> <span style="color:#f92672">*</span>context;
+    <span style="color:#66d9ef">int</span> fd;
+    <span style="color:#66d9ef">int</span> refcnt;
+  };
+</code></pre></div><h3 id="paircc--pairh">pair.cc / pair.h</h3>
+<p>在 Pair 的构造函数中，执行了如下操作</p>
+<h4 id="step0-创建完成队列cqcompletion-queue">STEP0 创建完成队列（CQ，Completion Queue）</h4>
+<p>ibverbs 提供的接口为：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c"><span style="color:#66d9ef">struct</span> ibv_cq <span style="color:#f92672">*</span><span style="color:#a6e22e">ibv_create_cq</span>(<span style="color:#66d9ef">struct</span> ibv_context <span style="color:#f92672">*</span>context,
+                             <span style="color:#66d9ef">int</span> cqe,
+                             <span style="color:#66d9ef">void</span> <span style="color:#f92672">*</span>cq_context,
+                             <span style="color:#66d9ef">struct</span> ibv_comp_channel <span style="color:#f92672">*</span>channel,
+                             <span style="color:#66d9ef">int</span> comp_vector);
+</code></pre></div><p>创建一个完成队列 CQ，用于保存 CQE。每一个 QP 都有一个与之相关联的 send/recv CQ，在创建 QP 时，在 <code>struct ibv_qp_init_attr</code> 中填充域 <code>send_cq</code> 和 <code>recv_cq</code> ，可以指向同一个 CQ。同一个 CQ 可以被多个 QPs 共用，但这里就有一个问题了， <strong>TODO</strong> CQE 如何区分不同的 QP 呢？在 Gloo 的实现中是不是已经提供了一种方法？</p>
+<ul>
+<li>
+<p><code>context</code> IB 设备的上下文，由 <code>ibv_open_device()</code> 返回</p>
+</li>
+<li>
+<p><code>cqe</code> 完成队列的最小长度，用来存放 CQE，但真实长度可能大一些</p>
+</li>
+<li>
+<p><code>cq_context</code> 用户自定义的值，在 CQ 创建时可以选择指定，使用 Completion Channel 时调用 <code>ibv_get_cq_event()</code> 作为参数填充返回。在这里（Pair 的构造函数中传入的是 <code>this</code> 指针，即 <code>Pair</code> 实例对象）创建 CQ 时指定为 <code>Pair</code> 实例对象，在 <code>Device::loop()</code> 中调用 <code>ibv_get_cq_event()</code> 填充第三个参数 <code>cqContext</code> 返回，并类型转换为 <code>Pair*</code> ，对产生的完成事件进行处理。</p>
+</li>
+<li>
+<p><code>channel</code> 用于指定一个已创建好的 Completion Channel</p>
+<blockquote>
+<p>A CQ is merely a queue, that does not have a built-in notification
+mechanism. When using a polling paradigm for CQ processing, a
+completion channel is unnecessary.</p>
+</blockquote>
+<p>作为完成队列，CQ 用于存放产生的 CQE，其本身并没有内建一个通知机制，就是何时 CQ 上放置了 CQEs，CQ 不会产生事件提醒用户程序，需要用户程序每隔一段时间调用 <code>ibv_poll_cq()</code> 主动进行轮询，查看 CQ 上是否有 CQE 产生。</p>
+<blockquote>
+<p>If, however, you wish to use a pend paradigm, a completion channel
+is required. The completion channel is the mechanism that allows
+the user to be notified that a new CQE is on the CQ.</p>
+</blockquote>
+<p>可以使用 Completion Channel 机制，来实现 CQ 的通知机制，在有新的 CQE放置于 CQ 上时产生一个通知。</p>
+</li>
+</ul>
+<p>对于 Completion Channel 机制，还需要补充一些关键点。</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c++" data-lang="c++"><span style="color:#66d9ef">int</span> <span style="color:#a6e22e">ibv_req_notify_cq</span>(<span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">ibv_cq</span> <span style="color:#f92672">*</span>cq, <span style="color:#66d9ef">int</span> solicited_only);
+</code></pre></div><p>给 CQ 添加上（ <strong>Arm</strong> ）通知机制（notification mechanism）。当有一个新的 CQE 产生并放置于 CQ 上时，一个完成事件（completion event）会发送给与 CQ 绑定在一起的 Completion Channel。但以下情况例外：</p>
+<ul>
+<li>If there is already a CQE in that CQ, an event won't be generated for this event.</li>
+<li>If the <code>solicited_only</code> flag is set, then only CQEs for WRs that had the <code>solicited</code> flag set will trigger the notification.</li>
+</ul>
+<p>函数调用中各个参数含义：</p>
+<ul>
+<li><code>cq</code> 指定完成队列</li>
+<li><code>solicited-only</code> 在 Gloo 的实现中需要关闭，即置为 0，对所有的完成 CQE 均需要产生一个通知 notification</li>
+</ul>
+<p>用户程序调用 <code>ibv_get_cq_event()</code> 去捕获这一通知。这个通知机制只会使能一次通知，当这个通知被发送之后，若需要 CQ 仍然 <strong>Arm</strong> 上通知机制，用户程序需要手动重新调用 <code>ibv_req_notify_cq()</code> 进行 <strong>Re-Arm</strong> 。</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c++" data-lang="c++"><span style="color:#66d9ef">int</span> <span style="color:#a6e22e">ibv_get_cq_event</span>(<span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">ibv_comp_channel</span> <span style="color:#f92672">*</span>channel,
+                     <span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">ibv_cq</span> <span style="color:#f92672">*</span>cq,
+                     <span style="color:#66d9ef">void</span> <span style="color:#f92672">**</span>cq_context);
+</code></pre></div><p>阻塞调用，等待在 Completion Channel 上接收到一个通知 notification。</p>
+<ul>
+<li><code>channel</code> 之前创建好的 Completion Channel</li>
+<li><code>cq</code> 作为返回值，指向与所产生的完成事件相关联的 CQ</li>
+<li><code>cq_context</code> 在创建 CQ 时用户自定义的值，在 Gloo 的实现中，即为 Pair 实例对象，之后就可以调用 <code>ibv_poll_cq</code> 获得各 CQE 进行相对应的处理了</li>
+</ul>
+<blockquote>
+<p>Once a notification for a completion queue is sent on a Completion
+Channel, that CQ is now <strong>dis-armed</strong> and will not send any more
+notifications to Completion Channel until it is <strong>re-armed</strong> again
+with a new call to the <code>ibv_req_notify_cq()</code> operation.</p>
+</blockquote>
+<p>这一点在上面已经有解释过了，是 RDMA Channel 通知机制的一种要求，CQ 需要每次重新 <strong>Arm</strong> 通知机制。</p>
+<blockquote>
+<p>This operation <code>ibv_get_cq_event()</code> only informs the user
+that a CQ has CQE to be processed, it does not actually process CQEs.
+The user should use the <code>ibv_poll_cq()</code> operation to
+process the CQEs.</p>
+</blockquote>
+<p>当新的 CQE 放置到 CQ 上时，产生通知给 Completion Channel，但并不会对 CQEs 进行处理，CQEs 的处理是由 <code>ibv_poll_cq()</code> 来做的。</p>
+<blockquote>
+<p>Each notification sent <strong>MUST</strong> be acknowledged with the
+<code>ibv_ack_cq_events()</code> operation. Since the
+<code>ibv_destroy_cq()</code> operation waits for all events to be
+acknowledged, it will hang if any events are not properly
+acknowledged.</p>
+</blockquote>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c++" data-lang="c++"><span style="color:#66d9ef">void</span> <span style="color:#a6e22e">ibv_ack_cq_events</span>(<span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">ibv_cq</span> <span style="color:#f92672">*</span>cq, <span style="color:#66d9ef">unsigned</span> <span style="color:#66d9ef">int</span> nevents); 
+</code></pre></div><p>对 <code>ibv_get_cq_event()</code> 获得的事件进行确认。在 Gloo 的实现中，当前 Pair 实例对象的 CQ 所需要 Ack 的事件总数保存在 <code>Pair::completionEventsHandled_</code> 中，即之后传递给 <code>nevents</code> 。这是 <code>ibv_ack_cq_events()</code> 的惯用法，由于此操作在实现层面是需要得到 <strong>mutex</strong> 的，执行此函数的代价很昂贵，因此将对 CQ 所产生的多个事件的 Ack 放在一次调用中来完成。</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c++" data-lang="c++"><span style="color:#66d9ef">int</span> <span style="color:#a6e22e">ibv_poll_cq</span>(<span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">ibv_cq</span> <span style="color:#f92672">*</span>cq,
+                <span style="color:#66d9ef">int</span> num_entries,
+                <span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">ibv_wc</span> <span style="color:#f92672">*</span>wc);
+</code></pre></div><ul>
+<li><code>cq</code> 完成队列</li>
+<li><code>num_entries</code> 能够返回的最大数目的 CQEs</li>
+<li><code>wc</code> 存放返回的 CQEs</li>
+</ul>
+<p><code>nwc = ibv_poll_cq(cq_, wc.size(), wc.data())</code> 这里的 <code>nwc</code> 为真实返回的 CQEs 的个数。由于 CQ 的队列长度有限，需要定期执行 <code>ibv_poll_cq()</code> 将 CQEs 从 CQ 中移出来。</p>
+<p><strong>总结一下</strong> 对于工作队列（ send/recv queue ）中的 Work Requests，当某一个 WR 完成时，会产生一个 CQE 放置于 CQ 上，有两种方式进行捕捉到放置动作：</p>
+<ol>
+<li>每隔一段时间去调用一次 <code>ibv_poll_cq()</code> ，因为 CQ 没有内建通知机制，虽然有 CQE 产生并放置在 CQ 上了，还是需要我们主动去轮询 CQ</li>
+<li>给 CQ 绑定上一个 Completion Channel，当有一个 CQE 放置于 CQ 上时，会有一个完成事件发送给此 Channel，我们可以监听这个 Channel 的 <code>fd</code> 是否有 <code>POLLIN</code> ，当捕捉到 <code>POLLIN</code> 事件后，再使用 <code>ibv_get_cq_event()</code> 来捕获到发送给此 Channel 的通知 notification，从而知道已经有 CQEs 在 CQ 上，可以执行 <code>ibv_poll_cq()</code> 了。</li>
+</ol>
+<h4 id="step1-创建队列对qpqueue-pair">STEP1 创建队列对（QP，Queue Pair）</h4>
+<p>对 <code>struct ibv_qp_init_attr</code> 结构体进行填充，指定 <code>send_cq</code> / <code>recv_cq</code> ，并说明 QP 的类型为 <code>attr.qp_type = IBV_QPT_RC</code>。</p>
+<h4 id="setp2-初始化qp-statereset---init">SETP2 初始化（QP state：RESET -&gt; INIT）</h4>
+<p>QP 有四种状态：</p>
+<ol>
+<li><strong>RESET</strong> &ndash; QP 刚被创建，即执行 <code>ibv_create_qp()</code></li>
+<li><strong>INIT</strong> &ndash; 基本信息集合（端口号、 <code>pkey_index</code> 、QP 的访问权限）。Ready for posting to receive queue，即之后就可以调用 <code>ibv_post_recv()</code></li>
+<li><strong>RTR</strong> &ndash; Ready to receive. Remote address info（远端 QP 的 qpn、psn、lid、gid，其中 psn 非必需）</li>
+<li><strong>RTS</strong> &ndash; Ready to send. 设置超时和重试次数</li>
+</ol>
+<h4 id="step3-对-self_-各字段进行填充">STEP3 对 self_ 各字段进行填充</h4>
+<p>每个 Pair 实例对象，之后都需要将自己的 <code>Address self_</code> 信息写入 <code>store</code> 中，例如 <code>redis</code> 中。<code>self_</code> 的各字段就是在这里（ Pair 的构造函数）被填充的。</p>
+<ul>
+<li><code>lid</code> 在调用 <code>ibv_query_port()</code> 之后就可以取得</li>
+<li><code>gid</code> 在调用 <code>ibv_query_gid()</code> 时填入值</li>
+<li><code>qpn</code> 在调用 <code>ibv_create_qp()</code> 创建 QP 之后就可以取得</li>
+<li><code>psn</code> 在 Gloo 的实现中被设置为一个随机值，用于确保 <code>Address peer_</code> 被完整接收到</li>
+</ul>
+<h4 id="step4-建立-qp-连接之前-post-receive-requests至少-post-一个">STEP4 建立 QP 连接之前 post receive requests（至少 post 一个）</h4>
+<p>在 QP 处于 <strong>INIT</strong> 状态之后，用户需要 post receive buffers 到接收队列中（ <code>ibv_post_recv()</code> ）；至少一个 receive bufer 需要被 posted，之后才能将 QP 的状态从 <strong>INIT</strong> -&gt; <strong>RTR</strong>（<code>ibv_modify_qp()</code>）。这其实也是可以理解的， <strong>RTR</strong> 状态表示 QP 已经可以接收数据了，而接收到的数据需要写入到已注册的 RDMA 内存中，不管是使用 RDMA 单边操作（<strong>one-sided</strong>）还是双边操作（<strong>two-sided</strong>），都需要提前在接收端指定好之后接收到的数据应该写入到哪一块已经注册的内存中（双边操作<strong>RDMA SEND</strong> ，对端是肯定需要有 receive buffers 来指示写入内存在哪里的；单边操作 <strong>RDMA WRITE</strong> ， <strong>TODO</strong>这个该如何理解呢？）</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c++" data-lang="c++"><span style="color:#75715e">// Post receive requests before connecting.
+</span><span style="color:#75715e">// Whenever the remote side of this pair registers receive buffers,
+</span><span style="color:#75715e">// this triggers their memory registration to be sent to this side.
+</span><span style="color:#75715e">// Since these sends are one-sided, we always need a full bench of
+</span><span style="color:#75715e">// receive work requests. Memory region receives can be interleaved
+</span><span style="color:#75715e">// with regular buffer writes, so we proactively include a memory
+</span><span style="color:#75715e">// region in every receive work request.
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">for</span> (<span style="color:#66d9ef">int</span> i <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>; i <span style="color:#f92672">&lt;</span> kMaxBuffers; <span style="color:#f92672">++</span>i) {
+  mappedRecvRegions_[i] <span style="color:#f92672">=</span> make_unique<span style="color:#f92672">&lt;</span>MemoryRegion<span style="color:#f92672">&gt;</span>(dev_<span style="color:#f92672">-&gt;</span>pd_);
+  postReceive();
+}
+</code></pre></div><p>调用 MemoryRegion 的构造函数，然后执行 <code>postReceive()</code></p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c++" data-lang="c++"><span style="color:#66d9ef">void</span> Pair<span style="color:#f92672">::</span>postReceive() {
+  <span style="color:#66d9ef">const</span> <span style="color:#66d9ef">auto</span><span style="color:#f92672">&amp;</span> mr <span style="color:#f92672">=</span> mappedRecvRegions_[recvPosted_<span style="color:#f92672">++</span> <span style="color:#f92672">%</span> kMaxBuffers];
+  <span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">ibv_sge</span> list <span style="color:#f92672">=</span> mr<span style="color:#f92672">-&gt;</span>sge();
+  <span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">ibv_recv_wr</span> wr;
+  memset(<span style="color:#f92672">&amp;</span>wr, <span style="color:#ae81ff">0</span>, <span style="color:#66d9ef">sizeof</span>(wr));
+  wr.sg_list <span style="color:#f92672">=</span> <span style="color:#f92672">&amp;</span>list;
+  wr.num_sge <span style="color:#f92672">=</span> <span style="color:#ae81ff">1</span>;
+
+  <span style="color:#75715e">// The work request is serialized and sent to the driver so it
+</span><span style="color:#75715e"></span>  <span style="color:#75715e">// doesn&#39;t need to be valid after the ibv_post_recv call.
+</span><span style="color:#75715e"></span>  <span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">ibv_recv_wr</span><span style="color:#f92672">*</span> bad_wr <span style="color:#f92672">=</span> <span style="color:#66d9ef">nullptr</span>;
+  <span style="color:#66d9ef">auto</span> rv <span style="color:#f92672">=</span> ibv_post_recv(qp_, <span style="color:#f92672">&amp;</span>wr, <span style="color:#f92672">&amp;</span>bad_wr);
+  <span style="color:#66d9ef">if</span> (rv <span style="color:#f92672">!=</span> <span style="color:#ae81ff">0</span>) {
+    signalIoFailure(GLOO_ERROR_MSG(<span style="color:#e6db74">&#34;ibv_post_recv: &#34;</span>, rv));
+  }
+}
+</code></pre></div><p><code>ibv_post_recv()</code> 往 QP 的接收队列中加入 WRs（在这里，每调用一次 <code>postReceive()</code> 就会往 QP 的接收队列中加入一个 WR），每个 WRs 指向的 Receive Buffer 是一个 <code>struct ibv_mr</code> 结构体，由 <code>wr.sg_list</code> 指向。</p>
+<blockquote>
+<p>Receive buffers are consumed as the remote peer excutes <strong>SEND</strong>,
+<strong>SEND_WITHIMM</strong> and <strong>RDMA_WRITEWITHIMM</strong>. Receive buffers are
+<strong>NOT</strong> used for other RDMA operations.</p>
+</blockquote>
+<p>这里我们结合 <code>gloo/examples/example1.cc</code> 示例进行往下的梳理。</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c++" data-lang="c++"><span style="color:#66d9ef">auto</span> dev <span style="color:#f92672">=</span> gloo<span style="color:#f92672">::</span>transport<span style="color:#f92672">::</span>ibverbs<span style="color:#f92672">::</span>CreateDevice(attr);
+<span style="color:#75715e">/* 省略了一些不重要的代码细节，具体可以直接打开 examples/example1.cc 查看 */</span>
+<span style="color:#66d9ef">auto</span> context <span style="color:#f92672">=</span> std<span style="color:#f92672">::</span>make_shared<span style="color:#f92672">&lt;</span>gloo<span style="color:#f92672">::</span>rendezvous<span style="color:#f92672">::</span>Context<span style="color:#f92672">&gt;</span>(rank, size);
+context<span style="color:#f92672">-&gt;</span>connectFullMesh(prefixStore, dev);
+</code></pre></div><p>创建一个 ibverbs 下的 Device 实例对象（具体细节已经在上面讲解到了，可以结合代码返回重新理解一遍），调用 <code>connectFullMesh()</code> 函数，实现在 <code>gloo/rendezvous/context.cc</code> 中。</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c++" data-lang="c++"><span style="color:#66d9ef">void</span> Context<span style="color:#f92672">::</span>connectFullMesh(rendezvous<span style="color:#f92672">::</span>Store <span style="color:#f92672">&amp;</span>store,
+                              std<span style="color:#f92672">::</span>shared_ptr<span style="color:#f92672">&lt;</span>transport<span style="color:#f92672">::</span>Device<span style="color:#f92672">&gt;</span> <span style="color:#f92672">&amp;</span>dev) {
+  std<span style="color:#f92672">::</span>vector<span style="color:#f92672">&lt;</span>std<span style="color:#f92672">::</span>unique_ptr<span style="color:#f92672">&lt;</span>transport<span style="color:#f92672">::</span>Pair<span style="color:#f92672">&gt;&gt;</span> pairs(size);
+
+  <span style="color:#75715e">// Create pair to connect to every other node in the collective
+</span><span style="color:#75715e"></span>  std<span style="color:#f92672">::</span>vector<span style="color:#f92672">&lt;</span><span style="color:#66d9ef">char</span><span style="color:#f92672">&gt;</span> allBytes;
+  <span style="color:#66d9ef">for</span> (<span style="color:#66d9ef">int</span> i <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>; i <span style="color:#f92672">&lt;</span> size; i<span style="color:#f92672">++</span>) {
+    <span style="color:#66d9ef">if</span> (i <span style="color:#f92672">==</span> rank) {
+      <span style="color:#66d9ef">continue</span>;
+    }
+
+    <span style="color:#66d9ef">auto</span> pair <span style="color:#f92672">=</span> dev<span style="color:#f92672">-&gt;</span>createPair(getTimeout());
+    pairs[i] <span style="color:#f92672">=</span> std<span style="color:#f92672">::</span>move(pair);
+    <span style="color:#66d9ef">auto</span> addrBytes <span style="color:#f92672">=</span> pairs[i]<span style="color:#f92672">-&gt;</span>address().bytes();
+    allBytes.insert(allBytes.end(), addrBytes.begin(), addrBytes.end());
+  }
+
+  std<span style="color:#f92672">::</span>ostringstream storeKey;
+  storeKey <span style="color:#f92672">&lt;&lt;</span> rank;
+  store.set(storeKey.str(), allBytes);
+
+  <span style="color:#75715e">// Connect every pair
+</span><span style="color:#75715e"></span>  <span style="color:#66d9ef">for</span> (<span style="color:#66d9ef">int</span> i <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>; i <span style="color:#f92672">&lt;</span> size; i<span style="color:#f92672">++</span>) {
+    <span style="color:#66d9ef">if</span> (i <span style="color:#f92672">==</span> rank) {
+      <span style="color:#66d9ef">continue</span>;
+    }
+
+    <span style="color:#75715e">// Wait for address of other side of this pair to become available
+</span><span style="color:#75715e"></span>    std<span style="color:#f92672">::</span>ostringstream key;
+    key <span style="color:#f92672">&lt;&lt;</span> i;
+    store.wait({key.str()}, getTimeout());
+
+    <span style="color:#75715e">// Connect to other side of this pair
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">auto</span> allAddrs <span style="color:#f92672">=</span> store.get(key.str());
+    <span style="color:#66d9ef">auto</span> addr <span style="color:#f92672">=</span> extractAddress(allAddrs, i);
+    pairs[i]<span style="color:#f92672">-&gt;</span>connect(addr);
+  }
+
+  device_ <span style="color:#f92672">=</span> dev;
+  pairs_ <span style="color:#f92672">=</span> std<span style="color:#f92672">::</span>move(pairs);
+}
+</code></pre></div><p>如下图所示，假设有四台 IB Device，即四个节点，每个节点会创建三个 Pair 实例对象，在 Pair 的构造函数中会对私有变量 <code>Address self_</code> 进行填充（主要用于 QP 建立连接，QP 的状态 <strong>INIT</strong> -&gt; <strong>RTR</strong> 需要用到对端信息），将这些 <code>self_</code> 的值添加到 <code>allBytes</code> 中去，并将 <code>allBytes</code> 写入 <code>store</code> 中， <code>key</code> 为当前节点的 <code>rank</code> 号。等待所有节点将各自维护的 Pairs 的 <code>self_</code> 信息 <strong>set</strong> 入 <code>store</code> ，之后再对应取出，这样每一个节点上的 Pair 都知道要与其建立连接的对端信息 <code>Address peer_</code> 了，执行 <code>pairs[i]-&gt;connect(addr);</code> ，将 <code>pair[i]</code> 中的 <code>qp_</code> 状态从 <strong>INIT</strong> -&gt; <strong>RTR</strong> -&gt; <strong>RTS</strong> ，之后该 QP 就可以执行 RDMA 数据传输操作了。</p>
+<p><img src="images/pair-connection.png" alt="pair-connection"></p>
+<p>但需要注意的是，每一个节点仅会将其上维护的 <code>pairs</code> 中包含的 QP 的状态进行转变，每一个 QP 连接的对端都是由各自节点分别执行的，举例来说， <code>rank=0</code> 上的 <code>pairs[1]</code> 中包含的 <code>qp_</code> 的状态从 <strong>INIT</strong> -&gt;<strong>RTR</strong> -&gt; <strong>RTS</strong> ，其对端为 <code>rank=1</code> 上的 <code>pairs[0]</code>，其包含的 <code>qp_</code> 状态也是由 <strong>INIT</strong> -&gt; <strong>RTR</strong> -&gt; <strong>RTS</strong>，分别在各自节点上执行 <code>Pair::connect()</code> 。在 <strong>每个节点上</strong>执行完此 <code>connectFullMesh()</code> 函数之后，每个节点上的 Pairs 实例对象所包含的 QPs 均处于 <strong>RTS</strong> 状态。至此，所有节点之间的 RDMA 连接均建立成功，就可以进行后续的 RDMA 操作了。</p>
+<p>pair.cc / pair.h 对外提供的接口主要有：</p>
+<ul>
+<li><code>std::unique_ptr&lt;::gloo::transport::Buffer&gt; Pair::createSendBuffer(int slot, void* ptr, size_t size);</code> 创建发送缓冲区</li>
+<li><code>std::unique_ptr&lt;::gloo::transport::Buffer&gt; Pair::createRecvBuffer(int slot, void* ptr, size_t size);</code> 创建接收缓冲区</li>
+</ul>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c++" data-lang="c++">std<span style="color:#f92672">::</span>unique_ptr<span style="color:#f92672">&lt;::</span>gloo<span style="color:#f92672">::</span>transport<span style="color:#f92672">::</span>Buffer<span style="color:#f92672">&gt;</span>
+Pair<span style="color:#f92672">::</span>createSendBuffer(<span style="color:#66d9ef">int</span> slot, <span style="color:#66d9ef">void</span> <span style="color:#f92672">*</span>ptr, size_t size) {
+  std<span style="color:#f92672">::</span>unique_lock<span style="color:#f92672">&lt;</span>std<span style="color:#f92672">::</span>mutex<span style="color:#f92672">&gt;</span> lock(m_);
+  GLOO_ENFORCE_EQ(sendCompletionHandlers_.count(slot), <span style="color:#ae81ff">0</span>);
+  <span style="color:#66d9ef">auto</span> buffer <span style="color:#f92672">=</span> <span style="color:#66d9ef">new</span> Buffer(<span style="color:#66d9ef">this</span>, slot, ptr, size);
+  sendCompletionHandlers_[slot] <span style="color:#f92672">=</span> buffer;
+  <span style="color:#66d9ef">return</span> std<span style="color:#f92672">::</span>unique_ptr<span style="color:#f92672">&lt;::</span>gloo<span style="color:#f92672">::</span>transport<span style="color:#f92672">::</span>Buffer<span style="color:#f92672">&gt;</span>(buffer);
+}
+</code></pre></div><p>将对 <code>slot</code> 和 <code>sendCompletionHandlers_</code> 的讨论搁置，我们在后面讨论 Pair 中的各个私有变量时再来说明。</p>
+<p>新建了一个 Buffer 实例，第一个参数为调用 <code>Pair::createSendBuffer()</code> 这个函数的 Pair 实例对象，其后是 <code>slot</code> ，以及 Buffer 的起始地址 <code>ptr</code> 和大小 <code>size</code> 。在 Buffer 的构造函数中将这块内存进行 RDMA 注册，可以使用 <code>buffer-&gt;mr_</code> 得到 RDMA 注册内存的元信息，即 <code>struct ibv_mr *</code>。</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c++" data-lang="c++">std<span style="color:#f92672">::</span>unique_ptr<span style="color:#f92672">&lt;::</span>gloo<span style="color:#f92672">::</span>transport<span style="color:#f92672">::</span>Buffer<span style="color:#f92672">&gt;</span>
+Pair<span style="color:#f92672">::</span>createRecvBuffer(<span style="color:#66d9ef">int</span> slot, <span style="color:#66d9ef">void</span> <span style="color:#f92672">*</span>ptr, size_t size) {
+  std<span style="color:#f92672">::</span>unique_lock<span style="color:#f92672">&lt;</span>std<span style="color:#f92672">::</span>mutex<span style="color:#f92672">&gt;</span> lock(m_);
+  GLOO_ENFORCE_EQ(recvCompletionHandlers_.count(slot), <span style="color:#ae81ff">0</span>);
+  <span style="color:#66d9ef">auto</span> buffer <span style="color:#f92672">=</span> <span style="color:#66d9ef">new</span> Buffer(<span style="color:#66d9ef">this</span>, slot, ptr, size);
+  recvCompletionHandlers_[slot] <span style="color:#f92672">=</span> buffer;
+  sendMemoryRegion(buffer<span style="color:#f92672">-&gt;</span>mr_, buffer<span style="color:#f92672">-&gt;</span>slot_);
+  <span style="color:#66d9ef">return</span> std<span style="color:#f92672">::</span>unique_ptr<span style="color:#f92672">&lt;::</span>gloo<span style="color:#f92672">::</span>transport<span style="color:#f92672">::</span>Buffer<span style="color:#f92672">&gt;</span>(buffer);
+}
+</code></pre></div><p>同样， <code>recvCompletionHandlers_</code> 的讨论搁在之后。</p>
+<p>在创建了一个 Buffer 实例之后，相比 <code>Pair::createSendBuffer()</code>， <code>Pair::createRecvBuffer()</code> 中会去调用 <code>Pair::sendMemoryRegion()</code> ，传入的参数为刚注册的 RDMA 内存的元信息 <code>buffer-&gt;mr_</code> 和 <code>buffer-&gt;slot_</code>。为什么会多一个 <code>Pair::sendMemoryRegion()</code> 呢？在 Gloo 的实现中，对 Buffer 内容的传输使用的是 <strong>RDMA WRITE</strong>，为了进行单边操作（ <strong>one-sided</strong>），接收端需要主动告诉发送端应该将数据写入到哪一块已注册好的 RDMA 内存中，包括该块内存的 <code>addr</code> 和 <code>rkey</code> 。新创建的 RecvBuffer 就是之后用来存放数据的地方，因此需要将这块已注册的 RDMA 内存的元信息告诉给对端。</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c++" data-lang="c++"><span style="color:#66d9ef">void</span> Pair<span style="color:#f92672">::</span>sendMemoryRegion(<span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">ibv_mr</span> <span style="color:#f92672">*</span>src, <span style="color:#66d9ef">int</span> slot) {
+  <span style="color:#75715e">// RecvBuffer 进行 RDMA 注册之后的元信息 src，填充 MemoryRegion 中的 struct
+</span><span style="color:#75715e"></span>  <span style="color:#75715e">// ibv_mr
+</span><span style="color:#75715e"></span>  <span style="color:#66d9ef">auto</span> mr <span style="color:#f92672">=</span> make_unique<span style="color:#f92672">&lt;</span>MemoryRegion<span style="color:#f92672">&gt;</span>(dev_<span style="color:#f92672">-&gt;</span>pd_, src);
+  <span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">ibv_sge</span> list <span style="color:#f92672">=</span> mr<span style="color:#f92672">-&gt;</span>sge();
+  <span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">ibv_send_wr</span> wr;
+  memset(<span style="color:#f92672">&amp;</span>wr, <span style="color:#ae81ff">0</span>, <span style="color:#66d9ef">sizeof</span>(wr));
+  wr.wr_id <span style="color:#f92672">=</span> slot;
+  wr.sg_list <span style="color:#f92672">=</span> <span style="color:#f92672">&amp;</span>list;
+  wr.num_sge <span style="color:#f92672">=</span> <span style="color:#ae81ff">1</span>;
+  wr.opcode <span style="color:#f92672">=</span> IBV_WR_SEND_WITH_IMM;
+  wr.send_flags <span style="color:#f92672">=</span> IBV_SEND_SIGNALED; <span style="color:#75715e">// singnaled? 这个在上面有提到过
+</span><span style="color:#75715e"></span>  wr.imm_data <span style="color:#f92672">=</span> slot;
+
+  <span style="color:#75715e">// The work request is serialized and sent to the driver so it
+</span><span style="color:#75715e"></span>  <span style="color:#75715e">// doesn&#39;t need to be valid after the ibv_post_send call.
+</span><span style="color:#75715e"></span>  <span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">ibv_send_wr</span> <span style="color:#f92672">*</span>bad_wr <span style="color:#f92672">=</span> <span style="color:#66d9ef">nullptr</span>;
+  <span style="color:#66d9ef">int</span> rv <span style="color:#f92672">=</span> ibv_post_send(qp_, <span style="color:#f92672">&amp;</span>wr, <span style="color:#f92672">&amp;</span>bad_wr);
+  <span style="color:#66d9ef">if</span> (rv <span style="color:#f92672">!=</span> <span style="color:#ae81ff">0</span>) {
+    signalIoFailure(GLOO_ERROR_MSG(<span style="color:#e6db74">&#34;ibv_post_send: &#34;</span>, rv));
+  }
+
+  <span style="color:#75715e">// Keep memory region around until this send operation completes.
+</span><span style="color:#75715e"></span>  <span style="color:#75715e">// They are posted in FIFO order, but may complete in arbitrary order.
+</span><span style="color:#75715e"></span>  <span style="color:#75715e">// Therefore we store them in a map keyed on the buffer slot.
+</span><span style="color:#75715e"></span>  GLOO_ENFORCE_EQ(mappedSendRegions_.count(slot), <span style="color:#ae81ff">0</span>);
+  mappedSendRegions_[slot] <span style="color:#f92672">=</span> std<span style="color:#f92672">::</span>move(mr);
+}
+</code></pre></div><p>RDMA 注册 <code>struct ibv_mr</code> 结构体，并使用 RecvBuffer RDMA 注册的元信息 <code>src</code> 来进行填充，然后将此元信息发送给对端 <code>wr.opcode = IBV_WR_SEND_WITH_IMM</code> ，其后的 <strong>RDMA WRITE</strong> 就知道是写入哪一块已注册的 RDMA 内存了。</p>
+<p>这一发送会产生两个事件：</p>
+<ol>
+<li>对端接收到发送的元数据信息，在对端会产生完成事件 CQE <code>wc-&gt;opcode = IBV_WC_RECV</code> ，这里设置的 <code>wr.imm_data = slot</code> 会在对端的 <code>wc-&gt;imm_data</code> 中接收到</li>
+<li>发送端在发送完成之后会产生完成事件 CQE <code>wc-&gt;opcode = IBV_WC_SEND</code>，这里设置的 <code>wr.wr_id = slot</code> 会在本端 <code>wc-&gt;wr_id</code> 中接收到</li>
+</ol>
+<p>在每个节点上，有一个轮询线程 <code>loop</code> 在监听着 Completion Channel 上的 <code>fd</code> 何时 <code>POLLIN</code> 。当有 CQE 产生并放置于 CQ 上时，就会捕捉到这一通知，在 <code>ibv_get_cq_event()</code> 中就能够得到是节点上的哪一个 Pair 对象进行了相关操作，以产生了 CQE 放置于 CQ 上，使用 <code>Pair::hadleCompletionEvent()</code> 进行处理。</p>
+<p>在 <code>Pair::handleCompletionEvent()</code> 中会 <strong>Re-Arm</strong> 上 CQ 的通知机制，将处理转给 <code>Pair::pollCompletion()</code> ，即执行 <code>ibv_poll_cq()</code> 从 CQ 上取得 CQEs，然后在 <code>Pair::handleCompletion()</code> 中对不同的 CQE 完成事件进行处理。</p>
+<h5 id="对端接受到发送的元数据信息">对端接受到发送的元数据信息</h5>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c++" data-lang="c++"><span style="color:#66d9ef">if</span> (wc<span style="color:#f92672">-&gt;</span>opcode <span style="color:#f92672">==</span> IBV_WC_RECV) {
+  <span style="color:#75715e">// Memory region recv completed.
+</span><span style="color:#75715e"></span>  <span style="color:#75715e">//
+</span><span style="color:#75715e"></span>  <span style="color:#75715e">// Only used by the remote side of the pair to pass ibv_mr&#39;s.
+</span><span style="color:#75715e"></span>  <span style="color:#75715e">// They are written to in FIFO order, so we can pick up
+</span><span style="color:#75715e"></span>  <span style="color:#75715e">// and use the first MemoryRegion instance in the list of
+</span><span style="color:#75715e"></span>  <span style="color:#75715e">// mapped receive regions.
+</span><span style="color:#75715e"></span>  <span style="color:#75715e">//
+</span><span style="color:#75715e"></span>  <span style="color:#75715e">// The buffer trying to write to this slot might be waiting for
+</span><span style="color:#75715e"></span>  <span style="color:#75715e">// the other side of this pair to send its memory region.
+</span><span style="color:#75715e"></span>  <span style="color:#75715e">// Lock access, and notify anybody waiting afterwards.
+</span><span style="color:#75715e"></span>  <span style="color:#75715e">//
+</span><span style="color:#75715e"></span>  <span style="color:#75715e">// Slot is encoded in immediate data on receive work completion.
+</span><span style="color:#75715e"></span>  <span style="color:#75715e">// It is set in the Pair::sendMemoryRegion function.
+</span><span style="color:#75715e"></span>  <span style="color:#66d9ef">auto</span> slot <span style="color:#f92672">=</span> wc<span style="color:#f92672">-&gt;</span>imm_data;
+  GLOO_ENFORCE_EQ(wc<span style="color:#f92672">-&gt;</span>status, IBV_WC_SUCCESS, <span style="color:#e6db74">&#34;Memory region recv for slot &#34;</span>,
+                  slot, <span style="color:#e6db74">&#34;: &#34;</span>, ibv_wc_status_str(wc<span style="color:#f92672">-&gt;</span>status));
+
+  <span style="color:#75715e">// Move ibv_mr from memory region &#39;inbox&#39; to final slot.
+</span><span style="color:#75715e"></span>  <span style="color:#66d9ef">const</span> <span style="color:#66d9ef">auto</span> <span style="color:#f92672">&amp;</span>mr <span style="color:#f92672">=</span> mappedRecvRegions_[recvPosted_ <span style="color:#f92672">%</span> kMaxBuffers];
+  peerMemoryRegions_[slot] <span style="color:#f92672">=</span> mr<span style="color:#f92672">-&gt;</span>mr();
+
+  <span style="color:#75715e">// Notify any buffer waiting for the details of its remote peer.
+</span><span style="color:#75715e"></span>  cv_.notify_all();
+
+  <span style="color:#75715e">// Backfill receive work requests.
+</span><span style="color:#75715e"></span>  postReceive();
+}
+</code></pre></div><p>在对端的接收队列中的 WRs 会指示应该将接收到的元数据信息写入到哪一块已注册的 RDMA 内存中，这个是在 Pair 的构造函数中调用 <code>postReceive()</code> 所指定的。</p>
+<p><strong>TODO</strong> 这里面有几个地方不是很懂？可能需要把图给画出来，一图胜千言？</p>
+<h5 id="发送端发送元数据信息成功">发送端发送元数据信息成功</h5>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c++" data-lang="c++"><span style="color:#66d9ef">if</span> (wc<span style="color:#f92672">-&gt;</span>opcode <span style="color:#f92672">==</span> IBV_WC_SEND) {
+  <span style="color:#75715e">// Memory region send completed.
+</span><span style="color:#75715e"></span>  <span style="color:#66d9ef">auto</span> slot <span style="color:#f92672">=</span> wc<span style="color:#f92672">-&gt;</span>wr_id;
+  GLOO_ENFORCE_EQ(wc<span style="color:#f92672">-&gt;</span>status, IBV_WC_SUCCESS, <span style="color:#e6db74">&#34;Memory region send for slot &#34;</span>,
+                  slot, <span style="color:#e6db74">&#34;: &#34;</span>, ibv_wc_status_str(wc<span style="color:#f92672">-&gt;</span>status));
+
+  GLOO_ENFORCE_GT(mappedSendRegions_.size(), <span style="color:#ae81ff">0</span>);
+  GLOO_ENFORCE_EQ(mappedSendRegions_.count(slot), <span style="color:#ae81ff">1</span>);
+  mappedSendRegions_.erase(slot);
+}
+</code></pre></div><p><code>Pair::createRecvBuffer()</code> 创建的 Buffer 实例，其进行 RDMA 内存注册的元信息确实已经 <strong>RDMA SEND</strong> 到了对端。</p>
+<p>另外，pair.cc / pair.h 中还有一个重要的函数 <code>Pair::send()</code></p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c++" data-lang="c++"><span style="color:#66d9ef">void</span> Pair<span style="color:#f92672">::</span>send(Buffer <span style="color:#f92672">*</span>buffer, size_t offset, size_t length, size_t roffset) {
+  <span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">ibv_sge</span> list;
+  list.addr <span style="color:#f92672">=</span> (<span style="color:#66d9ef">uint64_t</span>)buffer<span style="color:#f92672">-&gt;</span>ptr_ <span style="color:#f92672">+</span> offset;
+  list.length <span style="color:#f92672">=</span> length;
+  list.lkey <span style="color:#f92672">=</span> buffer<span style="color:#f92672">-&gt;</span>mr_<span style="color:#f92672">-&gt;</span>lkey;
+
+  <span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">ibv_send_wr</span> wr;
+  memset(<span style="color:#f92672">&amp;</span>wr, <span style="color:#ae81ff">0</span>, <span style="color:#66d9ef">sizeof</span>(wr));
+  wr.wr_id <span style="color:#f92672">=</span> buffer<span style="color:#f92672">-&gt;</span>slot_;
+  wr.sg_list <span style="color:#f92672">=</span> <span style="color:#f92672">&amp;</span>list;
+  wr.num_sge <span style="color:#f92672">=</span> <span style="color:#ae81ff">1</span>;
+  wr.opcode <span style="color:#f92672">=</span> IBV_WR_RDMA_WRITE_WITH_IMM;
+  wr.send_flags <span style="color:#f92672">=</span> IBV_SEND_SIGNALED;
+  wr.imm_data <span style="color:#f92672">=</span> buffer<span style="color:#f92672">-&gt;</span>slot_;
+
+  <span style="color:#66d9ef">const</span> <span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">ibv_mr</span> <span style="color:#f92672">*</span>peer <span style="color:#f92672">=</span> getMemoryRegion(buffer<span style="color:#f92672">-&gt;</span>slot_);
+  GLOO_ENFORCE_NE(peer, (<span style="color:#66d9ef">const</span> <span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">ibv_mr</span> <span style="color:#f92672">*</span>)<span style="color:#66d9ef">nullptr</span>);
+  wr.wr.rdma.remote_addr <span style="color:#f92672">=</span> (<span style="color:#66d9ef">uint64_t</span>)peer<span style="color:#f92672">-&gt;</span>addr <span style="color:#f92672">+</span> roffset;
+  wr.wr.rdma.rkey <span style="color:#f92672">=</span> peer<span style="color:#f92672">-&gt;</span>rkey;
+
+  <span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">ibv_send_wr</span> <span style="color:#f92672">*</span>bad_wr;
+  <span style="color:#66d9ef">auto</span> rv <span style="color:#f92672">=</span> ibv_post_send(qp_, <span style="color:#f92672">&amp;</span>wr, <span style="color:#f92672">&amp;</span>bad_wr);
+  <span style="color:#66d9ef">if</span> (rv <span style="color:#f92672">!=</span> <span style="color:#ae81ff">0</span>) {
+    signalIoFailure(GLOO_ERROR_MSG(<span style="color:#e6db74">&#34;ibv_post_send: &#34;</span>, rv));
+  }
+}
+</code></pre></div><p>终于来到了真实传输 Buffer 数据的实现，使用 <strong>RDMA_WRITEWITHIMM</strong>方式，由于 <strong>RDMA WRITE</strong> 为单边操作（ <strong>one-sided</strong>），需要知道将数据写入到对端的什么位置，使用 <code>Pair::getMemoryRegion(buffer-&gt;slot_)</code> 就能够知道要写入对端 RDMA 内存的地址，以及对那块 RDMA 内存有哪些访问权限。</p>
+<p>这一 <strong>RDMA_WRITEWITHIMM</strong> 操作会触发两个完成事件：</p>
+<ol>
+<li><strong>RDMA WRITE</strong> 为单边操作，对端 CPU 不会感知到有数据写入到 RDMA 注册的内存中，但这里使用 <strong>RDMA_WRITEWITHIMM</strong> ，额外的 <code>wr.imm_data</code> 会消费对端接收队列上的一个 WR，这样就会产生一个 CQE，就可以通知对端有 <strong>RDMA WRITE</strong> 操作发生了。在对端会产生完成事件 CQE <code>wc-&gt;opcode = IBV_WC_RECV_RDMA_WITH_IMM</code> ，这里设置 <code>wr.imm_data = buffer-&gt;slot_</code> 会在对端 <code>wc-&gt;imm_data</code> 中接收到</li>
+<li>发送端 <strong>RDMA WRITE</strong> 完成之后会产生完成事件 CQE <code>wc-&gt;opcode = IBV_WC_RDMA_WRITE</code> ，这里设置的 <code>wr.wr_id = buffer-&gt;slot_</code> 会在本端 <code>wc-&gt;wr_id</code> 中接收到</li>
+</ol>
+<h5 id="对端接收到发送的立即数">对端接收到发送的立即数</h5>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c++" data-lang="c++"><span style="color:#66d9ef">if</span> (wc<span style="color:#f92672">-&gt;</span>opcode <span style="color:#f92672">==</span> IBV_WC_RECV_RDMA_WITH_IMM) {
+  <span style="color:#75715e">// Incoming RDMA write completed.
+</span><span style="color:#75715e"></span>  <span style="color:#75715e">// Slot is encoded in immediate data on receive work completion.
+</span><span style="color:#75715e"></span>  <span style="color:#75715e">// It is set in the Pair::send function.
+</span><span style="color:#75715e"></span>  <span style="color:#66d9ef">auto</span> slot <span style="color:#f92672">=</span> wc<span style="color:#f92672">-&gt;</span>imm_data;
+  GLOO_ENFORCE_EQ(wc<span style="color:#f92672">-&gt;</span>status, IBV_WC_SUCCESS, <span style="color:#e6db74">&#34;Recv for slot &#34;</span>, slot, <span style="color:#e6db74">&#34;: &#34;</span>,
+                  ibv_wc_status_str(wc<span style="color:#f92672">-&gt;</span>status));
+
+  GLOO_ENFORCE(recvCompletionHandlers_[slot] <span style="color:#f92672">!=</span> <span style="color:#66d9ef">nullptr</span>);
+  recvCompletionHandlers_[slot]<span style="color:#f92672">-&gt;</span>handleCompletion(wc);
+
+  <span style="color:#75715e">// Backfill receive work requests.
+</span><span style="color:#75715e"></span>  postReceive();
+}
+</code></pre></div><h5 id="发送端-rdma-write-成功">发送端 RDMA WRITE 成功</h5>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c++" data-lang="c++"><span style="color:#66d9ef">if</span> (wc<span style="color:#f92672">-&gt;</span>opcode <span style="color:#f92672">==</span> IBV_WC_RDMA_WRITE) {
+  <span style="color:#75715e">// Outbound RDMA write completed.
+</span><span style="color:#75715e"></span>  <span style="color:#75715e">// Slot is encoded in wr_id fields on send work request. Unlike
+</span><span style="color:#75715e"></span>  <span style="color:#75715e">// the receive work completions, the immediate data field on send
+</span><span style="color:#75715e"></span>  <span style="color:#75715e">// work requests are not pass to the respective work completion.
+</span><span style="color:#75715e"></span>  <span style="color:#66d9ef">auto</span> slot <span style="color:#f92672">=</span> wc<span style="color:#f92672">-&gt;</span>wr_id;
+  GLOO_ENFORCE_EQ(wc<span style="color:#f92672">-&gt;</span>status, IBV_WC_SUCCESS, <span style="color:#e6db74">&#34;Send for slot &#34;</span>, slot, <span style="color:#e6db74">&#34;: &#34;</span>,
+                  ibv_wc_status_str(wc<span style="color:#f92672">-&gt;</span>status));
+
+  GLOO_ENFORCE(sendCompletionHandlers_[slot] <span style="color:#f92672">!=</span> <span style="color:#66d9ef">nullptr</span>);
+  sendCompletionHandlers_[slot]<span style="color:#f92672">-&gt;</span>handleCompletion(wc);
+}
+</code></pre></div><h4 id="私有变量">私有变量</h4>
+<p>pair.cc / pair.h 中包含很多对其私有变量的操作，这些私有变量表示什么含义，相应的操作是涉及到的是什么意思呢？接下来对这一块知识点进行说明。</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c++" data-lang="c++">std<span style="color:#f92672">::</span>shared_ptr<span style="color:#f92672">&lt;</span>Device<span style="color:#f92672">&gt;</span> dev_;
+</code></pre></div><p>在创建 Pair 实例对象时，将节点的设备对象 <code>Device</code> 传进来，就可以通过 <code>dev_</code> 访问到 <code>ibv_context *context_</code> / <code>ibv_pd *pd_</code> / <code>ibv_comp_channel *comp_channel_</code> 等在同一个节点上各个 Pairs 所共享的资源了。</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c++" data-lang="c++"><span style="color:#75715e">// Number of completion events handled by this pair&#39;s completion
+</span><span style="color:#75715e">// queue (also see ibv_get_cq_event(3)). This many events need to be
+</span><span style="color:#75715e">// acknowledged prior to destructing the completion queue.
+</span><span style="color:#75715e">// Otherwise, destruction will hang (see ibv_get_cq_event(3)).
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">int</span> completionEventsHandled_;
+</code></pre></div><p>这个变量的作用在上面已经说明过了。当有 CQE 产生并放置在 CQ 上时（由于 CQ 已经 <strong>Arm</strong> 上了通知机制），CQ 会产生一个完成事件通知与其绑定的 Completion Channel，这些完成事件需要被 Ack，使用 <code>completionEventsHandled_</code> 来计数，记录 CQ 产生的完成事件的个数，之后传递给 <code>ibv_ack_cq_events(cq_, completionEventsHandled_)</code> 统一进行 Ack。</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c++" data-lang="c++">Address self_;
+Address peer_;
+</code></pre></div><p><code>Address</code> 中保存了建立 QP 连接的信息 <code>addr_</code> ，<code>self_</code> 在 Pair 的构造函数中进行填充，然后每个设备上所有的 Pairs 都会将自己所持有的 <code>self_</code> 写入到一个 <code>store</code> 中，当所有节点都写入之后，就可以拿到当前设备上某一特定 Pair 的对端地址了 <code>peer_</code> 。之后就可以调用 <code>Pair::connect()</code> 建立 QP 连接了。</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c++" data-lang="c++"><span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">ibv_cq</span><span style="color:#f92672">*</span> cq_;
+<span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">ibv_qp</span><span style="color:#f92672">*</span> qp_;
+</code></pre></div><p>在 Gloo 的实现中，每一个 Pair 实例对象都有自己的 CQ 和 QP。</p>
+<p>根据 <code>gloo/allreduce_ring.h</code> 对底层通信的使用，来对下面几个变量进行深入理解。</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c++" data-lang="c++"><span style="color:#75715e">// For us to copy the remote peer&#39;s ibv_mr into.
+</span><span style="color:#75715e"></span>std<span style="color:#f92672">::</span>map<span style="color:#f92672">&lt;</span><span style="color:#66d9ef">int</span>, <span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">ibv_mr</span><span style="color:#f92672">&gt;</span> peerMemoryRegions_;
+
+<span style="color:#75715e">// These fields store memory regions that the remote side of the pair
+</span><span style="color:#75715e">// can send to and that the local side of the pair can send from.
+</span><span style="color:#75715e">//
+</span><span style="color:#75715e">// When registering a receive buffer, the local ibv_mr is sent
+</span><span style="color:#75715e">// to the remote side of the pair, and the corresponding MemoryRegion
+</span><span style="color:#75715e">// instance is kept around in the mappedSendRegions_ list until
+</span><span style="color:#75715e">// the send operation complete.
+</span><span style="color:#75715e">//
+</span><span style="color:#75715e">// To allow the remote side of the pair to send its memory regions,
+</span><span style="color:#75715e">// we keep a fixed number of MemoryRegion instances in
+</span><span style="color:#75715e">// mappedRecvRegions_. These regions are referenced round-robin for
+</span><span style="color:#75715e">// every posted receive work request.
+</span><span style="color:#75715e">//
+</span><span style="color:#75715e"></span>std<span style="color:#f92672">::</span>map<span style="color:#f92672">&lt;</span><span style="color:#66d9ef">int</span>, std<span style="color:#f92672">::</span>unique_ptr<span style="color:#f92672">&lt;</span>MemoryRegion<span style="color:#f92672">&gt;&gt;</span> mappedSendRegions_;
+std<span style="color:#f92672">::</span>array<span style="color:#f92672">&lt;</span>std<span style="color:#f92672">::</span>unique_ptr<span style="color:#f92672">&lt;</span>MemoryRegion<span style="color:#f92672">&gt;</span>, kMaxBuffers<span style="color:#f92672">&gt;</span> mappedRecvRegions_;
+
+<span style="color:#75715e">// Keep track of number of request work requests posted and completed.
+</span><span style="color:#75715e">// This is needed to index into the mappedRecvRegions_ array both
+</span><span style="color:#75715e">// when posting the WR and when completing the WR.
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">uint64_t</span> recvPosted_;
+
+<span style="color:#75715e">// Completions on behalf of buffers need to be forwarded to those buffers.
+</span><span style="color:#75715e"></span>std<span style="color:#f92672">::</span>map<span style="color:#f92672">&lt;</span><span style="color:#66d9ef">int</span>, Buffer <span style="color:#f92672">*&gt;</span> sendCompletionHandlers_;
+std<span style="color:#f92672">::</span>map<span style="color:#f92672">&lt;</span><span style="color:#66d9ef">int</span>, Buffer <span style="color:#f92672">*&gt;</span> recvCompletionHandlers_;
+</code></pre></div><p>还是接上面的那个例子，有四台 IB Device，即四个节点，现在每个节点上的三个 Pair 对象均已 RDA 连接成功。在 <code>gloo/allreduce_ring.h</code> 的实现中，并不会使用全部的这些连接，而是选用，如下图所示。</p>
+<p><img src="images/allreduce-ring.png" alt="allreduce-ring"></p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c++" data-lang="c++">AllreduceRing(<span style="color:#66d9ef">const</span> std<span style="color:#f92672">::</span>shared_ptr<span style="color:#f92672">&lt;</span>Context<span style="color:#f92672">&gt;</span> <span style="color:#f92672">&amp;</span>context,
+              <span style="color:#66d9ef">const</span> std<span style="color:#f92672">::</span>vector<span style="color:#f92672">&lt;</span>T <span style="color:#f92672">*&gt;</span> <span style="color:#f92672">&amp;</span>ptrs, <span style="color:#66d9ef">const</span> <span style="color:#66d9ef">int</span> count,
+              <span style="color:#66d9ef">const</span> ReductionFunction<span style="color:#f92672">&lt;</span>T<span style="color:#f92672">&gt;</span> <span style="color:#f92672">*</span>fn <span style="color:#f92672">=</span> ReductionFunction<span style="color:#f92672">&lt;</span>T<span style="color:#f92672">&gt;::</span>sum)
+    <span style="color:#f92672">:</span> Algorithm(context), ptrs_(ptrs), count_(count),
+      bytes_(count_ <span style="color:#f92672">*</span> <span style="color:#66d9ef">sizeof</span>(T)), fn_(fn) {
+  inbox_ <span style="color:#f92672">=</span> <span style="color:#66d9ef">static_cast</span><span style="color:#f92672">&lt;</span>T <span style="color:#f92672">*&gt;</span>(malloc(bytes_));
+  outbox_ <span style="color:#f92672">=</span> <span style="color:#66d9ef">static_cast</span><span style="color:#f92672">&lt;</span>T <span style="color:#f92672">*&gt;</span>(malloc(bytes_));
+
+  <span style="color:#66d9ef">if</span> (<span style="color:#66d9ef">this</span><span style="color:#f92672">-&gt;</span>contextSize_ <span style="color:#f92672">==</span> <span style="color:#ae81ff">1</span>) {
+    <span style="color:#66d9ef">return</span>;
+  }
+
+  <span style="color:#66d9ef">auto</span> <span style="color:#f92672">&amp;</span>leftPair <span style="color:#f92672">=</span> <span style="color:#66d9ef">this</span><span style="color:#f92672">-&gt;</span>getLeftPair();
+  <span style="color:#66d9ef">auto</span> <span style="color:#f92672">&amp;</span>rightPair <span style="color:#f92672">=</span> <span style="color:#66d9ef">this</span><span style="color:#f92672">-&gt;</span>getRightPair();
+  <span style="color:#66d9ef">auto</span> slot <span style="color:#f92672">=</span> <span style="color:#66d9ef">this</span><span style="color:#f92672">-&gt;</span>context_<span style="color:#f92672">-&gt;</span>nextSlot();
+
+  <span style="color:#75715e">// Buffer to send to (rank+1).
+</span><span style="color:#75715e"></span>  sendDataBuf_ <span style="color:#f92672">=</span> rightPair<span style="color:#f92672">-&gt;</span>createSendBuffer(slot, outbox_, bytes_);
+
+  <span style="color:#75715e">// Buffer that (rank-1) writes to.
+</span><span style="color:#75715e"></span>  recvDataBuf_ <span style="color:#f92672">=</span> leftPair<span style="color:#f92672">-&gt;</span>createRecvBuffer(slot, inbox_, bytes_);
+
+  <span style="color:#75715e">// Dummy buffers for localized barrier.
+</span><span style="color:#75715e"></span>  <span style="color:#75715e">// Before sending to the right, we only need to know that the node
+</span><span style="color:#75715e"></span>  <span style="color:#75715e">// on the right is done using the inbox that&#39;s about to be written
+</span><span style="color:#75715e"></span>  <span style="color:#75715e">// into. No need for a global barrier.
+</span><span style="color:#75715e"></span>  <span style="color:#66d9ef">auto</span> notificationSlot <span style="color:#f92672">=</span> <span style="color:#66d9ef">this</span><span style="color:#f92672">-&gt;</span>context_<span style="color:#f92672">-&gt;</span>nextSlot();
+  sendNotificationBuf_ <span style="color:#f92672">=</span>
+      leftPair<span style="color:#f92672">-&gt;</span>createSendBuffer(notificationSlot, <span style="color:#f92672">&amp;</span>dummy_, <span style="color:#66d9ef">sizeof</span>(dummy_));
+  recvNotificationBuf_ <span style="color:#f92672">=</span>
+      rightPair<span style="color:#f92672">-&gt;</span>createRecvBuffer(notificationSlot, <span style="color:#f92672">&amp;</span>dummy_, <span style="color:#66d9ef">sizeof</span>(dummy_));
+}
+</code></pre></div><p>这里只讨论 <code>sendDataBuf_</code> 和 <code>recvDataBuf_</code>，<code>sendNotificationBuf_</code> 和 <code>recvNotificationBuf_</code> 属于代码的实现细节，暂不讨论。</p>
+<p>对于 <code>sendDataBuf_</code> 和 <code>recvDataBuf_</code> ，在创建 Buffer 对象的时候传入的 <code>slot</code> 是相同的（在代码的实现中都为 <code>slot = 0</code> ）。在 <code>Pair::createSendBuffer()</code> 中会对这块 <code>sendDataBuf_</code> 内存进行 RDMA 注册，并在 <code>rightPair</code> 的 <code>sendCompletionHandlers_</code> 中建立 <code>slot</code> 到新创建的 <code>sendDataBuf_</code> 对象的映射。同样的，在 <code>Pair::createRecvBuffer()</code> 中会进行 RDMA 内存注册，在 <code>leftPair</code> 的 <code>recvCompletionHandlers_</code> 中建立 <code>slot</code> 到新建立的 <code>recvDataBuf_</code> 对象的映射；另外还会执行 <code>Pair::sendMemoryRegion(recvDataBuf_-&gt;mr_, recvDataBuf_-&gt;slot_)</code>，将刚注册好的接收缓存区的 RDMA 元数据信息给发送出去。</p>
+<p>在 <code>Pair::sendMemoryRegion()</code> 执行 <code>ibv_post_send()</code> 发送 RDMA 元数据之后，会将发送端用于保存元数据的 <code>struct ibv_mr</code> 保存在<code>mappedSendRegions_</code> 中，在之后发送端确定已发送成功之后（即 <code>wc-&gt;opcode == IBV_WC_SEND</code>），在从映射表中移除。在对端接受到此元数据之后（即 <code>wc-&gt;opcode == IBV_WC_RECV</code> ），由于接收队列中的 WRs 会按 FIFO 的顺序进行消费并写入接收到的数据，所以根据 <code>mappedRecvRegions_[recvPosted_ % kMaxBuffers]</code> 就可以得到元信息写入的 MR 了；使用接收到的额外的立即数作为 key，保存该 MR 在 <code>peerMemoryRegions_</code> 映射表中。之后 <code>Pair::getMemoryRegion(slot)</code> 就可以直接取得对端的接受缓冲区的元数据信息了，就能够执行 <strong>RDMA WRITE</strong> 了。</p>
+<p>这里就涉及到对 <code>recvPosted_</code> 的递增了，在 <code>Pair::postReceive()</code> 中，以及对 <code>Pair::postReceive()</code> 进行调用的 <code>Pair::handleCompletion()</code> 中使用。 <strong>TODO</strong>这里是我很不理解的。</p>
+<p><code>sendCompletionHandlers_</code> 和 <code>recvCompletionHandlers_</code> 是为了之后对 Buffer 的同步操作，调用 <code>Buffer::waitSend()</code> 和 <code>Buffer::waitRecv()</code> 。 <strong>TODO</strong> 这是我现在的理解，有待完善。</p>
+<p><strong>TODO</strong> 另外还需要补充对 <code>slot</code> 的讨论。</p>
+<h3 id="memory_regioncc--memory_regionh">memory_region.cc / memory_region.h</h3>
+<p>MemoryRegion 主要负责 <code>struct ibv_mr</code> 的注册，其包含两个私有变量</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c++" data-lang="c++"><span style="color:#75715e">// The ibv_mr that is read from or written to.
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">ibv_mr</span> src_;
+
+<span style="color:#75715e">// The ibv_mr to hold the registration of src_.
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">ibv_mr</span> <span style="color:#f92672">*</span>mr_;
+</code></pre></div><ul>
+<li><code>src_</code> 表示进行 RDMA 注册的那块内存所存放的内容或将要存放的内容是 <code>struct ibv_mr</code> 结构体类型的</li>
+<li><code>mr_</code> 在对 <code>src_</code> 所指向的内存单元进行 RDMA 注册（ <code>ibv_reg_mr()</code> ）时所返回的元信息</li>
+</ul>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c++" data-lang="c++"><span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">ibv_mr</span> <span style="color:#f92672">*</span><span style="color:#a6e22e">ibv_reg_mr</span>(<span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">ibv_pd</span> <span style="color:#f92672">*</span>pd,
+                          <span style="color:#66d9ef">void</span> <span style="color:#f92672">*</span>addr,
+                          size_t length,
+                          <span style="color:#66d9ef">enum</span> <span style="color:#a6e22e">ibv_access_flags</span> access);
+</code></pre></div><p><code>ibv_reg_mr()</code> 返回的是 <code>struct ibv_mr *</code> ，即进行 RDMA 注册的那块内存的元信息，包括内存单元的起始地址 <code>addr</code>、长度 <code>length</code> 、以及 <code>lkey</code> 和 <code>rkey</code></p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c++" data-lang="c++"><span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">ibv_mr</span> {
+  <span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">ibv_context</span> <span style="color:#f92672">*</span>context;
+  <span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">ibv_pd</span>      <span style="color:#f92672">*</span>pd;
+  <span style="color:#66d9ef">void</span>               <span style="color:#f92672">*</span>addr;
+  size_t             length;
+  <span style="color:#66d9ef">uint32_t</span>           handle;
+  <span style="color:#66d9ef">uint32_t</span>           lkey;
+  <span style="color:#66d9ef">uint32_t</span>           rkey;
+};
+</code></pre></div><p>MemoryRegion 提供两个构造函数</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c++" data-lang="c++"><span style="color:#66d9ef">explicit</span> <span style="color:#a6e22e">MemoryRegion</span>(<span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">ibv_pd</span><span style="color:#f92672">*</span>);
+<span style="color:#66d9ef">explicit</span> <span style="color:#a6e22e">MemoryRegion</span>(<span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">ibv_pd</span><span style="color:#f92672">*</span>, <span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">ibv_mr</span><span style="color:#f92672">*</span>);
+</code></pre></div><p>若未指定第二个参数，即调用第一个构造函数，将 <code>src_</code> 所指的内存单元的内容初始化为空，置 0，并进行 RDMA 注册；若指定了第二个参数，用第二个参数所指向的 <code>struct ibv_mr</code> 填充 <code>src_</code> ，同样对 <code>src_</code> 所指向的内存单元进行 RDMA 注册。</p>
+<h3 id="buffercc--bufferh">buffer.cc / buffer.h</h3>
+<p>在 Gloo 的实现中，对 Buffer 内容的传输使用的是 <strong>RDMA_WRITEWITHIMM</strong>，为了进行单边操作，接收端需要主动告诉发送端应该将数据写入到哪一块已注册好的 RDMA 内存中，包括该块内存的 <code>addr</code> 以及 <code>rkey</code>，这个是由 <code>Pair::sendMemoryRegion()</code> 来实现的。</p>
+<p><strong>TODO</strong> buffer.cc / buffer.h 中关于异步的两个函数 <code>waitSend()</code> 和 <code>waitRecv()</code> 不是很能理解</p>
+<h2 id="references">References</h2>
+<ul>
+<li>Minimizing the Hidden Cost of RDMA</li>
+<li>RDMA Aware Networks Programming User Manual (Rev 1.7)</li>
+<li>C++ Concurrency in Action: Practical Multithreading</li>
+</ul>
+<h2 id="版权声明">版权声明</h2>
+<p>本作品采用<a href="http://creativecommons.org/licenses/by/4.0/">知识共享署名 4.0 国际许可协议</a>进行许可，转载时请注明原文链接。</p>
+
+    </div>
+  </article>
+
+  
+<section class="comments">
+<script src="https://utteranc.es/client.js"
+        repo="qiaoin/hugo-blog-comments"
+        issue-term="og:title"
+        theme="github-light"
+        crossorigin="anonymous"
+        async>
+</script>
+</section>
+
+
+
+</main>
+
+      <footer class="footer">
+        <ul class="footer-links">
+          <li>
+            <a href="https://qiaoin.github.io">在桥边</a> © 2016 - 2021
+          </li>
+          <li>
+            <a href="https://gohugo.io/" class="footer-links-kudos">Made with <img src="/images/hugo-logo.png" alt="Img link to Hugo website" width="22" height="22"></a>
+          </li>
+        </ul>
+      </footer>
+
+    </div>
+    
+
+
+
+<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/highlight.min.js"></script>
+
+
+
+<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/languages/awk.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/languages/bash.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/languages/c.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/languages/c&#43;&#43;.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/languages/cmake.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/languages/go.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/languages/html.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/languages/java.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/languages/javascript.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/languages/python.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/languages/rust.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/languages/typescript.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/languages/yaml.min.js"></script>
+<script>hljs.configure({languages: []}); hljs.initHighlightingOnLoad();</script>
+
+
+
+    
+
+    
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-EBLEJGMMQV"></script>
+<script>
+var doNotTrack = false;
+if (!doNotTrack) {
+	window.dataLayer = window.dataLayer || [];
+	function gtag(){dataLayer.push(arguments);}
+	gtag('js', new Date());
+	gtag('config', 'G-EBLEJGMMQV', { 'anonymize_ip': false });
+}
+</script>
+
+  </body>
+</html>
+

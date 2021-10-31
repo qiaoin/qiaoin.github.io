@@ -1,0 +1,1174 @@
+<!DOCTYPE html>
+<html lang="en-us">
+  <head>
+    <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="generator" content="Hugo 0.82.0" />
+
+
+<title>《JavaScript DOM 编程艺术》读书笔记 - 在桥边</title>
+<meta property="og:title" content="《JavaScript DOM 编程艺术》读书笔记 - 在桥边">
+
+
+  <link href='https://qiaoin.github.io/favicon.ico' rel='icon' type='image/x-icon'/>
+
+
+
+  
+
+
+
+
+
+
+
+
+<link href='//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/styles/monokai.min.css' rel='stylesheet' type='text/css' />
+
+
+
+<link rel="stylesheet" href="/css/fonts.css" media="all">
+<link rel="stylesheet" href="/css/main.css" media="all">
+
+
+
+  </head>
+  <body>
+    <div class="wrapper">
+      <header class="header">
+        <nav class="nav">
+  <a href="/" class="nav-logo">
+    <img src="/images/logo.png"
+         width="50"
+         height="50"
+         alt="Logo">
+  </a>
+
+  <ul class="nav-links">
+    
+    <li><a href="/re-learning-cs/">重学基础</a></li>
+    
+    <li><a href="/about/">About</a></li>
+    
+    <li><a href="https://github.com/qiaoin">GitHub</a></li>
+    
+  </ul>
+</nav>
+
+      </header>
+
+
+<main class="content" role="main">
+
+  <article class="article">
+    
+    <span class="article-duration">24 min read</span>
+    
+
+    <h1 class="article-title">《JavaScript DOM 编程艺术》读书笔记</h1>
+
+    
+    <span class="article-date">2020-07-13</span>
+    
+
+    <div class="article-content">
+      <blockquote>
+<p>本书的精华：书中提到的关于 JavaScript 和 DOM 脚本编程工作的<strong>基本原则、良好习惯和正确思路</strong></p>
+</blockquote>
+<p>DOM 编程技术的设计思路和原则：平稳退化、渐进增强和以用户为中心，或者说<strong>最佳实践</strong></p>
+<p>标准化 DOM（Document Object Model，文档对象模型）</p>
+<p>HTML 超文本标记语言</p>
+<p>CSS 层叠样式表</p>
+<p>BOM 浏览器对象模型</p>
+<p>DOM 是一套对文档的内容进行抽象和概念化的方法，是一种应用编程接口（API）</p>
+<blockquote>
+<p>DOM 是一种适用于多种环境和多种程序设计语言的通用型 API。</p>
+</blockquote>
+<p>W3C 对 DOM 的定义是：“一个与系统平台和编程语言无关的接口，程序和脚本可以通过这个接口动态地访问和修改文档的内容、结构和样式。”</p>
+<blockquote>
+<p>尽管还没有一款浏览器完美无瑕地实现 W3C DOM ，但所有现代浏览器对 DOM 特性的覆盖率都基本达到了 95% ，而且每款浏览器都几乎会在第一时间实现最新的特性。这意味着什么？意味着大量的任务都不必依靠分支代码了。以前，为了探查浏览器，我们不得不编写大量分支判断脚本，现在，终于可以实现&quot;编写一次，随处运行&quot; 的梦想了。只要遵循 DOM 标准，就可以放心大胆地去做，因为你的脚本无论在哪里都不会遇到问题。</p>
+<p>在软件编程领域中，虽然存在着多种不同的语言，但很多任务却是相同或相似的。这也正是 人们需要 API 的原因。一旦掌握了某个标准，就可以把它应用在许多不同的环境中。虽然语法会因为使用的程序设计语言而有所变化，但这些约定却总是保持不变的。</p>
+<p>因此，虽然本书的重点是教会你如何通过 JavaScript 使用 DOM ，当你需要使用诸如 PHP 或 Python 之类的程序设计语言去解析 XML 文档的时候，你获得的 DOM 新知识将会有很大的帮助。</p>
+</blockquote>
+<ul>
+<li>利用 HTML 把网页标记为各种元素；</li>
+<li>利用 CSS 设置元素样式和它们的显示位置；</li>
+<li>利用 JavaScript 实时地操控页面和改变样式。</li>
+</ul>
+<p><strong>如何实践？</strong></p>
+<p>1、新建一个 <code>example.html</code> 文件，包含一个 <code>&lt;script&gt;</code> 标签，放置在 HTML 文档的最后，<code>&lt;/body&gt;</code> 标签之前，在 <code>src</code> 属性设置好 JavaScript 文件的名字；</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-html" data-lang="html"><span style="color:#75715e">&lt;!DOCTYPE html&gt;</span>
+&lt;<span style="color:#f92672">html</span> <span style="color:#a6e22e">lang</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;en&#34;</span>&gt;
+    &lt;<span style="color:#f92672">head</span>&gt;
+        &lt;<span style="color:#f92672">meta</span> <span style="color:#a6e22e">charset</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;utf-8&#34;</span> /&gt;
+        &lt;<span style="color:#f92672">title</span>&gt;Just a test&lt;/<span style="color:#f92672">title</span>&gt;
+    &lt;/<span style="color:#f92672">head</span>&gt;
+    &lt;<span style="color:#f92672">body</span>&gt;
+        &lt;<span style="color:#f92672">script</span> <span style="color:#a6e22e">src</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;example.js&#34;</span>&gt;&lt;/<span style="color:#f92672">script</span>&gt;
+    &lt;/<span style="color:#f92672">body</span>&gt;
+&lt;/<span style="color:#f92672">html</span>&gt;
+</code></pre></div><p>2、新建一个 <code>example.js</code> 文件</p>
+<hr>
+<div class="toc">
+    <details>
+        <summary>Table of contents</summary>
+        <nav id="TableOfContents">
+  <ul>
+    <li><a href="#基础">基础</a></li>
+    <li><a href="#全局变量和局部变量">全局变量和局部变量</a></li>
+    <li><a href="#对象">对象</a></li>
+    <li><a href="#dom-document-对象">DOM: document 对象</a></li>
+    <li><a href="#css-层叠样式表">CSS 层叠样式表</a></li>
+    <li><a href="#获取元素">获取元素</a>
+      <ul>
+        <li><a href="#1getelementbyid">1、getElementById</a></li>
+        <li><a href="#2getelementsbytagname">2、getElementsByTagName</a></li>
+        <li><a href="#3getelementsbyclassname">3、getElementsByClassName</a></li>
+      </ul>
+    </li>
+    <li><a href="#获取和设置属性">获取和设置属性</a>
+      <ul>
+        <li><a href="#4getattribute">4、getAttribute</a></li>
+        <li><a href="#5setattribute">5、setAttribute</a></li>
+        <li><a href="#6childnodes-属性">6、childNodes 属性</a></li>
+        <li><a href="#7nodetype-属性">7、nodeType 属性</a></li>
+        <li><a href="#8nodevalue-属性">8、nodeValue 属性</a></li>
+        <li><a href="#9firstchild-和-lastchild-属性">9、firstChild 和 lastChild 属性</a></li>
+      </ul>
+    </li>
+    <li><a href="#javascript-图片库">JavaScript 图片库</a></li>
+    <li><a href="#最佳实践">最佳实践</a>
+      <ul>
+        <li><a href="#平稳退化graceful-degradation">平稳退化（graceful degradation）</a></li>
+        <li><a href="#分离-javascript">分离 JavaScript</a></li>
+      </ul>
+    </li>
+    <li><a href="#dom-core-和-html-dom">DOM Core 和 HTML DOM</a></li>
+    <li><a href="#动态创建标记">动态创建标记</a>
+      <ul>
+        <li><a href="#10createelement">10、createElement</a></li>
+        <li><a href="#11appendchild">11、appendChild</a></li>
+        <li><a href="#12createtextnode">12、createTextNode</a></li>
+        <li><a href="#13createtextnode">13、createTextNode</a></li>
+        <li><a href="#14insertafter需要自己实现dom-未提供这个方法">14、insertAfter：需要自己实现，DOM 未提供这个方法</a></li>
+      </ul>
+    </li>
+    <li><a href="#动态创建信息块">动态创建信息块</a>
+      <ul>
+        <li><a href="#显示缩略语列表">显示缩略语列表</a></li>
+        <li><a href="#显示文献来源链接表">显示“文献来源链接表”</a></li>
+        <li><a href="#显示快捷键清单">显示快捷键清单</a></li>
+      </ul>
+    </li>
+    <li><a href="#css-dom">CSS-DOM</a>
+      <ul>
+        <li><a href="#style-属性">style 属性</a></li>
+        <li><a href="#何时该用-dom-脚本设置样式">何时该用 DOM 脚本设置样式</a></li>
+        <li><a href="#根据元素在节点树里的位置来设置样式">根据元素在节点树里的位置来设置样式</a></li>
+        <li><a href="#根据某种条件反复设置某种样式">根据某种条件反复设置某种样式</a></li>
+        <li><a href="#响应事件">响应事件</a></li>
+        <li><a href="#15settimeoutcleartimeout">15、setTimeout、clearTimeout</a></li>
+      </ul>
+    </li>
+    <li><a href="#ajax-异步加载页面">Ajax 异步加载页面</a></li>
+  </ul>
+</nav>
+    </details>
+</div>
+<hr>
+<h2 id="基础">基础</h2>
+<ul>
+<li>
+<p>建议在每条语句的末尾都加上一个分号</p>
+</li>
+<li>
+<p>字符串需要包在引号里，单引号或双引号都可以 &mdash;&mdash; 代码规范是推荐使用哪种引号</p>
+</li>
+<li>
+<p>基本的数据类型：</p>
+<ul>
+<li>
+<p>字符串</p>
+<ul>
+<li>使用 <code>+</code> 进行字符串拼接</li>
+</ul>
+</li>
+<li>
+<p>数值：浮点数</p>
+</li>
+<li>
+<p>布尔值</p>
+</li>
+<li>
+<blockquote>
+<p>字符串、数值和布尔值都是标量（scalar）。如果某个变量是标量，它在任意时刻就只能有一个值。</p>
+</blockquote>
+</li>
+<li>
+<p>数组</p>
+<ul>
+<li>声明数组的同时给出数组的长度，<code>var a = Array(4);</code></li>
+<li>使用索引下标向数组中填充元素，<code>a[0] = 'Bing';</code></li>
+<li>声明数组的同时填充元素，<code>var a = Array('Liu', 'Bing', 1, true);</code></li>
+<li>甚至不用明确表示是在创建数组，使用方括号进行包围，<code>var a = ['Liu', 'Bing', 1, true];</code></li>
+<li>数组支持同时存储不同的数据类型</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>
+<blockquote>
+<p>如果在填充数组时只给出了元素的值，这个数组就将是一个传统数组，它的各个元素的下标将被自动创建和刷新。</p>
+<p>可以通过在填充数组时为每个新元素明确地给出下标来改变这种默认的行为。在为新元素给出下标时，不必局限于使用整数数字，也可以用字符串：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-javascript" data-lang="javascript"><span style="color:#66d9ef">var</span> <span style="color:#a6e22e">lennon</span> <span style="color:#f92672">=</span> Array();
+<span style="color:#a6e22e">lennon</span>[<span style="color:#e6db74">&#39;name&#39;</span>] <span style="color:#f92672">=</span> <span style="color:#e6db74">&#39;Bing&#39;</span>;
+<span style="color:#a6e22e">lennon</span>[<span style="color:#e6db74">&#39;year&#39;</span>] <span style="color:#f92672">=</span> <span style="color:#ae81ff">1993</span>;
+<span style="color:#a6e22e">lennon</span>[<span style="color:#e6db74">&#39;student&#39;</span>] <span style="color:#f92672">=</span> <span style="color:#66d9ef">false</span>;
+</code></pre></div></blockquote>
+</li>
+</ul>
+<p>关联数组，不推荐直接使用</p>
+<ul>
+<li>
+<p>对象</p>
+<ul>
+<li>
+<p>使用点运算符获取属性</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-javascript" data-lang="javascript"><span style="color:#66d9ef">var</span> <span style="color:#a6e22e">lennon</span> <span style="color:#f92672">=</span> Object();
+<span style="color:#a6e22e">lennon</span>.<span style="color:#a6e22e">name</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">&#39;Bing&#39;</span>;
+<span style="color:#a6e22e">lennon</span>.<span style="color:#a6e22e">year</span> <span style="color:#f92672">=</span> <span style="color:#ae81ff">1993</span>;
+<span style="color:#a6e22e">lennon</span>.<span style="color:#a6e22e">student</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">false</span>;
+</code></pre></div></li>
+<li>
+<p>创建对象可以使用花括号语法</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-javascript" data-lang="javascript"><span style="color:#66d9ef">var</span> <span style="color:#a6e22e">lennon</span> <span style="color:#f92672">=</span> {<span style="color:#a6e22e">name</span><span style="color:#f92672">:</span><span style="color:#e6db74">&#39;Bing&#39;</span>, <span style="color:#a6e22e">year</span><span style="color:#f92672">:</span><span style="color:#ae81ff">1993</span>, <span style="color:#a6e22e">student</span><span style="color:#f92672">:</span><span style="color:#66d9ef">false</span> };
+</code></pre></div></li>
+<li>
+<p>声明一个空对象</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-javascript" data-lang="javascript"><span style="color:#66d9ef">var</span> <span style="color:#a6e22e">beatles</span> <span style="color:#f92672">=</span> {};
+</code></pre></div></li>
+</ul>
+</li>
+<li>
+<p>相等操作符 <code>==</code>，认为空字符串和 <code>false</code> 的含义相同</p>
+</li>
+<li>
+<p>完全等于 <code>===</code>，会执行严格的比较，不仅比较值，而且会比较变量的类型</p>
+</li>
+<li>
+<p>同样有，<code>!=</code> 和 <code>!==</code></p>
+</li>
+<li>
+<p>if，while，do-while，for 语句都和 C/C++ 语法一致</p>
+</li>
+</ul>
+<blockquote>
+<p><strong>如何命名变量和函数</strong>？在命名变量时，我用下划线来分隔各个单词；在命名函数时，我从第二个单词开始把每个单词的第一个字母写成大写形式（也就是所谓的驼峰命名法）。我这么做是为了能够一眼看出哪些名字是变量，哪些名字是函数。与变量的情况一样，JavaScript 语言也不允许函数的名字里包含空格。驼峰命名法可以在不违反这一规定的前提下， 把变量和函数的名字以一种既简单又 明确的方式区分开来。</p>
+</blockquote>
+<h2 id="全局变量和局部变量">全局变量和局部变量</h2>
+<blockquote>
+<p>全局变量（global variable）可以在脚本中的任何位置被引用。一旦你在某个脚本里声明了一个全局变量，就可以从这个脚本中的任何位置——包括函数内部——引用它。全局变量的作用域是整个脚本。</p>
+<p>局部变量（local variable）只存在于声明它的那个函数的内部， 在那个函数的外部是无法去引用它的。局部变量的作用域仅限于某个特定的函数。</p>
+<p>可以用 <code>var</code> 关键字明确地为函数变量设定作用域。</p>
+<p>如果在某个函数中使用了 <code>var</code>，那个变量就将被视为一个局部变量，它只存在于这个函数的上下文中；反之，如果没有使用 <code>var</code>， 那个变量就将被视为一个全局变量，如果脚本里已经存在 一个与之同名的全局变量，这个函数就会改变那个全局变量的值。</p>
+<p>请记住，函数在行为方面应该像一个自给自足的脚本，在定义一个函数肘，我们一定要把它内部的变量全都明确地声明为局部变量。如果你总是在函数里使用 <code>var</code> 关键字来定义变量，就能避免任何形式的二义性隐患。</p>
+</blockquote>
+<h2 id="对象">对象</h2>
+<p>对象是自包含的数据集合，包含在对象里的数据可以通过两种形式访问——属性（property）和方法（method）</p>
+<ul>
+<li><strong>属性</strong>是隶属于某个特定对象的变量</li>
+<li><strong>方法</strong>是只有某个特定对象才能调用的函数</li>
+</ul>
+<p>对象就是由一些属性和方法组合在一起而构成的一个数据实体。</p>
+<p>三种对象</p>
+<p>1、用户定义对象（user-defined object）：由程序员自行创建的对象</p>
+<p>2、内建对象（native object）：内建在 JavaScript 语言里的对象</p>
+<ul>
+<li>数组 Array</li>
+<li>数值 Math</li>
+<li>日期 Date</li>
+</ul>
+<p>3、宿主对象（host object）：由浏览器提供的对象。除了内建对象，还可以在 JavaScript 脚本里使用一些已经预先定义好的其他对象。这些对象不是由 JavaScript 语言本身而是由它的<strong>运行环境</strong>提供的。具体到 Web 应用，这个环境就是浏览器。由浏览器提供的预定义对象被称为宿主对象。</p>
+<ul>
+<li>网页上的表单 Form</li>
+<li>图像 Image</li>
+<li>各种表单元素 Element</li>
+<li>document 对象，能够用来获得网页上的任何一个元素的信息</li>
+</ul>
+<h2 id="dom-document-对象">DOM: document 对象</h2>
+<blockquote>
+<p>W3C 标准的 DOM</p>
+</blockquote>
+<p>1、文档：D，当创建了一个网页并把它加载到 Web 浏览器中时，DOM 会将编写的网页文档转换为一个文档对象</p>
+<p>2、对象：O，document 对象的主要功能就是处理网页内容</p>
+<p>3、模型：M，节点树</p>
+<ul>
+<li>元素节点，HTML 标签的名字就是元素的名字</li>
+<li>文本节点</li>
+<li>属性节点，用于对元素进行更具体的描述。因为属性总是被放在起始标签里，所以属性节点总是被包含在元素节点中。并非所有的元素都包含着属性，但所有的属性都被元素包含。</li>
+</ul>
+<h2 id="css-层叠样式表">CSS 层叠样式表</h2>
+<blockquote>
+<p>CSS 技术的最大优点是，它能够帮助你将 Web 文档的内容结构(标记)和版面设计(样式)分离开来。</p>
+<p>作为 CSS 技术的突出优点，文档结构与文档样式的分离可以确保网页都能平稳退化。具备 CSS 支持的浏览器固然可以把网页呈现得美轮美奂，不支持或禁用了 CSS 功能的浏览器同样可以把网页的内容按照正确的结构显示出来。</p>
+</blockquote>
+<p>告诉浏览器应该如何显示一份文档的内容。类似 JavaScript 脚本，对样式的声明既可以嵌在文档的 <code>&lt;head&gt;</code> 部分（<code>&lt;style&gt;</code> 标签之间），也可以放在另一个样式表文件中。</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-css" data-lang="css"><span style="color:#f92672">selector</span> {
+  property: value;
+}
+</code></pre></div><p>在样式声明里，我们可以定义浏览器在显示元素时使用的颜色、字体和色号</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-css" data-lang="css"><span style="color:#f92672">p</span> {
+  <span style="color:#66d9ef">color</span>: <span style="color:#66d9ef">yellow</span>;
+  <span style="color:#66d9ef">font-family</span>: <span style="color:#e6db74">&#34;arial&#34;</span>, <span style="color:#66d9ef">sans-serif</span>;
+  <span style="color:#66d9ef">font-size</span>: <span style="color:#ae81ff">1.2</span><span style="color:#66d9ef">em</span>;
+}
+</code></pre></div><p><strong>继承（inheritance）</strong> 是 CSS 技术中的一项强大功能。类似于 DOM，CSS 也把文档的内容视为一颗节点树，节点树上的各个元素将继承其父元素的样式属性</p>
+<p>为了把某一个或某几个元素与其他元素区分开来，需要使用 <code>class</code> 属性或 <code>id</code> 属性</p>
+<p><strong>class 属性</strong>：可以在所有的元素上任意应用 <code>class</code> 属性</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-css" data-lang="css"><span style="color:#f92672">example</span>.<span style="color:#a6e22e">html</span>
+<span style="color:#f92672">&lt;</span><span style="color:#f92672">p</span> <span style="color:#f92672">class</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;special&#34;</span><span style="color:#f92672">&gt;</span><span style="color:#f92672">This</span> <span style="color:#f92672">paragraph</span> <span style="color:#f92672">has</span> <span style="color:#f92672">the</span> <span style="color:#f92672">special</span> <span style="color:#f92672">class</span><span style="color:#f92672">&lt;/</span><span style="color:#f92672">p</span><span style="color:#f92672">&gt;</span>
+<span style="color:#f92672">&lt;</span><span style="color:#f92672">h2</span> <span style="color:#f92672">class</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;special&#34;</span><span style="color:#f92672">&gt;</span><span style="color:#f92672">So</span> <span style="color:#f92672">does</span> <span style="color:#f92672">this</span> <span style="color:#f92672">headline</span><span style="color:#f92672">&lt;/</span><span style="color:#f92672">h2</span><span style="color:#f92672">&gt;</span>
+
+<span style="color:#f92672">example</span>.<span style="color:#a6e22e">css</span>
+.<span style="color:#a6e22e">special</span> {
+    <span style="color:#66d9ef">font-style</span>: <span style="color:#66d9ef">italic</span>;
+}
+
+<span style="color:#f92672">h2</span>.<span style="color:#a6e22e">special</span> {
+    <span style="color:#66d9ef">text-transform</span>: <span style="color:#66d9ef">uppercase</span>;
+}
+</code></pre></div><p><strong>id 属性</strong>：给网页里的某个元素添加上一个独一无二的标识符</p>
+<ul>
+<li>尽管 id 本身只能使用一次，样式表可以利用 id 属性为包含在该特定元素里的其他元素定义样式</li>
+</ul>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-css" data-lang="css"><span style="color:#f92672">example</span>.<span style="color:#a6e22e">html</span>
+<span style="color:#f92672">&lt;</span><span style="color:#f92672">ul</span> <span style="color:#f92672">id</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;purchases&#34;</span><span style="color:#f92672">&gt;</span>
+
+<span style="color:#f92672">example</span>.<span style="color:#a6e22e">css</span>
+#purchases {
+    <span style="color:#66d9ef">border</span>: <span style="color:#ae81ff">1</span><span style="color:#66d9ef">px</span> <span style="color:#66d9ef">solid</span> <span style="color:#66d9ef">white</span>;
+    <span style="color:#66d9ef">background-color</span>: <span style="color:#ae81ff">#333</span>;
+    <span style="color:#66d9ef">color</span>: <span style="color:#ae81ff">#ccc</span>;
+    <span style="color:#66d9ef">padding</span>: <span style="color:#ae81ff">1</span><span style="color:#66d9ef">em</span>;
+}
+
+#purchases <span style="color:#f92672">li</span> {
+    <span style="color:#66d9ef">font-weight</span>: <span style="color:#66d9ef">bold</span>;
+}
+</code></pre></div><p><code>typeof</code> 操作符：得到给定操作数的<strong>类型</strong>，字符串、数值、函数、布尔值、对象</p>
+<h2 id="获取元素">获取元素</h2>
+<p>有三种 DOM 方法可获取元素节点，分别是通过元素 ID、通过标签名字和通过 class 名字来获取</p>
+<h3 id="1getelementbyid">1、getElementById</h3>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-javascript" data-lang="javascript">document.<span style="color:#a6e22e">getElementById</span>(<span style="color:#a6e22e">id</span>);
+</code></pre></div><p>输入：元素的 id 属性，例如 “purchases”</p>
+<p>输出：返回一个对象，对应着 document 对象里的一个独一无二的元素节点，其 HTML id 属性值为 “purchases”</p>
+<blockquote>
+<p>事实上，文档中的每一个元素节点都是一个对象，这些对象天生具有一些非常有用的方法，这样归功于 DOM。例如这些预先定义好的方法，我们不仅可以检索出文档里任何一个对象的信息，而且还可以改变元素的属性</p>
+</blockquote>
+<h3 id="2getelementsbytagname">2、getElementsByTagName</h3>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-javascript" data-lang="javascript"><span style="color:#a6e22e">element</span>.<span style="color:#a6e22e">getElementsByTagName</span>(<span style="color:#a6e22e">tag</span>);
+</code></pre></div><p>输入：HTML 标签，例如 <code>li</code> 标签</p>
+<p>输出：返回一个对象数组，每个对象分别对应着文档里有着给定<strong>标签</strong>的一个元素节点。即使整个 HTML 文档对应这个标签只有一个元素，<code>getElementsByTagName</code> 也会返回一个数组，此时数组长度为 1</p>
+<ul>
+<li><code>getElementsByTagName(&quot;*&quot;)</code> 允许使用通配符作为它的参数，意味着文档里的每个元素都将在返回的数组中出现</li>
+<li><code>getElementById()</code> 和 <code>getElementsByTagName()</code> 结合使用，例如想得到 id 属性值是 “purchases” 的元素包含着多少个列表项，必须通过一个更具体的对象去调用这个方法</li>
+</ul>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-javascript" data-lang="javascript"><span style="color:#66d9ef">var</span> <span style="color:#a6e22e">shopping</span> <span style="color:#f92672">=</span> document.<span style="color:#a6e22e">getElementById</span>(<span style="color:#e6db74">&#34;purchases&#34;</span>);
+<span style="color:#66d9ef">var</span> <span style="color:#a6e22e">items</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">shopping</span>.<span style="color:#a6e22e">getElementsByTagName</span>(<span style="color:#e6db74">&#34;*&#34;</span>);
+</code></pre></div><p>这两条语句执行完毕之后，<code>items</code> 数组将只包含 id 属性值是 “purchases” 的无需清单里的元素</p>
+<h3 id="3getelementsbyclassname">3、getElementsByClassName</h3>
+<blockquote>
+<p>HTML 中 class 按照空格分隔</p>
+</blockquote>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-javascript" data-lang="javascript"><span style="color:#a6e22e">element</span>.<span style="color:#a6e22e">getElementsByClassName</span>(<span style="color:#66d9ef">class</span>);
+</code></pre></div><p>输入：元素的 class 属性，例如 “special”。如果需要指定多个类名，只要在字符串参数中用空格分隔类名即可</p>
+<p>输出：返回一个对象数组，包含具有给定类名的元素节点</p>
+<h2 id="获取和设置属性">获取和设置属性</h2>
+<h3 id="4getattribute">4、getAttribute</h3>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-javascript" data-lang="javascript"><span style="color:#a6e22e">object</span>.<span style="color:#a6e22e">getAttribute</span>(<span style="color:#a6e22e">attribute</span>);
+</code></pre></div><blockquote>
+<p>getAttribute 方法不属于 document 对象，不能通过 document 对象调用；只能通过元素节点对象调用</p>
+</blockquote>
+<p>输入：查询的属性名</p>
+<p>输出：得到属性值</p>
+<p>与 <code>getElementByTagName</code> 方法合用，获取每个 <code>&lt;p&gt;</code> 元素的 <code>title</code> 属性，过滤掉没有 <code>title</code> 属性的 <code>&lt;p&gt;</code> 元素</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-javascript" data-lang="javascript"><span style="color:#66d9ef">var</span> <span style="color:#a6e22e">paras</span> <span style="color:#f92672">=</span> document.<span style="color:#a6e22e">getElementsByTagName</span>(<span style="color:#e6db74">&#34;p&#34;</span>);
+<span style="color:#66d9ef">for</span> (<span style="color:#66d9ef">var</span> <span style="color:#a6e22e">i</span> <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>; <span style="color:#a6e22e">i</span> <span style="color:#f92672">&lt;</span> <span style="color:#a6e22e">paras</span>.<span style="color:#a6e22e">length</span>; <span style="color:#a6e22e">i</span><span style="color:#f92672">++</span>) {
+    <span style="color:#66d9ef">var</span> <span style="color:#a6e22e">title_text</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">paras</span>[<span style="color:#a6e22e">i</span>].<span style="color:#a6e22e">getAttribute</span>(<span style="color:#e6db74">&#34;title&#34;</span>);
+    <span style="color:#66d9ef">if</span> (<span style="color:#a6e22e">title_text</span> <span style="color:#f92672">!=</span> <span style="color:#66d9ef">null</span>) {
+        <span style="color:#a6e22e">alert</span>(<span style="color:#a6e22e">title_text</span>);
+    }
+}
+</code></pre></div><p>上述这段代码可以更简短些。当检查某项数据是否是 <code>null</code> 值时，我们其实是在检查它是否存在。这种检查可以简化为直接把被检查的数据用作 <code>if</code> 语句的条件。 <code>if (something)</code> 与 <code>if (something != null)</code> 完全等价，但前者显然更为简明。此时，如果 <code>something</code> 存在，则 <code>if</code> 语 句的条件将为真；如果 <code>something</code> 不存在，则 <code>if</code> 语句的条件将为假。</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-javascript" data-lang="javascript"><span style="color:#66d9ef">var</span> <span style="color:#a6e22e">paras</span> <span style="color:#f92672">=</span> document.<span style="color:#a6e22e">getElementsByTagName</span>(<span style="color:#e6db74">&#34;p&#34;</span>);
+<span style="color:#66d9ef">for</span> (<span style="color:#66d9ef">var</span> <span style="color:#a6e22e">i</span> <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>; <span style="color:#a6e22e">i</span> <span style="color:#f92672">&lt;</span> <span style="color:#a6e22e">paras</span>.<span style="color:#a6e22e">length</span>; <span style="color:#a6e22e">i</span><span style="color:#f92672">++</span>) {
+    <span style="color:#66d9ef">var</span> <span style="color:#a6e22e">title_text</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">paras</span>[<span style="color:#a6e22e">i</span>].<span style="color:#a6e22e">getAttribute</span>(<span style="color:#e6db74">&#34;title&#34;</span>);
+    <span style="color:#66d9ef">if</span> (<span style="color:#a6e22e">title_text</span>) {
+        <span style="color:#a6e22e">alert</span>(<span style="color:#a6e22e">title_text</span>);
+    }
+}
+</code></pre></div><h3 id="5setattribute">5、setAttribute</h3>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-javascript" data-lang="javascript"><span style="color:#a6e22e">object</span>.<span style="color:#a6e22e">setAttribute</span>(<span style="color:#a6e22e">attribute</span>, <span style="color:#a6e22e">value</span>);
+</code></pre></div><blockquote>
+<p>只能通过元素节点对象调用，（如果属性不存在）先创建这个属性，然后设置它的值；如果用在一个本身就有这个属性的元素节点上，原有属性值就被覆盖掉了</p>
+<p><strong>可以修改文档中的任何一个元素的任何一个属性</strong></p>
+</blockquote>
+<p>输入：属性和属性值</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-javascript" data-lang="javascript"><span style="color:#66d9ef">var</span> <span style="color:#a6e22e">shopping</span> <span style="color:#f92672">=</span> document.<span style="color:#a6e22e">getElementById</span>(<span style="color:#e6db74">&#34;purchases&#34;</span>);
+<span style="color:#a6e22e">alert</span>(<span style="color:#a6e22e">shopping</span>.<span style="color:#a6e22e">getAttribute</span>(<span style="color:#e6db74">&#34;title&#34;</span>));
+<span style="color:#a6e22e">shopping</span>.<span style="color:#a6e22e">setAttribute</span>(<span style="color:#e6db74">&#34;title&#34;</span>, <span style="color:#e6db74">&#34;a list of goods&#34;</span>);
+<span style="color:#a6e22e">alert</span>(<span style="color:#a6e22e">shopping</span>.<span style="color:#a6e22e">getAttribute</span>(<span style="color:#e6db74">&#34;title&#34;</span>));
+</code></pre></div><blockquote>
+<p>有一个非常值得关注的细节：通过 <code>setAttribute</code> 对文档做出修改后，在通过浏览器的 view source (查看源代码)选项去查看文档的源代码时看到的仍将是改变前的属性值，也就是说，<code>setAttribute</code> 做出的修改不会反映在文档本身的源代码里。这种“表里不一”的现象源自 DOM 的工作模式：先加载文档的静态内容，再动态刷新，动态刷新不影响文档的静态内容。这正是 DOM 的真正威力：对页面内容进行刷新却不需要在浏览器里刷新页面。</p>
+</blockquote>
+<h3 id="6childnodes-属性">6、childNodes 属性</h3>
+<p>获取任何一个元素的所有子元素，为包含这个元素全部子元素的数组</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-javascript" data-lang="javascript"><span style="color:#a6e22e">element</span>.<span style="color:#a6e22e">childNodes</span>
+</code></pre></div><blockquote>
+<p>文档树的节点类型并非只有元素节点一种。由 <strong>childNodes</strong> 属性返回的数组包含所有类型的节点，而不仅仅是元素节点。事实上，文档里几乎每一样东西都是一个节点，甚至连空格和换行符都被解释为节点，而它们也全都包含在 <strong>childNodes</strong> 属性所返回的数组当中</p>
+</blockquote>
+<h3 id="7nodetype-属性">7、nodeType 属性</h3>
+<p>文档中每一个节点的属性，返回节点类型，为一个数字</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-javascript" data-lang="javascript"><span style="color:#a6e22e">node</span>.<span style="color:#a6e22e">nodeType</span>
+</code></pre></div><p>nodeType 属性总共有 12 种可取值，但其中仅有 3 种具有实用价值。</p>
+<ul>
+<li>元素节点的 nodeType 属性值是 1</li>
+<li>属性节点的 nodeType 属性值是 2</li>
+<li>文本节点的 nodeType 属性值是 3</li>
+</ul>
+<h3 id="8nodevalue-属性">8、nodeValue 属性</h3>
+<p>得到（和<strong>设置</strong>）一个节点的值</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-javascript" data-lang="javascript"><span style="color:#a6e22e">node</span>.<span style="color:#a6e22e">nodeValue</span>
+</code></pre></div><h3 id="9firstchild-和-lastchild-属性">9、firstChild 和 lastChild 属性</h3>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-javascript" data-lang="javascript"><span style="color:#a6e22e">node</span>.<span style="color:#a6e22e">firstChild</span> <span style="color:#75715e">// node.childNodes[0]
+</span><span style="color:#75715e"></span>
+<span style="color:#a6e22e">node</span>.<span style="color:#a6e22e">lastChild</span> <span style="color:#75715e">// node.childNodes[node.childNodes.length - 1]
+</span></code></pre></div><h2 id="javascript-图片库">JavaScript 图片库</h2>
+<p>方案1：简单的将所有图片都放到一个网页中，如果图片较多，这样网页就会下载缓慢</p>
+<p>方案2：为每张图片分别创建一个网页，这样耗时，同时还需要提供不同的导航链接</p>
+<p>方案3：把整个图片库的浏览链接集中安排在图片库主页里，只在用户点击了这个主页里的某个图片链接时才把对应的图片传送给他</p>
+<p>添加事件处理函数（event handler）：在特定事件发生时调用特定的 JavaScript 代码</p>
+<ul>
+<li><code>onmouseover</code> 事件处理函数 —— 鼠标指针悬停在某个元素上时触发</li>
+<li><code>onmouseout</code> 事件处理函数 —— 鼠标指针离开某个元素时触发</li>
+<li><code>onclick</code> 事件处理函数 —— 用户点击某个链接时触发</li>
+</ul>
+<blockquote>
+<p>事件处理函数的工作机制。在给某个元素添加了事件处理函数后，一旦事件发生，相应的 JavaScript 代码就会得到执行。被调用的 JavaScript 代码可以返回一个值，这个值将被传递给那个事件处理函数。例如，我们可以给某个链接添加一个 onclick 事件处理函 蠢，并让这个处理函数所触发的 JavaScript 代码返回布尔值 true 或 false。这样一来，当这个链接被点击时，如果那段 JavaScript 代码返回的值是 true ， onclick 事件处理函数就认为“这个链接被点击了”；反之，如果返回的值是 false ， onclick 事件处理函数就认为&quot;这个链接没有被点击&quot;。</p>
+</blockquote>
+<p>以下为简单的实现，关注两个重点：一是如何利用 DOM 所提供的方法去编写图片库脚本， 二是如何利用事件处理函数把 JavaSαipt 代码与网页集成在一起。</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-javascript" data-lang="javascript"><span style="color:#75715e">// gallery.html
+</span><span style="color:#75715e"></span><span style="color:#f92672">&lt;!</span><span style="color:#a6e22e">DOCTYPE</span> <span style="color:#a6e22e">html</span><span style="color:#f92672">&gt;</span>
+<span style="color:#f92672">&lt;</span><span style="color:#a6e22e">html</span> <span style="color:#a6e22e">lang</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;en&#34;</span><span style="color:#f92672">&gt;</span>
+    <span style="color:#f92672">&lt;</span><span style="color:#a6e22e">head</span><span style="color:#f92672">&gt;</span>
+        <span style="color:#f92672">&lt;</span><span style="color:#a6e22e">meta</span> <span style="color:#a6e22e">charset</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;utf-8&#34;</span> <span style="color:#f92672">/&gt;</span>
+        <span style="color:#f92672">&lt;</span><span style="color:#a6e22e">title</span><span style="color:#f92672">&gt;</span><span style="color:#a6e22e">Image</span> <span style="color:#a6e22e">Gallery</span><span style="color:#f92672">&lt;</span><span style="color:#960050;background-color:#1e0010">/title&gt;</span>
+        <span style="color:#f92672">&lt;</span><span style="color:#a6e22e">link</span> <span style="color:#a6e22e">rel</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;stylesheet&#34;</span> <span style="color:#a6e22e">href</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;styles/gallery.css&#34;</span> <span style="color:#a6e22e">media</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;screen&#34;</span> <span style="color:#f92672">/&gt;</span>
+    <span style="color:#f92672">&lt;</span><span style="color:#960050;background-color:#1e0010">/head&gt;</span>
+    <span style="color:#f92672">&lt;</span><span style="color:#a6e22e">body</span><span style="color:#f92672">&gt;</span>
+        <span style="color:#f92672">&lt;</span><span style="color:#a6e22e">h1</span><span style="color:#f92672">&gt;</span><span style="color:#a6e22e">Snapshots</span><span style="color:#f92672">&lt;</span><span style="color:#960050;background-color:#1e0010">/h1&gt;</span>
+        <span style="color:#f92672">&lt;</span><span style="color:#a6e22e">ul</span><span style="color:#f92672">&gt;</span>
+            <span style="color:#f92672">&lt;</span><span style="color:#a6e22e">li</span><span style="color:#f92672">&gt;</span>
+                <span style="color:#f92672">&lt;</span><span style="color:#a6e22e">a</span> <span style="color:#a6e22e">href</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;images/fireworks.png&#34;</span> <span style="color:#a6e22e">title</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;A fireworks display&#34;</span> <span style="color:#a6e22e">onclick</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;showPic(this); return false;&#34;</span><span style="color:#f92672">&gt;</span><span style="color:#a6e22e">Fireworks</span><span style="color:#f92672">&lt;</span><span style="color:#960050;background-color:#1e0010">/a&gt;</span>
+            <span style="color:#f92672">&lt;</span><span style="color:#960050;background-color:#1e0010">/li&gt;</span>
+            <span style="color:#f92672">&lt;</span><span style="color:#a6e22e">li</span><span style="color:#f92672">&gt;</span>
+                <span style="color:#f92672">&lt;</span><span style="color:#a6e22e">a</span> <span style="color:#a6e22e">href</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;images/coffee.png&#34;</span> <span style="color:#a6e22e">title</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;A cup of black coffee&#34;</span> <span style="color:#a6e22e">onclick</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;showPic(this); return false;&#34;</span><span style="color:#f92672">&gt;</span><span style="color:#a6e22e">Coffee</span><span style="color:#f92672">&lt;</span><span style="color:#960050;background-color:#1e0010">/a&gt;</span>
+            <span style="color:#f92672">&lt;</span><span style="color:#960050;background-color:#1e0010">/li&gt;</span>
+            <span style="color:#f92672">&lt;</span><span style="color:#a6e22e">li</span><span style="color:#f92672">&gt;</span>
+                <span style="color:#f92672">&lt;</span><span style="color:#a6e22e">a</span> <span style="color:#a6e22e">href</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;images/rose.png&#34;</span> <span style="color:#a6e22e">title</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;A red, red rose&#34;</span> <span style="color:#a6e22e">onclick</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;showPic(this); return false;&#34;</span><span style="color:#f92672">&gt;</span><span style="color:#a6e22e">Rose</span><span style="color:#f92672">&lt;</span><span style="color:#960050;background-color:#1e0010">/a&gt;</span>
+            <span style="color:#f92672">&lt;</span><span style="color:#960050;background-color:#1e0010">/li&gt;</span>
+            <span style="color:#f92672">&lt;</span><span style="color:#a6e22e">li</span><span style="color:#f92672">&gt;</span>
+                <span style="color:#f92672">&lt;</span><span style="color:#a6e22e">a</span> <span style="color:#a6e22e">href</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;images/bigben.png&#34;</span> <span style="color:#a6e22e">title</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;The famous clock&#34;</span> <span style="color:#a6e22e">onclick</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;showPic(this); return false;&#34;</span><span style="color:#f92672">&gt;</span><span style="color:#a6e22e">Big</span> <span style="color:#a6e22e">Ben</span><span style="color:#f92672">&lt;</span><span style="color:#960050;background-color:#1e0010">/a&gt;</span>
+            <span style="color:#f92672">&lt;</span><span style="color:#960050;background-color:#1e0010">/li&gt;</span>
+        <span style="color:#f92672">&lt;</span><span style="color:#960050;background-color:#1e0010">/ul&gt;</span>
+        <span style="color:#f92672">&lt;</span><span style="color:#a6e22e">img</span> <span style="color:#a6e22e">id</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;placeholder&#34;</span> <span style="color:#a6e22e">src</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;images/placeholder.png&#34;</span> <span style="color:#a6e22e">alt</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;my image gallery&#34;</span> <span style="color:#f92672">/&gt;</span>
+        <span style="color:#f92672">&lt;</span><span style="color:#a6e22e">p</span> <span style="color:#a6e22e">id</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;description&#34;</span><span style="color:#f92672">&gt;</span><span style="color:#a6e22e">Choose</span> <span style="color:#a6e22e">an</span> <span style="color:#a6e22e">image</span>.<span style="color:#f92672">&lt;</span><span style="color:#960050;background-color:#1e0010">/p&gt;</span>
+        <span style="color:#f92672">&lt;</span><span style="color:#a6e22e">script</span> <span style="color:#a6e22e">type</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;text/javascript&#34;</span> <span style="color:#a6e22e">src</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;scripts/gallery.js&#34;</span><span style="color:#f92672">&gt;&lt;</span><span style="color:#960050;background-color:#1e0010">/script&gt;</span>
+    <span style="color:#f92672">&lt;</span><span style="color:#960050;background-color:#1e0010">/body&gt;</span>
+<span style="color:#f92672">&lt;</span><span style="color:#960050;background-color:#1e0010">/html&gt;</span>
+
+<span style="color:#75715e">// gallery.js
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">function</span> <span style="color:#a6e22e">showPic</span>(<span style="color:#a6e22e">whichpic</span>) {
+    <span style="color:#66d9ef">var</span> <span style="color:#a6e22e">source</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">whichpic</span>.<span style="color:#a6e22e">getAttribute</span>(<span style="color:#e6db74">&#34;href&#34;</span>);
+    <span style="color:#66d9ef">var</span> <span style="color:#a6e22e">placeholder</span> <span style="color:#f92672">=</span> document.<span style="color:#a6e22e">getElementById</span>(<span style="color:#e6db74">&#34;placeholder&#34;</span>);
+    <span style="color:#a6e22e">placeholder</span>.<span style="color:#a6e22e">setAttribute</span>(<span style="color:#e6db74">&#34;src&#34;</span>, <span style="color:#a6e22e">source</span>);
+
+    <span style="color:#66d9ef">var</span> <span style="color:#a6e22e">text</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">whichpic</span>.<span style="color:#a6e22e">getAttribute</span>(<span style="color:#e6db74">&#34;title&#34;</span>);
+    <span style="color:#66d9ef">var</span> <span style="color:#a6e22e">description</span> <span style="color:#f92672">=</span> document.<span style="color:#a6e22e">getElementById</span>(<span style="color:#e6db74">&#34;description&#34;</span>);
+    <span style="color:#a6e22e">description</span>.<span style="color:#a6e22e">firstChild</span>.<span style="color:#a6e22e">nodeValue</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">text</span>;
+}
+
+<span style="color:#75715e">// gallery.css
+</span><span style="color:#75715e"></span><span style="color:#a6e22e">body</span> {
+    <span style="color:#a6e22e">font</span><span style="color:#f92672">-</span><span style="color:#a6e22e">family</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#34;Helvetica&#34;</span>, <span style="color:#e6db74">&#34;Arial&#34;</span>, <span style="color:#a6e22e">serif</span>;
+    <span style="color:#a6e22e">color</span><span style="color:#f92672">:</span> <span style="color:#960050;background-color:#1e0010">#</span><span style="color:#ae81ff">333</span>;
+    <span style="color:#a6e22e">background</span><span style="color:#f92672">-</span><span style="color:#a6e22e">color</span><span style="color:#f92672">:</span> <span style="color:#960050;background-color:#1e0010">#</span><span style="color:#a6e22e">ccc</span>;
+    <span style="color:#a6e22e">margin</span><span style="color:#f92672">:</span> <span style="color:#ae81ff">1</span><span style="color:#a6e22e">em</span> <span style="color:#ae81ff">10</span><span style="color:#f92672">%</span>;
+}
+
+<span style="color:#a6e22e">h1</span> {
+    <span style="color:#a6e22e">color</span><span style="color:#f92672">:</span> <span style="color:#960050;background-color:#1e0010">#</span><span style="color:#ae81ff">333</span>;
+    <span style="color:#a6e22e">background</span><span style="color:#f92672">-</span><span style="color:#a6e22e">color</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">transparent</span>;
+}
+
+<span style="color:#a6e22e">a</span> {
+    <span style="color:#a6e22e">color</span><span style="color:#f92672">:</span> <span style="color:#960050;background-color:#1e0010">#</span><span style="color:#a6e22e">c60</span>;
+    <span style="color:#a6e22e">background</span><span style="color:#f92672">-</span><span style="color:#a6e22e">color</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">transparent</span>;
+    <span style="color:#a6e22e">font</span><span style="color:#f92672">-</span><span style="color:#a6e22e">weight</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">bold</span>;
+    <span style="color:#a6e22e">text</span><span style="color:#f92672">-</span><span style="color:#a6e22e">decoration</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">none</span>;
+}
+
+<span style="color:#a6e22e">ul</span> {
+    <span style="color:#a6e22e">padding</span><span style="color:#f92672">:</span> <span style="color:#ae81ff">0</span>;
+}
+
+<span style="color:#a6e22e">li</span> {
+    <span style="color:#66d9ef">float</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">left</span>;
+    <span style="color:#a6e22e">padding</span><span style="color:#f92672">:</span> <span style="color:#ae81ff">1</span><span style="color:#a6e22e">em</span>;
+    <span style="color:#a6e22e">list</span><span style="color:#f92672">-</span><span style="color:#a6e22e">style</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">none</span>;
+}
+
+<span style="color:#a6e22e">img</span> {
+    <span style="color:#a6e22e">display</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">block</span>;
+    <span style="color:#a6e22e">clear</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">both</span>;
+}
+</code></pre></div><p>改进点：第六章，多次看一下，如何改进</p>
+<h2 id="最佳实践">最佳实践</h2>
+<blockquote>
+<p>达成目标的过程与目标本身同样重要。</p>
+</blockquote>
+<ul>
+<li>若一个站点用到多个 JavaScript 文件，为了减少对站点的请求次数(提高性能) ，应 该把这些 JS 文件合并到一个文件中。</li>
+</ul>
+<blockquote>
+<p>如果要使用 JavaScript，就要确认：这么做会对用户的浏览体验产生怎样的影响？还有个更重要的问题：如果用户的浏览器不支持 JavaScript 该怎么办?</p>
+</blockquote>
+<h3 id="平稳退化graceful-degradation">平稳退化（graceful degradation）</h3>
+<p>确保网页在没有 JavaScript 的情况下也能正常工作；虽然某些功能无法使用，但最基本的操作仍能顺利完成。渐进增强的实现必然支持平稳退化</p>
+<ul>
+<li>渐进增强：使用一些额外的信息层去包裹原始数据。按照“渐进增强”原则创建出来的网页几乎都符合“平稳退化”的原则</li>
+<li>渐进增强原则基于这样一种思想：你应该总是从最核心的部分，也就是内容开始。应该根据内容使用标记实现良好的结构；然后再逐步加强这些内容。这些增强工作既可以是通过 CSS 改进呈现效果，也可以是通过 DOM 添加各种行为</li>
+<li>类似 CSS，JavaScript 和 DOM 提供的所有功能也应该构成一个额外的指令层。CSS 代码负责提供关于“表示”的信息，JavaScript 代码负责提供关于“行为”的信息。行为层的应用方式和表示层一样</li>
+</ul>
+<h3 id="分离-javascript">分离 JavaScript</h3>
+<p>把网页的结构和内容与 JavaScript 脚本的动作行为分开</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-html" data-lang="html">&lt;<span style="color:#f92672">a</span> <span style="color:#a6e22e">href</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;images/fireworks.png&#34;</span> <span style="color:#a6e22e">title</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;A fireworks display&#34;</span> <span style="color:#a6e22e">onclick</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;showPic(this); return false;&#34;</span>&gt;Fireworks&lt;/<span style="color:#f92672">a</span>&gt;
+</code></pre></div><ul>
+<li>在 HTML 文档里使用诸如 <code>onClick</code> 之类的属性是一种既没有效率又容易引发问题的做法</li>
+<li>JavaScript 不要求事件必须在 HTML 文档里处理，可以在外部 JavaScript 文件里把一个事件添加到 HTML 文档中的某个元素上</li>
+</ul>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-javascript" data-lang="javascript"><span style="color:#a6e22e">element</span>.[<span style="color:#a6e22e">event</span>] <span style="color:#f92672">=</span> [<span style="color:#a6e22e">action</span> ...]
+</code></pre></div><ul>
+<li>如何将捕获这个事件的元素确定下来？可以利用 class 或 id 属性</li>
+<li>如果想把一个事件添加到某个特定 id 属性的元素上，使用 <code>getElementById</code> 就可以解决问题：</li>
+</ul>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-javascript" data-lang="javascript"><span style="color:#a6e22e">getElementById</span>(<span style="color:#a6e22e">id</span>).[<span style="color:#a6e22e">event</span>] <span style="color:#f92672">=</span> [<span style="color:#a6e22e">action</span>]
+</code></pre></div><ul>
+<li>如果事件涉及多个元素，可以用 <code>getElementsByTagName</code> 和 <code>getAttribute</code> 把事件添加到有着特定属性的一组元素上
+<ol>
+<li>把文档中的所有链接全放入一个数组里；</li>
+<li>遍历数组；</li>
+<li>如果某个链接的 class 属性等于 popup，就表示这个链接在被点击时应该调用 <code>popUp()</code> 函数
+<ul>
+<li>把这个链接的 href 属性值传递给 <code>popUp()</code> 函数</li>
+<li>取消这个链接的默认行为，不让这个链接把访问者带离当前窗口</li>
+</ul>
+</li>
+<li>以下代码将把调用 <code>popUp()</code> 函数的 <code>onclick</code> 事件添加到有关的链接上。只需要将 JS 代码存入一个外部 JavaScript 文件，就等于是把这些操作从 HTML 文档里分离出来了</li>
+</ol>
+</li>
+</ul>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-javascript" data-lang="javascript"><span style="color:#f92672">&lt;</span><span style="color:#a6e22e">a</span> <span style="color:#a6e22e">href</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;http://www.example.com/&#34;</span> <span style="color:#66d9ef">class</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;popup&#34;</span><span style="color:#f92672">&gt;</span><span style="color:#a6e22e">Example</span><span style="color:#f92672">&lt;</span><span style="color:#960050;background-color:#1e0010">/a&gt;</span>
+
+<span style="color:#66d9ef">function</span> <span style="color:#a6e22e">popUp</span>(<span style="color:#a6e22e">winURL</span>) {
+    window.<span style="color:#a6e22e">open</span>(<span style="color:#a6e22e">winURL</span>, <span style="color:#e6db74">&#34;popup&#34;</span>, <span style="color:#e6db74">&#34;width=320, height=480&#34;</span>);
+}
+
+<span style="color:#66d9ef">var</span> <span style="color:#a6e22e">links</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">documents</span>.<span style="color:#a6e22e">getElementsByTagName</span>(<span style="color:#e6db74">&#34;a&#34;</span>);
+<span style="color:#66d9ef">for</span> (<span style="color:#66d9ef">var</span> <span style="color:#a6e22e">i</span> <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>; <span style="color:#a6e22e">i</span> <span style="color:#f92672">&lt;</span> <span style="color:#a6e22e">links</span>.<span style="color:#a6e22e">length</span>; <span style="color:#a6e22e">i</span><span style="color:#f92672">++</span>) {
+    <span style="color:#66d9ef">if</span> (<span style="color:#a6e22e">links</span>[<span style="color:#a6e22e">i</span>].<span style="color:#a6e22e">getAtrribute</span>(<span style="color:#e6db74">&#34;class&#34;</span>) <span style="color:#f92672">==</span> <span style="color:#e6db74">&#34;popup&#34;</span>) {
+        <span style="color:#a6e22e">links</span>[<span style="color:#a6e22e">i</span>].<span style="color:#a6e22e">onclick</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">function</span>() {
+            <span style="color:#a6e22e">popUp</span>(<span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">getAttribute</span>(<span style="color:#e6db74">&#34;href&#34;</span>));
+            <span style="color:#66d9ef">return</span> <span style="color:#66d9ef">false</span>;
+        }
+    }
+}
+</code></pre></div><p><!-- raw HTML omitted --><!-- raw HTML omitted -->问题：<!-- raw HTML omitted --><!-- raw HTML omitted --> 如果把这段代码存入外部 JavaScript 文件，它们将无法正常运行。因为这段代码的第一行是：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-javascript" data-lang="javascript"><span style="color:#66d9ef">var</span> <span style="color:#a6e22e">links</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">documents</span>.<span style="color:#a6e22e">getElementsByTagName</span>(<span style="color:#e6db74">&#34;a&#34;</span>);
+</code></pre></div><p>这条语句将在 JavaScript 文件被夹在时立刻执行。如果 JavaScript 文件是从 HTML 文件的 <code>&lt;head&gt;</code> 部分用 <code>&lt;script&gt;</code> 标签调用的，它将在 HTML 文档之前加载到浏览器里。同样，如果 <code>&lt;script&gt;</code> 标签位于文档底部 <code>&lt;body&gt;</code> 之前，就不能保证哪个文件最先结束加载（浏览器可能一次加载多个）。因为脚本加载时文档可能不完整，所以模型也不完整。没有完整的 DOM，<code>getElementsByTagName</code> 等方法就不能正常工作</p>
+<p>==&gt; 必须让这些代码在 HTML 文档全部加载到浏览器之后才开始执行。HTML 文档全部加载完毕时会触发一个<a href="https://developer.mozilla.org/zh-CN/docs/Web/API/GlobalEventHandlers/onload">事件</a></p>
+<blockquote>
+<p>在文档装载完成后会触发  <code>load</code> 事件。此时，在文档中的所有对象都在DOM中，所有图片，脚本，链接以及子框都完成了装载。</p>
+</blockquote>
+<p>因此，我们将 JavaScript 代码打包到 <code>prepareLinks</code> 函数里，并把这个函数添加到 window 对象 <code>onload</code> 事件上去。这样一来，DOM 就可以正常工作了：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-javascript" data-lang="javascript"><span style="color:#f92672">&lt;</span><span style="color:#a6e22e">a</span> <span style="color:#a6e22e">href</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;http://www.example.com/&#34;</span> <span style="color:#66d9ef">class</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;popup&#34;</span><span style="color:#f92672">&gt;</span><span style="color:#a6e22e">Example</span><span style="color:#f92672">&lt;</span><span style="color:#960050;background-color:#1e0010">/a&gt;</span>
+
+window.<span style="color:#a6e22e">onload</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">prepareLinks</span>;
+
+<span style="color:#66d9ef">function</span> <span style="color:#a6e22e">prepareLinks</span>() {
+    <span style="color:#66d9ef">if</span> (<span style="color:#f92672">!</span>document.<span style="color:#a6e22e">getElementsByTagName</span>) <span style="color:#66d9ef">return</span> <span style="color:#66d9ef">false</span>;
+    <span style="color:#66d9ef">var</span> <span style="color:#a6e22e">links</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">documents</span>.<span style="color:#a6e22e">getElementsByTagName</span>(<span style="color:#e6db74">&#34;a&#34;</span>);
+    <span style="color:#66d9ef">for</span> (<span style="color:#66d9ef">var</span> <span style="color:#a6e22e">i</span> <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>; <span style="color:#a6e22e">i</span> <span style="color:#f92672">&lt;</span> <span style="color:#a6e22e">links</span>.<span style="color:#a6e22e">length</span>; <span style="color:#a6e22e">i</span><span style="color:#f92672">++</span>) {
+        <span style="color:#66d9ef">if</span> (<span style="color:#a6e22e">links</span>[<span style="color:#a6e22e">i</span>].<span style="color:#a6e22e">getAtrribute</span>(<span style="color:#e6db74">&#34;class&#34;</span>) <span style="color:#f92672">==</span> <span style="color:#e6db74">&#34;popup&#34;</span>) {
+            <span style="color:#a6e22e">links</span>[<span style="color:#a6e22e">i</span>].<span style="color:#a6e22e">onclick</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">function</span>() {
+                <span style="color:#a6e22e">popUp</span>(<span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">getAttribute</span>(<span style="color:#e6db74">&#34;href&#34;</span>));
+                <span style="color:#66d9ef">return</span> <span style="color:#66d9ef">false</span>;
+            }
+        }
+    }
+}
+
+<span style="color:#66d9ef">function</span> <span style="color:#a6e22e">popUp</span>(<span style="color:#a6e22e">winURL</span>) {
+    window.<span style="color:#a6e22e">open</span>(<span style="color:#a6e22e">winURL</span>, <span style="color:#e6db74">&#34;popup&#34;</span>, <span style="color:#e6db74">&#34;width=320, height=480&#34;</span>);
+}
+</code></pre></div><p><strong>向后兼容性</strong>：确保老版本的浏览器不会因为你的 JavaScript 脚本而死掉</p>
+<blockquote>
+<p>不同浏览器对 JavaScript 的支持程度不一样</p>
+</blockquote>
+<ul>
+<li>对象检测（object detection）：检测浏览器对 JavaScript 的支持程度，只要把某个方法打包在一个 <code>if</code> 语句中，就可以根据这条 <code>if</code> 语句的条件表达式的求值结果是 <code>true</code> （这个方法存在）还是 <code>false</code> （这个方法不存在）来决定应该采取怎样的行动</li>
+</ul>
+<blockquote>
+<p>几乎所有的东西（包括各种方法在内）都可以被当作对象，这就意味着我们可以很容易地把不支持某个特定 DOM 方法的浏览器检测出来</p>
+</blockquote>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-javascript" data-lang="javascript"><span style="color:#66d9ef">if</span> (<span style="color:#a6e22e">method</span>) {
+    <span style="color:#a6e22e">statements</span>;
+}
+
+<span style="color:#66d9ef">if</span> (<span style="color:#f92672">!</span><span style="color:#a6e22e">method</span>) <span style="color:#66d9ef">return</span> <span style="color:#66d9ef">false</span>;
+</code></pre></div><blockquote>
+<p>例如，如果有一个使用了 getElementByld() 方法的函数，就可以在调用 getElementByld()方法之前先检查用户所使用的浏览器是否支持这个方法。在使用对象检测时，一定要删掉方法名后面的圆括号，如果不删掉，测试的将是方法的结果，无论方法是否存在。</p>
+</blockquote>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-javascript" data-lang="javascript"><span style="color:#66d9ef">function</span> <span style="color:#a6e22e">myFunction</span>() {
+    <span style="color:#66d9ef">if</span> (document.<span style="color:#a6e22e">getElementById</span>) {
+        <span style="color:#75715e">// statements using getElementById
+</span><span style="color:#75715e"></span>    }
+  
+    <span style="color:#75715e">// 或者
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">if</span> (document.<span style="color:#a6e22e">getElementById</span>) <span style="color:#66d9ef">return</span> <span style="color:#66d9ef">false</span>;
+    <span style="color:#75715e">// statements using getElementById
+</span><span style="color:#75715e"></span>}
+</code></pre></div><p><strong>性能考虑</strong>：确定脚本执行的效能最优</p>
+<ul>
+<li>
+<p>尽量少的访问 DOM 和尽量减少标记</p>
+<ul>
+<li>只要是查询 DOM 中的某些元素，浏览器就会搜索整个 DOM 树，从中查找可能匹配的元素</li>
+</ul>
+<blockquote>
+<p><!-- raw HTML omitted --><!-- raw HTML omitted -->没有明白这句话的意思？<!-- raw HTML omitted --><!-- raw HTML omitted -->在多个函数都会取得一组类似元素的情况下，可以考虑重构代码，把搜索结果保存在一个全局变量里，或者把一组元素直接以参数形式传递给函数</p>
+</blockquote>
+<ul>
+<li>过多不必要的元素只会增加 DOM 树的规模，进而增加遍历 DOM 树以查找特定元素的时间</li>
+</ul>
+</li>
+<li>
+<p>合并脚本</p>
+<ul>
+<li>推荐是将多个脚本合并到一个脚本文件中，这样就可以减少加载页面时发送的请求数量</li>
+</ul>
+</li>
+</ul>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-javascript" data-lang="javascript"><span style="color:#f92672">&lt;</span><span style="color:#a6e22e">script</span> <span style="color:#a6e22e">src</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;script/functionA.js&#34;</span><span style="color:#f92672">&gt;&lt;</span><span style="color:#960050;background-color:#1e0010">/script&gt;</span>
+<span style="color:#f92672">&lt;</span><span style="color:#a6e22e">script</span> <span style="color:#a6e22e">src</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;script/functionB.js&#34;</span><span style="color:#f92672">&gt;&lt;</span><span style="color:#960050;background-color:#1e0010">/script&gt;</span>
+<span style="color:#f92672">&lt;</span><span style="color:#a6e22e">script</span> <span style="color:#a6e22e">src</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;script/functionC.js&#34;</span><span style="color:#f92672">&gt;&lt;</span><span style="color:#960050;background-color:#1e0010">/script&gt;</span>
+<span style="color:#f92672">&lt;</span><span style="color:#a6e22e">script</span> <span style="color:#a6e22e">src</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;script/functionD.js&#34;</span><span style="color:#f92672">&gt;&lt;</span><span style="color:#960050;background-color:#1e0010">/script&gt;</span>
+</code></pre></div><ul>
+<li>放置脚本的位置
+<ul>
+<li>脚本在标记中的位置对页面的初次加载时间也有很大影响</li>
+<li>1、将脚本放置在 <code>&lt;head&gt;</code> 区域。问题：位于 <code>&lt;head&gt;</code> 块中的脚本会导致浏览器无法并行加载其他文件（如图像或其他脚本）。一般来说，根据 HTTP 规范，浏览器每次从同一个域名中最多只能同时下载两个文件。而在下载脚本期间，浏览器不会下载其他任何文件，即使是来自不同域名的文件也不会下载，所有其他资源都要等脚本加载完毕后才能下载</li>
+<li>2、将所有 <code>&lt;script&gt;</code> 标签放到文档的末尾，<code>&lt;/body&gt;</code> 标记之前，就可以让页面变得更快。这样，我们在加载脚本时，window 对象的 <code>load</code> 事件依然可以执行对文档进行的各种操作</li>
+</ul>
+</li>
+<li>压缩脚本文件：将脚本文件中不必要的字节，如空格和注释，统统删掉，从而达到“压缩”文件的目的</li>
+<li>多数情况下，你应该有两个版本，一个是工作副本，可以修改代码并添加注释；另一个是精简副本，用于放在站点上</li>
+</ul>
+<h2 id="dom-core-和-html-dom">DOM Core 和 HTML DOM</h2>
+<p>截止到现在，我们在编写 JavaScript 代码时只用到了一下几个 DOM 方法：</p>
+<ul>
+<li><code>getElementById</code></li>
+<li><code>getElementsByTagName</code></li>
+<li><code>getAttribute</code></li>
+<li><code>setAttribute</code></li>
+</ul>
+<p>这些方法都是 DOM Core 的组成部分。它们并不专属于 JavaScript，支持 DOM 的任何一种程序设计语言都可以使用它们。它们的用途也并非仅限于处理网页，它们可以用来处理用任何一种标记语言（比如 XML）编写出来的文档</p>
+<p>在使用 JavaScript 语言和 DOM 为 HTML 文件编写脚本时，还有许多属性可供选用。例如，<code>onclick</code> 属性，用于图片库中的事件管理。这些属性属于 HTML-DOM，它们在 DOM Core 出现之前很久就已经为人们所熟悉了</p>
+<h2 id="动态创建标记">动态创建标记</h2>
+<p>**传统方法：**都是 HTML 专有属性，即 MIME 类型为 <code>application/html</code></p>
+<ul>
+<li><code>document.write</code> —— 避免使用</li>
+<li><code>innerHTML</code> 属性 —— 既支持读取，又支持写入（表达式左边）</li>
+</ul>
+<blockquote>
+<ul>
+<li>一旦你使用了 <code>innerHTML</code> 属性，它的全部内容都将被替换</li>
+<li>在需要把一段 HTML 内容插入一份文档时，<code>innerHTML</code> 属性可以让你又快又简单地完成这一任务。不过，<code>innerHTML</code> 属性不会返回任何对刚插入的内容的引用。如果想对刚插入的内容进行处理，则需要使用 DOM 提供的那些精确的方法和属性</li>
+<li><code>innerHTML</code> 属性要比 <code>document.write()</code> 方法更值得推荐。使用 <code>innerHTML</code> 属性，你就可以把 JavaScript 代码从标记中分离出来。用不着再在标记的 <code>&lt;body&gt;</code> 部分插入 <code>&lt;script&gt;</code> 标签</li>
+</ul>
+</blockquote>
+<p>**DOM 方法：**DOM 是文档的表示。DOM 所包含的信息与文档里的信息一一对应。只要使用正确的方法，就可以获取 DOM 节点树上任何一个节点的细节</p>
+<ul>
+<li>DOM 不仅可以获取文档的内容，还可以更新文档的内容</li>
+<li>在浏览器看来，DOM 节点树才是文档</li>
+<li>动态创建标记：实际上并不是在创建标记，而是在改变 DOM 节点树</li>
+<li>一定要从 DOM 的角度去思考问题。在 DOM 看来，一个文档就是一棵节点树。如果你想在节点树上添加内容，就必须插入新的节点。如果你想添加一些标记到文档，就必须插入元素节点</li>
+</ul>
+<h3 id="10createelement">10、createElement</h3>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-javascript" data-lang="javascript"><span style="color:#66d9ef">var</span> <span style="color:#a6e22e">ele</span> <span style="color:#f92672">=</span> document.<span style="color:#a6e22e">createElement</span>(<span style="color:#a6e22e">nodeName</span>);
+</code></pre></div><p>创建一个新的<strong>元素节点</strong>。这个方法本身并不能影响页面的表现，还需要把这个新创建出来的元素插入到文档中去。</p>
+<p>但新创建的这个元素，已经有了自己的 DOM 属性，节点类型 <code>ele.nodeType</code>，节点值 <code>ele.nodeValue</code></p>
+<h3 id="11appendchild">11、appendChild</h3>
+<p>把新创建的节点插入某个文档的节点树的最简单的办法是，让它成为这个文档某个现有节点的一个字节点</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-javascript" data-lang="javascript"><span style="color:#a6e22e">parent</span>.<span style="color:#a6e22e">appendChild</span>(<span style="color:#a6e22e">child</span>);
+</code></pre></div><h3 id="12createtextnode">12、createTextNode</h3>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-javascript" data-lang="javascript"><span style="color:#66d9ef">var</span> <span style="color:#a6e22e">txt</span> <span style="color:#f92672">=</span> document.<span style="color:#a6e22e">createTextNode</span>(<span style="color:#a6e22e">text</span>);
+</code></pre></div><p>创建一个新的<strong>文本节点</strong>。</p>
+<p>创建一个 <code>&lt;p&gt;</code> 节点，并添加文字 <code>hello, world</code></p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-javascript" data-lang="javascript">window.<span style="color:#a6e22e">onload</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">function</span>() {
+    <span style="color:#66d9ef">var</span> <span style="color:#a6e22e">testdiv</span> <span style="color:#f92672">=</span> document.<span style="color:#a6e22e">getElementById</span>(<span style="color:#e6db74">&#34;testdiv&#34;</span>);
+    <span style="color:#66d9ef">var</span> <span style="color:#a6e22e">para</span> <span style="color:#f92672">=</span> document.<span style="color:#a6e22e">createElement</span>(<span style="color:#e6db74">&#34;p&#34;</span>);
+    <span style="color:#a6e22e">testdiv</span>.<span style="color:#a6e22e">appendChild</span>(<span style="color:#a6e22e">para</span>);
+    <span style="color:#66d9ef">var</span> <span style="color:#a6e22e">txt</span> <span style="color:#f92672">=</span> document.<span style="color:#a6e22e">createTextNode</span>(<span style="color:#e6db74">&#34;hello, world&#34;</span>);
+    <span style="color:#a6e22e">para</span>.<span style="color:#a6e22e">appendChild</span>(<span style="color:#a6e22e">txt</span>);
+}
+</code></pre></div><h3 id="13createtextnode">13、createTextNode</h3>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-javascript" data-lang="javascript"><span style="color:#a6e22e">parentElement</span>.<span style="color:#a6e22e">insertBefore</span>(<span style="color:#a6e22e">newElement</span>, <span style="color:#a6e22e">targetElement</span>);
+</code></pre></div><p>在已有元素前插入一个新元素</p>
+<ul>
+<li>新元素：想要插入的新元素（newElement）</li>
+<li>目标元素：想要将这个新元素插入到哪个元素（targetElement）之前</li>
+<li>父元素：目标元素的父元素（parentElement），目标元素的 <code>parentNode</code> 属性就是其父元素</li>
+</ul>
+<blockquote>
+<p>在 DOM 里，元素节点的父元素必须是另一个元素节点，属性节点和文本节点的子元素不允许是元素节点</p>
+</blockquote>
+<h3 id="14insertafter需要自己实现dom-未提供这个方法">14、insertAfter：需要自己实现，DOM 未提供这个方法</h3>
+<p>在现有元素后面插入一个新元素</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-javascript" data-lang="javascript"><span style="color:#66d9ef">function</span> <span style="color:#a6e22e">insertAfter</span>(<span style="color:#a6e22e">newElement</span>, <span style="color:#a6e22e">targetElement</span>) {
+    <span style="color:#66d9ef">var</span> <span style="color:#a6e22e">parent</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">targetElement</span>.<span style="color:#a6e22e">parentNode</span>;
+    <span style="color:#66d9ef">if</span> (<span style="color:#a6e22e">parent</span>.<span style="color:#a6e22e">lastChild</span> <span style="color:#f92672">===</span> <span style="color:#a6e22e">targetElement</span>) {
+        <span style="color:#a6e22e">parent</span>.<span style="color:#a6e22e">appendChild</span>(<span style="color:#a6e22e">newElement</span>);
+    } <span style="color:#66d9ef">else</span> {
+        <span style="color:#a6e22e">parent</span>.<span style="color:#a6e22e">insertBefore</span>(<span style="color:#a6e22e">newElement</span>, <span style="color:#a6e22e">targetElement</span>.<span style="color:#a6e22e">nextSibling</span>);
+    }
+}
+</code></pre></div><p>使用到的 DOM 方法和属性：</p>
+<ul>
+<li><code>parentNode</code> 属性</li>
+<li><code>lastChild</code> 属性</li>
+<li><code>appendChild</code> 方法</li>
+<li><code>insertBefore</code> 方法</li>
+<li><code>nextSibling</code> 属性</li>
+</ul>
+<h2 id="动态创建信息块">动态创建信息块</h2>
+<blockquote>
+<p>除了 HTML 标签之间的内容以外，标签内的属性中也包含语义信息。在对内容进行标记时，正确地设置标记属性也是工作的重要组成部分。</p>
+<p>绝大多数属性的内容（即属性值）在 Web 浏览器里都是不显示的，只有极少数属性例外，但不同的浏览器在呈现这些属性时也常常千姿百态</p>
+<p>使用 DOM 来显示属性的内容</p>
+<p>用 JavaScript 函数先把文档结构里的一些现有信息提取出来，再把那些信息以一种清晰和有意义的方式重新插入到文档里去</p>
+</blockquote>
+<h3 id="显示缩略语列表">显示缩略语列表</h3>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-javascript" data-lang="javascript"><span style="color:#66d9ef">function</span> <span style="color:#a6e22e">displayAbbreviations</span>() {
+    <span style="color:#66d9ef">if</span> (<span style="color:#f92672">!</span>document.<span style="color:#a6e22e">getElementsByTagName</span>) <span style="color:#66d9ef">return</span> <span style="color:#66d9ef">false</span>;
+    <span style="color:#66d9ef">if</span> (<span style="color:#f92672">!</span>document.<span style="color:#a6e22e">createElement</span>) <span style="color:#66d9ef">return</span> <span style="color:#66d9ef">false</span>;
+    <span style="color:#66d9ef">if</span> (<span style="color:#f92672">!</span>document.<span style="color:#a6e22e">createTextNode</span>) <span style="color:#66d9ef">return</span> <span style="color:#66d9ef">false</span>;
+
+    <span style="color:#75715e">// 取得所有缩略词
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">var</span> <span style="color:#a6e22e">abbreviations</span> <span style="color:#f92672">=</span> document.<span style="color:#a6e22e">getElementsByTagName</span>(<span style="color:#e6db74">&#34;abbr&#34;</span>);
+    <span style="color:#66d9ef">if</span> (<span style="color:#a6e22e">abbreviations</span>.<span style="color:#a6e22e">length</span> <span style="color:#f92672">&lt;</span> <span style="color:#ae81ff">1</span>) <span style="color:#66d9ef">return</span> <span style="color:#66d9ef">false</span>;
+
+    <span style="color:#66d9ef">var</span> <span style="color:#a6e22e">defs</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">new</span> Array();
+    <span style="color:#75715e">// 遍历所有缩略词
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">for</span> (<span style="color:#66d9ef">var</span> <span style="color:#a6e22e">i</span> <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>; <span style="color:#a6e22e">i</span> <span style="color:#f92672">&lt;</span> <span style="color:#a6e22e">abbreviations</span>.<span style="color:#a6e22e">length</span>; <span style="color:#a6e22e">i</span><span style="color:#f92672">++</span>) {
+        <span style="color:#66d9ef">var</span> <span style="color:#a6e22e">current_abbr</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">abbreviations</span>[<span style="color:#a6e22e">i</span>];
+        <span style="color:#66d9ef">if</span> (<span style="color:#a6e22e">current_abbr</span>.<span style="color:#a6e22e">childNodes</span>.<span style="color:#a6e22e">length</span> <span style="color:#f92672">&lt;</span> <span style="color:#ae81ff">1</span>) <span style="color:#66d9ef">continue</span>;
+        <span style="color:#66d9ef">var</span> <span style="color:#a6e22e">definition</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">current_abbr</span>.<span style="color:#a6e22e">getAttribute</span>(<span style="color:#e6db74">&#34;title&#34;</span>);
+        <span style="color:#66d9ef">var</span> <span style="color:#a6e22e">key</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">current_abbr</span>.<span style="color:#a6e22e">lastChild</span>.<span style="color:#a6e22e">nodeValue</span>;
+        <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#e6db74">&#34;key = &#34;</span>, <span style="color:#a6e22e">key</span>, <span style="color:#e6db74">&#34;, definition = &#34;</span>, <span style="color:#a6e22e">definition</span>);
+
+        <span style="color:#a6e22e">defs</span>[<span style="color:#a6e22e">key</span>] <span style="color:#f92672">=</span> <span style="color:#a6e22e">definition</span>;
+    }
+
+    <span style="color:#75715e">// 创建定义列表
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">var</span> <span style="color:#a6e22e">dlist</span> <span style="color:#f92672">=</span> document.<span style="color:#a6e22e">createElement</span>(<span style="color:#e6db74">&#34;dl&#34;</span>);
+    <span style="color:#66d9ef">for</span> (<span style="color:#66d9ef">const</span> <span style="color:#a6e22e">key</span> <span style="color:#66d9ef">in</span> <span style="color:#a6e22e">defs</span>) {
+        <span style="color:#75715e">// 创建 dt 元素
+</span><span style="color:#75715e"></span>        <span style="color:#66d9ef">var</span> <span style="color:#a6e22e">dtitle</span> <span style="color:#f92672">=</span> document.<span style="color:#a6e22e">createElement</span>(<span style="color:#e6db74">&#34;dt&#34;</span>);
+        <span style="color:#66d9ef">var</span> <span style="color:#a6e22e">dtitle_txt</span> <span style="color:#f92672">=</span> document.<span style="color:#a6e22e">createTextNode</span>(<span style="color:#a6e22e">key</span>);
+        <span style="color:#a6e22e">dtitle</span>.<span style="color:#a6e22e">appendChild</span>(<span style="color:#a6e22e">dtitle_txt</span>);
+
+        <span style="color:#75715e">// 创建 dd 元素
+</span><span style="color:#75715e"></span>        <span style="color:#66d9ef">var</span> <span style="color:#a6e22e">ddesc</span> <span style="color:#f92672">=</span> document.<span style="color:#a6e22e">createElement</span>(<span style="color:#e6db74">&#34;dd&#34;</span>);
+        <span style="color:#66d9ef">var</span> <span style="color:#a6e22e">ddesc_txt</span> <span style="color:#f92672">=</span> document.<span style="color:#a6e22e">createTextNode</span>(<span style="color:#a6e22e">defs</span>[<span style="color:#a6e22e">key</span>]);
+        <span style="color:#a6e22e">ddesc</span>.<span style="color:#a6e22e">appendChild</span>(<span style="color:#a6e22e">ddesc_txt</span>);
+
+        <span style="color:#75715e">// 把它们添加到定义列表
+</span><span style="color:#75715e"></span>        <span style="color:#a6e22e">dlist</span>.<span style="color:#a6e22e">appendChild</span>(<span style="color:#a6e22e">dtitle</span>);
+        <span style="color:#a6e22e">dlist</span>.<span style="color:#a6e22e">appendChild</span>(<span style="color:#a6e22e">ddesc</span>);
+    }
+
+    <span style="color:#66d9ef">if</span> (<span style="color:#a6e22e">dlist</span>.<span style="color:#a6e22e">childNodes</span>.<span style="color:#a6e22e">length</span> <span style="color:#f92672">&lt;</span> <span style="color:#ae81ff">1</span>) <span style="color:#66d9ef">return</span> <span style="color:#66d9ef">false</span>;
+
+    <span style="color:#75715e">// 创建标题
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">var</span> <span style="color:#a6e22e">header</span> <span style="color:#f92672">=</span> document.<span style="color:#a6e22e">createElement</span>(<span style="color:#e6db74">&#34;h2&#34;</span>);
+    <span style="color:#66d9ef">var</span> <span style="color:#a6e22e">header_txt</span> <span style="color:#f92672">=</span> document.<span style="color:#a6e22e">createTextNode</span>(<span style="color:#e6db74">&#34;Abbreviations&#34;</span>);
+    <span style="color:#a6e22e">header</span>.<span style="color:#a6e22e">appendChild</span>(<span style="color:#a6e22e">header_txt</span>);
+
+    <span style="color:#75715e">// 将标题添加到 body
+</span><span style="color:#75715e"></span>    document.<span style="color:#a6e22e">getElementsByTagName</span>(<span style="color:#e6db74">&#34;body&#34;</span>)[<span style="color:#ae81ff">0</span>].<span style="color:#a6e22e">appendChild</span>(<span style="color:#a6e22e">header</span>);
+    <span style="color:#75715e">// 将定义列表添加到 body
+</span><span style="color:#75715e"></span>    document.<span style="color:#a6e22e">getElementsByTagName</span>(<span style="color:#e6db74">&#34;body&#34;</span>)[<span style="color:#ae81ff">0</span>].<span style="color:#a6e22e">appendChild</span>(<span style="color:#a6e22e">dlist</span>);
+}
+</code></pre></div><h3 id="显示文献来源链接表">显示“文献来源链接表”</h3>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-javascript" data-lang="javascript"><span style="color:#66d9ef">function</span> <span style="color:#a6e22e">displayCitations</span>() {
+    <span style="color:#66d9ef">if</span> (<span style="color:#f92672">!</span>document.<span style="color:#a6e22e">getElementsByTagName</span>) <span style="color:#66d9ef">return</span> <span style="color:#66d9ef">false</span>;
+    <span style="color:#66d9ef">if</span> (<span style="color:#f92672">!</span>document.<span style="color:#a6e22e">createElement</span>) <span style="color:#66d9ef">return</span> <span style="color:#66d9ef">false</span>;
+    <span style="color:#66d9ef">if</span> (<span style="color:#f92672">!</span>document.<span style="color:#a6e22e">createTextNode</span>) <span style="color:#66d9ef">return</span> <span style="color:#66d9ef">false</span>;
+    <span style="color:#75715e">// 取得所有的引用
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">var</span> <span style="color:#a6e22e">quotes</span> <span style="color:#f92672">=</span> document.<span style="color:#a6e22e">getElementsByTagName</span>(<span style="color:#e6db74">&#34;blockquote&#34;</span>);
+
+    <span style="color:#75715e">// 读取 cite，并设置
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">for</span> (<span style="color:#66d9ef">var</span> <span style="color:#a6e22e">i</span> <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>; <span style="color:#a6e22e">i</span> <span style="color:#f92672">&lt;</span> <span style="color:#a6e22e">quotes</span>.<span style="color:#a6e22e">length</span>; <span style="color:#a6e22e">i</span><span style="color:#f92672">++</span>) {
+        <span style="color:#66d9ef">if</span> (<span style="color:#f92672">!</span><span style="color:#a6e22e">quotes</span>[<span style="color:#a6e22e">i</span>].<span style="color:#a6e22e">getAttribute</span>(<span style="color:#e6db74">&#34;cite&#34;</span>)) <span style="color:#66d9ef">continue</span>;
+        <span style="color:#66d9ef">var</span> <span style="color:#a6e22e">url</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">quotes</span>[<span style="color:#a6e22e">i</span>].<span style="color:#a6e22e">getAttribute</span>(<span style="color:#e6db74">&#34;cite&#34;</span>);
+
+        <span style="color:#75715e">// 取出当前 blockquote 元素里所有的元素节点
+</span><span style="color:#75715e"></span>        <span style="color:#66d9ef">var</span> <span style="color:#a6e22e">quoteChilds</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">quotes</span>[<span style="color:#a6e22e">i</span>].<span style="color:#a6e22e">getElementsByTagName</span>(<span style="color:#e6db74">&#34;*&#34;</span>);
+        <span style="color:#66d9ef">if</span> (<span style="color:#a6e22e">quoteChilds</span>.<span style="color:#a6e22e">length</span> <span style="color:#f92672">&lt;</span> <span style="color:#ae81ff">1</span>) <span style="color:#66d9ef">continue</span>;
+        <span style="color:#75715e">// 得到 blockquote 元素的最后一个元素节点
+</span><span style="color:#75715e"></span>        <span style="color:#66d9ef">var</span> <span style="color:#a6e22e">elem</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">quoteChilds</span>[<span style="color:#a6e22e">quoteChilds</span>.<span style="color:#a6e22e">length</span> <span style="color:#f92672">-</span> <span style="color:#ae81ff">1</span>];
+
+        <span style="color:#75715e">// 创建链接，标识文本为 source，链接为 url
+</span><span style="color:#75715e"></span>        <span style="color:#66d9ef">var</span> <span style="color:#a6e22e">link</span> <span style="color:#f92672">=</span> document.<span style="color:#a6e22e">createElement</span>(<span style="color:#e6db74">&#34;a&#34;</span>);
+        <span style="color:#66d9ef">var</span> <span style="color:#a6e22e">link_txt</span> <span style="color:#f92672">=</span> document.<span style="color:#a6e22e">createTextNode</span>(<span style="color:#e6db74">&#34;source&#34;</span>);
+        <span style="color:#a6e22e">link</span>.<span style="color:#a6e22e">appendChild</span>(<span style="color:#a6e22e">link_txt</span>);
+        <span style="color:#a6e22e">link</span>.<span style="color:#a6e22e">setAttribute</span>(<span style="color:#e6db74">&#34;href&#34;</span>, <span style="color:#a6e22e">url</span>);
+
+        <span style="color:#75715e">// 创建上标
+</span><span style="color:#75715e"></span>        <span style="color:#66d9ef">var</span> <span style="color:#a6e22e">superscript</span> <span style="color:#f92672">=</span> document.<span style="color:#a6e22e">createElement</span>(<span style="color:#e6db74">&#34;sup&#34;</span>);
+        <span style="color:#a6e22e">superscript</span>.<span style="color:#a6e22e">appendChild</span>(<span style="color:#a6e22e">link</span>);
+
+        <span style="color:#75715e">// 插入链接
+</span><span style="color:#75715e"></span>        <span style="color:#a6e22e">elem</span>.<span style="color:#a6e22e">appendChild</span>(<span style="color:#a6e22e">superscript</span>);
+    }
+}
+</code></pre></div><h3 id="显示快捷键清单">显示快捷键清单</h3>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-javascript" data-lang="javascript"><span style="color:#66d9ef">function</span> <span style="color:#a6e22e">displayAccesskeys</span>() {
+    <span style="color:#66d9ef">if</span> (<span style="color:#f92672">!</span>document.<span style="color:#a6e22e">getElementsByTagName</span>) <span style="color:#66d9ef">return</span> <span style="color:#66d9ef">false</span>;
+    <span style="color:#66d9ef">if</span> (<span style="color:#f92672">!</span>document.<span style="color:#a6e22e">createElement</span>) <span style="color:#66d9ef">return</span> <span style="color:#66d9ef">false</span>;
+    <span style="color:#66d9ef">if</span> (<span style="color:#f92672">!</span>document.<span style="color:#a6e22e">createTextNode</span>) <span style="color:#66d9ef">return</span> <span style="color:#66d9ef">false</span>;
+
+    <span style="color:#75715e">// 取得所有链接
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">var</span> <span style="color:#a6e22e">links</span> <span style="color:#f92672">=</span> document.<span style="color:#a6e22e">getElementsByTagName</span>(<span style="color:#e6db74">&#34;a&#34;</span>);
+    <span style="color:#66d9ef">var</span> <span style="color:#a6e22e">akeys</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">new</span> Array();
+
+    <span style="color:#75715e">// 遍历所有链接
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">for</span> (<span style="color:#66d9ef">var</span> <span style="color:#a6e22e">i</span> <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>; <span style="color:#a6e22e">i</span> <span style="color:#f92672">&lt;</span> <span style="color:#a6e22e">links</span>.<span style="color:#a6e22e">length</span>; <span style="color:#a6e22e">i</span><span style="color:#f92672">++</span>) {
+        <span style="color:#66d9ef">var</span> <span style="color:#a6e22e">current_link</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">links</span>[<span style="color:#a6e22e">i</span>];
+        <span style="color:#66d9ef">if</span> (<span style="color:#f92672">!</span><span style="color:#a6e22e">current_link</span>.<span style="color:#a6e22e">getAttribute</span>(<span style="color:#e6db74">&#34;accesskey&#34;</span>)) <span style="color:#66d9ef">continue</span>;
+        <span style="color:#66d9ef">var</span> <span style="color:#a6e22e">key</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">current_link</span>.<span style="color:#a6e22e">getAttribute</span>(<span style="color:#e6db74">&#34;accesskey&#34;</span>);
+        <span style="color:#66d9ef">var</span> <span style="color:#a6e22e">txt</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">current_link</span>.<span style="color:#a6e22e">lastChild</span>.<span style="color:#a6e22e">nodeValue</span>;
+        <span style="color:#a6e22e">akeys</span>[<span style="color:#a6e22e">key</span>] <span style="color:#f92672">=</span> <span style="color:#a6e22e">txt</span>;
+    }
+
+    <span style="color:#75715e">// 创建无序列表
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">var</span> <span style="color:#a6e22e">list</span> <span style="color:#f92672">=</span> document.<span style="color:#a6e22e">createElement</span>(<span style="color:#e6db74">&#34;ul&#34;</span>);
+    <span style="color:#66d9ef">for</span> (<span style="color:#66d9ef">const</span> <span style="color:#a6e22e">key</span> <span style="color:#66d9ef">in</span> <span style="color:#a6e22e">akeys</span>) {
+        <span style="color:#75715e">// 创建列表项 li
+</span><span style="color:#75715e"></span>        <span style="color:#66d9ef">var</span> <span style="color:#a6e22e">item</span> <span style="color:#f92672">=</span> document.<span style="color:#a6e22e">createElement</span>(<span style="color:#e6db74">&#34;li&#34;</span>);
+        <span style="color:#66d9ef">var</span> <span style="color:#a6e22e">item_txt</span> <span style="color:#f92672">=</span> document.<span style="color:#a6e22e">createTextNode</span>(<span style="color:#a6e22e">key</span> <span style="color:#f92672">+</span> <span style="color:#e6db74">&#34;: &#34;</span> <span style="color:#f92672">+</span> <span style="color:#a6e22e">akeys</span>[<span style="color:#a6e22e">key</span>]);
+        <span style="color:#a6e22e">item</span>.<span style="color:#a6e22e">appendChild</span>(<span style="color:#a6e22e">item_txt</span>);
+
+        <span style="color:#75715e">// 将列表项添加到无序列表
+</span><span style="color:#75715e"></span>        <span style="color:#a6e22e">list</span>.<span style="color:#a6e22e">appendChild</span>(<span style="color:#a6e22e">item</span>);
+    }
+
+    <span style="color:#75715e">// 创建标题
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">var</span> <span style="color:#a6e22e">header</span> <span style="color:#f92672">=</span> document.<span style="color:#a6e22e">createElement</span>(<span style="color:#e6db74">&#34;h3&#34;</span>);
+    <span style="color:#66d9ef">var</span> <span style="color:#a6e22e">header_txt</span> <span style="color:#f92672">=</span> document.<span style="color:#a6e22e">createTextNode</span>(<span style="color:#e6db74">&#34;Accesskeys&#34;</span>);
+    <span style="color:#a6e22e">header</span>.<span style="color:#a6e22e">appendChild</span>(<span style="color:#a6e22e">header_txt</span>);
+
+    <span style="color:#75715e">// 将标题添加到 body
+</span><span style="color:#75715e"></span>    document.<span style="color:#a6e22e">getElementsByTagName</span>(<span style="color:#e6db74">&#34;body&#34;</span>)[<span style="color:#ae81ff">0</span>].<span style="color:#a6e22e">appendChild</span>(<span style="color:#a6e22e">header</span>);
+    document.<span style="color:#a6e22e">getElementsByTagName</span>(<span style="color:#e6db74">&#34;body&#34;</span>)[<span style="color:#ae81ff">0</span>].<span style="color:#a6e22e">appendChild</span>(<span style="color:#a6e22e">list</span>);
+}
+</code></pre></div><p>**生成一份目录：**把文档中 <code>h1</code> <code>h2</code> 元素提取出来放入一份清单，再将其插入到文档的开头，同时增加跳转链接</p>
+<p><!-- raw HTML omitted --><!-- raw HTML omitted -->【TODO】琢磨一下这个作为第一个练手的项目<!-- raw HTML omitted --><!-- raw HTML omitted --></p>
+<p><a href="https://www.cnblogs.com/xdp-gacl/p/3718879.html">https://www.cnblogs.com/xdp-gacl/p/3718879.html</a></p>
+<p>在需要对文档里的现有信息进行检索时，以下 DOM 方法很有用：</p>
+<ul>
+<li><code>getElementById</code></li>
+<li><code>getElementByTagName</code></li>
+<li><code>getAttribute</code></li>
+</ul>
+<p>在需要把信息添加到文档里去时，以下 DOM 方法很有用：</p>
+<ul>
+<li><code>createElement</code></li>
+<li><code>createTextNode</code></li>
+<li><code>appendChild</code></li>
+<li><code>insertBefore</code></li>
+<li><code>setAttribute</code></li>
+</ul>
+<h2 id="css-dom">CSS-DOM</h2>
+<p>浏览器中看到的网页是由以下三层信息构成的一个共同体：</p>
+<ul>
+<li>结构层：使用 HTML 搭建文档的结构</li>
+<li>表示层：使用 CSS 去设置文档的呈现效果</li>
+<li>行为层：使用 DOM 脚本去实现文档的行为</li>
+</ul>
+<p>表示层和行为层总是存在的，即使未明确地给出任何具体的指令。此时，Web 浏览器将应用它的默认样式和默认事件处理函数。</p>
+<p>HTML、CSS 和 DOM 脚本，这三种技术之间存在一些潜在的重叠区域</p>
+<ul>
+<li>DOM 可以改变网页的结构，诸如 <code>createElement</code> 和 <code>appendChild</code> 之类的 DOM 方法允许动态地创建和添加标记</li>
+<li>CSS 也有重叠的例子，诸如 <code>:hover</code> 和 <code>:focus</code> 之类的伪类允许根据用户触发事件改编元素的呈现效果</li>
+<li>DOM 样式可以给元素设定样式</li>
+</ul>
+<h3 id="style-属性">style 属性</h3>
+<p>文档中的每个元素都是一个对象，每个对象又有着各种各样的属性</p>
+<ul>
+<li>【只读】有些属性告诉我们元素在节点树上的位置信息，例如，<code>parentNode</code>、<code>nextSibling</code>、<code>previousSibling</code>、<code>childNode</code>、<code>firstChild</code>、<code>lastChild</code></li>
+<li>【只读】一些属性包含元素本身的信息，例如，<code>nodeType</code> <code>nodeName</code></li>
+<li>【可读可写】文档的每个元素都有一个 <code>style</code> 属性，包含着元素的样式，表示为一个对象。style 对象的各个属性都是可读写的，不仅可以通过某个元素的 style 属性去获取样式，还可以通过它去更新样式</li>
+</ul>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-javascript" data-lang="javascript"><span style="color:#75715e">// 获取样式
+</span><span style="color:#75715e"></span><span style="color:#a6e22e">element</span>.<span style="color:#a6e22e">style</span>.<span style="color:#a6e22e">property</span>;
+
+<span style="color:#75715e">// 更新样式
+</span><span style="color:#75715e"></span><span style="color:#a6e22e">element</span>.<span style="color:#a6e22e">style</span>.<span style="color:#a6e22e">property</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">value</span>;  <span style="color:#75715e">// value 为一个字符串
+</span></code></pre></div><ul>
+<li>CSS 样式属性名字中的连字符 <code>-</code>，在访问时使用<strong>驼峰命名</strong></li>
+<li>DOM 在表示样式属性时采用的单位并不总是与它们在 CSS 样式表里的设置相同
+<ul>
+<li>这类例外情况并不多。绝大多数样式属性的返回值与它们的设置值都采用同样的计量单位</li>
+</ul>
+</li>
+<li>CSS 的<strong>速记属性</strong>，DOM 可以解析</li>
+</ul>
+<p><strong>通过 style 属性获取的样式的局限性</strong>：只能返回内嵌样式。换句话说，只有把 CSS style 属性插入到标记里，才可以用 DOM style 属性去查询这些信息</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-html" data-lang="html">&lt;<span style="color:#f92672">p</span> <span style="color:#a6e22e">id</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;example&#34;</span> <span style="color:#a6e22e">style</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;color: #999999; font: 12px &#39;Arial&#39;, sans-serif;&#34;</span>&gt;
+    An example of a paragraph
+&lt;/<span style="color:#f92672">p</span>&gt;
+</code></pre></div><ul>
+<li>单独放在 CSS 文件中的样式，DOM 检索不出来</li>
+<li>放在 <code>&lt;head&gt;</code> 部分的 <code>&lt;style&gt;</code> 标签里，DOM style 属性也提取不到</li>
+</ul>
+<p>=&gt; 在外部样式表里使用的样式不会进入 style 对象，在文档 <code>&lt;head&gt;</code> 部分里声明的样式也是如此</p>
+<p>=&gt; 用 DOM 设置的样式，可以用 DOM 再把它们检索出来</p>
+<h3 id="何时该用-dom-脚本设置样式">何时该用 DOM 脚本设置样式</h3>
+<p><strong>使用 CSS 声明样式的方法</strong>，注意 CSS 样式文件中 value 值不需要添加引号</p>
+<p>1、为标签元素统一声明样式</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-css" data-lang="css"><span style="color:#f92672">p</span> {
+    <span style="color:#66d9ef">font-size</span>: <span style="color:#ae81ff">1</span><span style="color:#66d9ef">em</span>;
+}
+</code></pre></div><p>2、为特定 class 属性的所有元素统一声明样式</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-css" data-lang="css">.<span style="color:#a6e22e">fineprint</span> {
+    <span style="color:#66d9ef">font-size</span>: <span style="color:#ae81ff">.8</span><span style="color:#66d9ef">em</span>;
+}
+</code></pre></div><p>3、为特定 id 属性的所有元素统一声明样式</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-css" data-lang="css">#intro {
+    <span style="color:#66d9ef">font-size</span>: <span style="color:#ae81ff">1.2</span><span style="color:#66d9ef">em</span>;
+}
+</code></pre></div><p><strong>如何决定使用 CSS 还是 DOM 脚本实现样式设置</strong>，使用 DOM 去修改样式，基于两点原因：</p>
+<ol>
+<li>CSS 无法定位到想要处理的目标元素</li>
+<li>CSS 寻找目标元素的办法还未得到广泛的支持</li>
+</ol>
+<ul>
+<li>如果想改变某个元素的呈现效果，使用 CSS</li>
+<li>如果想改变某个元素的行为，使用 DOM</li>
+<li>如果想根据某个元素的行为去改变它的呈现效果。这一类场合，决定是采用纯粹的 CSS 来解决，还是利用 DOM 来设置样式，需要考虑以下因素：
+<ul>
+<li>这个问题最简单的解决方案是什么？</li>
+<li>哪种解决方案会得到更多浏览器的支持？</li>
+<li>=&gt; 要做出明智的抉择，就必须对 CSS 和 DOM 技术都有足够深入的了解</li>
+</ul>
+</li>
+</ul>
+<h3 id="根据元素在节点树里的位置来设置样式">根据元素在节点树里的位置来设置样式</h3>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-javascript" data-lang="javascript"><span style="color:#66d9ef">function</span> <span style="color:#a6e22e">getNextElement</span>(<span style="color:#a6e22e">node</span>) {
+    <span style="color:#66d9ef">if</span> (<span style="color:#a6e22e">node</span>.<span style="color:#a6e22e">nodeType</span> <span style="color:#f92672">===</span> <span style="color:#ae81ff">1</span>) {
+        <span style="color:#66d9ef">return</span> <span style="color:#a6e22e">node</span>;
+    }
+    <span style="color:#66d9ef">if</span> (<span style="color:#a6e22e">node</span>.<span style="color:#a6e22e">nextSibling</span>) {
+        <span style="color:#66d9ef">return</span> <span style="color:#a6e22e">getNextElement</span>(<span style="color:#a6e22e">node</span>.<span style="color:#a6e22e">nextSibling</span>);
+    }
+    <span style="color:#66d9ef">return</span> <span style="color:#66d9ef">null</span>;
+}
+
+<span style="color:#66d9ef">function</span> <span style="color:#a6e22e">addClass</span>(<span style="color:#a6e22e">element</span>, <span style="color:#a6e22e">value</span>) {
+    <span style="color:#66d9ef">if</span> (<span style="color:#f92672">!</span><span style="color:#a6e22e">element</span>.<span style="color:#a6e22e">className</span>) {
+        <span style="color:#a6e22e">element</span>.<span style="color:#a6e22e">className</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">value</span>;
+    } <span style="color:#66d9ef">else</span> {
+        <span style="color:#a6e22e">newClassName</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">element</span>.<span style="color:#a6e22e">className</span>;
+        <span style="color:#a6e22e">newClassName</span> <span style="color:#f92672">+=</span> <span style="color:#e6db74">&#34; &#34;</span>;
+        <span style="color:#a6e22e">newClassName</span> <span style="color:#f92672">+=</span> <span style="color:#a6e22e">value</span>;
+        <span style="color:#a6e22e">element</span>.<span style="color:#a6e22e">className</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">newClassName</span>;
+    }
+}
+
+<span style="color:#66d9ef">function</span> <span style="color:#a6e22e">styleHeaderSiblings</span>() {
+    <span style="color:#66d9ef">if</span> (<span style="color:#f92672">!</span>document.<span style="color:#a6e22e">getElementsByTagName</span>) <span style="color:#66d9ef">return</span> <span style="color:#66d9ef">false</span>;
+    <span style="color:#66d9ef">var</span> <span style="color:#a6e22e">headers</span> <span style="color:#f92672">=</span> document.<span style="color:#a6e22e">getElementsByTagName</span>(<span style="color:#e6db74">&#34;h1&#34;</span>);
+    <span style="color:#66d9ef">var</span> <span style="color:#a6e22e">elem</span>;
+    <span style="color:#66d9ef">for</span> (<span style="color:#66d9ef">var</span> <span style="color:#a6e22e">i</span> <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>; <span style="color:#a6e22e">i</span> <span style="color:#f92672">&lt;</span> <span style="color:#a6e22e">headers</span>.<span style="color:#a6e22e">length</span>; <span style="color:#a6e22e">i</span><span style="color:#f92672">++</span>) {
+        <span style="color:#a6e22e">elem</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">getNextElement</span>(<span style="color:#a6e22e">headers</span>[<span style="color:#a6e22e">i</span>].<span style="color:#a6e22e">nextSibling</span>);
+
+        <span style="color:#75715e">// 方式 1，不推荐
+</span><span style="color:#75715e"></span>        <span style="color:#75715e">// elem.style.fontWeight = &#34;bold&#34;;
+</span><span style="color:#75715e"></span>        <span style="color:#75715e">// elem.style.fontSize = &#34;1.2em&#34;;
+</span><span style="color:#75715e"></span>
+        <span style="color:#75715e">// 方式 2，推荐
+</span><span style="color:#75715e"></span>        <span style="color:#a6e22e">addClass</span>(<span style="color:#a6e22e">elem</span>, <span style="color:#e6db74">&#34;intro&#34;</span>);
+    }
+}
+
+<span style="color:#75715e">// 在 CSS 文件中定义一个样式
+</span><span style="color:#75715e"></span>.<span style="color:#a6e22e">intro</span> {
+    <span style="color:#a6e22e">font</span><span style="color:#f92672">-</span><span style="color:#a6e22e">weight</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">bold</span>;
+    <span style="color:#a6e22e">font</span><span style="color:#f92672">-</span><span style="color:#a6e22e">size</span><span style="color:#f92672">:</span> <span style="color:#ae81ff">1.2</span><span style="color:#a6e22e">em</span>;
+}
+</code></pre></div><h3 id="根据某种条件反复设置某种样式">根据某种条件反复设置某种样式</h3>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-javascript" data-lang="javascript"><span style="color:#66d9ef">function</span> <span style="color:#a6e22e">stripeTables</span>() {
+    <span style="color:#66d9ef">if</span> (<span style="color:#f92672">!</span>document.<span style="color:#a6e22e">getElementsByTagName</span>) <span style="color:#66d9ef">return</span> <span style="color:#66d9ef">false</span>;
+    <span style="color:#66d9ef">var</span> <span style="color:#a6e22e">tables</span> <span style="color:#f92672">=</span> document.<span style="color:#a6e22e">getElementsByTagName</span>(<span style="color:#e6db74">&#34;table&#34;</span>);
+    <span style="color:#66d9ef">var</span> <span style="color:#a6e22e">odd</span>, <span style="color:#a6e22e">rows</span>;
+    <span style="color:#66d9ef">for</span> (<span style="color:#66d9ef">var</span> <span style="color:#a6e22e">i</span> <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>; <span style="color:#a6e22e">i</span> <span style="color:#f92672">&lt;</span> <span style="color:#a6e22e">tables</span>.<span style="color:#a6e22e">length</span>; <span style="color:#a6e22e">i</span><span style="color:#f92672">++</span>) {
+        <span style="color:#a6e22e">odd</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">false</span>;
+        <span style="color:#a6e22e">rows</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">tables</span>[<span style="color:#a6e22e">i</span>].<span style="color:#a6e22e">getElementsByTagName</span>(<span style="color:#e6db74">&#34;tr&#34;</span>);
+        <span style="color:#66d9ef">for</span> (<span style="color:#66d9ef">var</span> <span style="color:#a6e22e">j</span> <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>; <span style="color:#a6e22e">j</span> <span style="color:#f92672">&lt;</span> <span style="color:#a6e22e">rows</span>.<span style="color:#a6e22e">length</span>; <span style="color:#a6e22e">j</span><span style="color:#f92672">++</span>) {
+            <span style="color:#66d9ef">if</span> (<span style="color:#a6e22e">odd</span> <span style="color:#f92672">===</span> <span style="color:#66d9ef">true</span>) {
+                <span style="color:#75715e">// rows[j].style.backgroundColor = &#34;#ffc&#34;;
+</span><span style="color:#75715e"></span>                <span style="color:#a6e22e">addClass</span>(<span style="color:#a6e22e">row</span>[<span style="color:#a6e22e">j</span>], <span style="color:#e6db74">&#34;odd&#34;</span>);
+                <span style="color:#a6e22e">odd</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">false</span>;
+            } <span style="color:#66d9ef">else</span> {
+                <span style="color:#a6e22e">odd</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">true</span>;
+            }
+        }
+    }
+}
+
+<span style="color:#75715e">// 在 CSS 文件中定义一个样式
+</span><span style="color:#75715e"></span>.<span style="color:#a6e22e">odd</span> {
+    <span style="color:#a6e22e">background</span><span style="color:#f92672">-</span><span style="color:#a6e22e">color</span><span style="color:#f92672">:</span> <span style="color:#960050;background-color:#1e0010">#</span><span style="color:#a6e22e">ffc</span>;
+}
+</code></pre></div><h3 id="响应事件">响应事件</h3>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-javascript" data-lang="javascript"><span style="color:#66d9ef">function</span> <span style="color:#a6e22e">highlightRows</span>() {
+    <span style="color:#66d9ef">if</span> (<span style="color:#f92672">!</span>document.<span style="color:#a6e22e">getElementsByTagName</span>) <span style="color:#66d9ef">return</span> <span style="color:#66d9ef">false</span>;
+    <span style="color:#66d9ef">var</span> <span style="color:#a6e22e">rows</span> <span style="color:#f92672">=</span> document.<span style="color:#a6e22e">getElementsByTagName</span>(<span style="color:#e6db74">&#34;tr&#34;</span>);
+    <span style="color:#66d9ef">for</span> (<span style="color:#66d9ef">var</span> <span style="color:#a6e22e">i</span> <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>; <span style="color:#a6e22e">i</span> <span style="color:#f92672">&lt;</span> <span style="color:#a6e22e">rows</span>.<span style="color:#a6e22e">length</span>; <span style="color:#a6e22e">i</span><span style="color:#f92672">++</span>) {
+        <span style="color:#a6e22e">rows</span>[<span style="color:#a6e22e">i</span>].<span style="color:#a6e22e">onmouseover</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">function</span>() {
+            <span style="color:#75715e">// this.style.fontWeight = &#34;bold&#34;;
+</span><span style="color:#75715e"></span>            <span style="color:#a6e22e">addClass</span>(<span style="color:#66d9ef">this</span>, <span style="color:#e6db74">&#34;mouseover&#34;</span>);
+        }
+        <span style="color:#a6e22e">rows</span>[<span style="color:#a6e22e">i</span>].<span style="color:#a6e22e">onmouseout</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">function</span>() {
+            <span style="color:#75715e">// this.style.fontWeight = &#34;normal&#34;;
+</span><span style="color:#75715e"></span>            <span style="color:#a6e22e">addClass</span>(<span style="color:#66d9ef">this</span>, <span style="color:#e6db74">&#34;mouseot&#34;</span>);
+        }
+    }
+}
+
+<span style="color:#75715e">// 在 CSS 文件中定义两个样式
+</span><span style="color:#75715e"></span>.<span style="color:#a6e22e">mouseover</span> {
+    <span style="color:#a6e22e">font</span><span style="color:#f92672">-</span><span style="color:#a6e22e">weight</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">bold</span>;
+}
+
+.<span style="color:#a6e22e">mouseout</span> {
+    <span style="color:#a6e22e">font</span><span style="color:#f92672">-</span><span style="color:#a6e22e">weight</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">normal</span>;
+}
+</code></pre></div><h3 id="15settimeoutcleartimeout">15、setTimeout、clearTimeout</h3>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-javascript" data-lang="javascript"><span style="color:#75715e">// 设置函数的延迟执行
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">var</span> <span style="color:#a6e22e">variable</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">setTimeout</span>(<span style="color:#e6db74">&#34;function&#34;</span>, <span style="color:#a6e22e">interval</span>);
+
+<span style="color:#75715e">// 取消某个正在排队等待执行的函数
+</span><span style="color:#75715e"></span><span style="color:#a6e22e">clearTimeout</span>(<span style="color:#a6e22e">variable</span>);
+</code></pre></div><p>输入：</p>
+<ul>
+<li><code>function</code>：函数名</li>
+<li><code>interval</code>：间隔时间，单位毫秒，设置需要经过多长时间才开始执行第一个参数设置的函数</li>
+</ul>
+<h2 id="ajax-异步加载页面">Ajax 异步加载页面</h2>
+<p><!-- raw HTML omitted --><!-- raw HTML omitted -->以前<!-- raw HTML omitted --><!-- raw HTML omitted -->，Web 应用都要涉及大量的页面刷新：用户点击了某个链接，请求发送回服务器，然后服务器根据用户的操作再返回新页面。即使用户看到的只是页面中的一小部分有变化，也要刷新和重新加载整个页面，包括公司标志、导航、头部区域、脚部区域等</p>
+<p><!-- raw HTML omitted --><!-- raw HTML omitted -->使用 Ajax<!-- raw HTML omitted --><!-- raw HTML omitted --> 就可以做到只更新页面中的一小部分。其他内容——标志、导航、头部、脚部，都不用重新加载。用户仍然像往常一样点击链接，但这一次，已经加载的页面中只有一小部分区域会更新，而不必再次加载整个页面</p>
+<blockquote>
+<p>Ajax 的主要优势是对页面的请求以异步方式发送到服务器。而服务器不会用整个页面来响应请求，它会在后台处理请求，与此同时用户还能继续浏览页面并与页面交互。你的脚本则可以按需加载和创建页面内容，而不会打断用户的浏览体验。</p>
+</blockquote>
+<p>Ajax</p>
+<ul>
+<li>依赖 JavaScript，所以可能有浏览器不支持</li>
+<li>搜索引擎的爬虫程序抓去不到相关内容</li>
+</ul>
+<p><strong>核心： XMLHttpRequest 对象</strong>，JavaScript 通过这个对象可以自己发送请求，同时也自己处理响应</p>
+
+    </div>
+  </article>
+
+  
+<section class="comments">
+<script src="https://utteranc.es/client.js"
+        repo="qiaoin/hugo-blog-comments"
+        issue-term="og:title"
+        theme="github-light"
+        crossorigin="anonymous"
+        async>
+</script>
+</section>
+
+
+
+</main>
+
+      <footer class="footer">
+        <ul class="footer-links">
+          <li>
+            <a href="https://qiaoin.github.io">在桥边</a> © 2016 - 2021
+          </li>
+          <li>
+            <a href="https://gohugo.io/" class="footer-links-kudos">Made with <img src="/images/hugo-logo.png" alt="Img link to Hugo website" width="22" height="22"></a>
+          </li>
+        </ul>
+      </footer>
+
+    </div>
+    
+
+
+
+<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/highlight.min.js"></script>
+
+
+
+<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/languages/awk.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/languages/bash.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/languages/c.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/languages/c&#43;&#43;.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/languages/cmake.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/languages/go.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/languages/html.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/languages/java.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/languages/javascript.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/languages/python.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/languages/rust.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/languages/typescript.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/languages/yaml.min.js"></script>
+<script>hljs.configure({languages: []}); hljs.initHighlightingOnLoad();</script>
+
+
+
+    
+
+    
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-EBLEJGMMQV"></script>
+<script>
+var doNotTrack = false;
+if (!doNotTrack) {
+	window.dataLayer = window.dataLayer || [];
+	function gtag(){dataLayer.push(arguments);}
+	gtag('js', new Date());
+	gtag('config', 'G-EBLEJGMMQV', { 'anonymize_ip': false });
+}
+</script>
+
+  </body>
+</html>
+

@@ -17,6 +17,33 @@
     </item>
     
     <item>
+      <title>《程序设计实践》读书笔记</title>
+      <link>https://qiaoin.github.io/2019/04/02/practice-of-programming-notes/</link>
+      <pubDate>Tue, 02 Apr 2019 00:00:00 +0000</pubDate>
+      
+      <guid>https://qiaoin.github.io/2019/04/02/practice-of-programming-notes/</guid>
+      <description>很早以前就知道有这本书了，一直没有机会找来看，当然这只能说明自己比较懒，现在终于有了空闲和心情，遂找来看看，The Practice of Programming</description>
+    </item>
+    
+    <item>
+      <title>《编程珠玑》读书笔记</title>
+      <link>https://qiaoin.github.io/2018/04/19/programming-pearls-notes/</link>
+      <pubDate>Thu, 19 Apr 2018 00:00:00 +0000</pubDate>
+      
+      <guid>https://qiaoin.github.io/2018/04/19/programming-pearls-notes/</guid>
+      <description>Table of contents 前言 Part I: PRELIMINARIES 准备工作 Part II: PERFORMANCE Part III: THE PRODUCT [Summary] Column1 cracking the osster [Summary] Column4 writing correct programs Implementing Binary Search with C 版权声明 前言 在本书的前言部分，作者写到： 计算机编程有很多方面。Fred Brooks</description>
+    </item>
+    
+    <item>
+      <title>递归的深度</title>
+      <link>https://qiaoin.github.io/2016/03/14/deepth-of-recursion/</link>
+      <pubDate>Mon, 14 Mar 2016 00:00:00 +0000</pubDate>
+      
+      <guid>https://qiaoin.github.io/2016/03/14/deepth-of-recursion/</guid>
+      <description>递归，我一直都理解不了，就算是理解了函数调用堆栈之后，还是对于递归的优化尾递归更是一头雾水，遂想先学学递归，然后写写自己的想法。 递归，是一座</description>
+    </item>
+    
+    <item>
       <title>随机数——僭越之罪</title>
       <link>https://qiaoin.github.io/2016/01/23/random-numbers/</link>
       <pubDate>Sat, 23 Jan 2016 00:00:00 +0000</pubDate>

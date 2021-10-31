@@ -46,6 +46,8 @@
 
   <ul class="nav-links">
     
+    <li><a href="/re-learning-cs/">重学基础</a></li>
+    
     <li><a href="/about/">About</a></li>
     
     <li><a href="https://github.com/qiaoin">GitHub</a></li>
@@ -60,7 +62,7 @@
 
   <article class="article">
     
-    <span class="article-duration">10 min read</span>
+    <span class="article-duration">11 min read</span>
     
 
     <h1 class="article-title">AWK 学习使用</h1>
@@ -73,6 +75,49 @@
       <blockquote>
 <p>由于经常需要跟命令行和文本处理打交道，也确实在实际使用中体会到了 AWK 的强大力量，决定系统学习一下 AWK，此之为学习使用的笔记整理</p>
 </blockquote>
+<hr>
+<div class="toc">
+    <details>
+        <summary>Table of contents</summary>
+        <nav id="TableOfContents">
+  <ul>
+    <li><a href="#参考资料">参考资料</a></li>
+    <li><a href="#输入文件">输入文件</a></li>
+    <li><a href="#规则">规则</a>
+      <ul>
+        <li><a href="#特殊模式begin-和-end">特殊模式：BEGIN 和 END</a></li>
+        <li><a href="#表达式作为模式">表达式作为模式</a></li>
+        <li><a href="#正则表达式">正则表达式</a></li>
+        <li><a href="#模式匹配">模式匹配</a></li>
+      </ul>
+    </li>
+    <li><a href="#操作">操作</a>
+      <ul>
+        <li><a href="#内建的字符串函数">内建的字符串函数</a></li>
+      </ul>
+    </li>
+    <li><a href="#运行-awk-程序的几种方式">运行 AWK 程序的几种方式</a></li>
+    <li><a href="#错误">错误</a></li>
+    <li><a href="#内置变量">内置变量</a></li>
+    <li><a href="#用户创建的变量">用户创建的变量</a></li>
+    <li><a href="#控制流语句">控制流语句</a>
+      <ul>
+        <li><a href="#if-else">if-else</a></li>
+        <li><a href="#while">while</a></li>
+        <li><a href="#for">for</a></li>
+      </ul>
+    </li>
+    <li><a href="#数组associative-arrays">数组（associative arrays）</a></li>
+    <li><a href="#自定义函数">自定义函数</a></li>
+    <li><a href="#环境变量">环境变量</a></li>
+    <li><a href="#注意">注意</a></li>
+    <li><a href="#好用的-awk-命令">好用的 AWK 命令</a></li>
+    <li><a href="#版权声明">版权声明</a></li>
+  </ul>
+</nav>
+    </details>
+</div>
+<hr>
 <p><strong>下文中引用部分若无标注，均引用自《The AWK Programming Language》</strong>，优先阅读 Chapter 1&amp;2&amp;8</p>
 <blockquote>
 <p>An awk program is a sequence of <strong>patterns</strong> and <strong>actions</strong> that tell what to look for in the input data and what to do when it&rsquo;s found. Awk searches a set of files for lines matched by any of the patterns; when a matching line is found, the corresponding action is performed. A <strong>pattern</strong> can select lines by combinations of regular expressions and comparison operations on <strong>strings</strong>, <strong>numbers</strong>, <strong>fields</strong>, <strong>variables</strong>, and <strong>array elements</strong>. <strong>Actions</strong> may perform arbitrary processing on selected lines; the action language looks like C but there are <strong>no declarations (不需要声明)</strong>, and strings and numbers are built-in types.</p>
@@ -492,8 +537,12 @@ $ awk -v val<span style="color:#f92672">=</span>$x <span style="color:#e6db74">&
 <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/languages/c&#43;&#43;.min.js"></script>
 <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/languages/cmake.min.js"></script>
 <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/languages/go.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/languages/html.min.js"></script>
 <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/languages/java.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/languages/javascript.min.js"></script>
 <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/languages/python.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/languages/rust.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/languages/typescript.min.js"></script>
 <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/languages/yaml.min.js"></script>
 <script>hljs.configure({languages: []}); hljs.initHighlightingOnLoad();</script>
 

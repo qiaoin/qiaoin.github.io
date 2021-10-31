@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>reading-notes on 在桥边</title>
+    <link>https://qiaoin.github.io/categories/reading-notes/</link>
+    <description>Recent content in reading-notes on 在桥边</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>en-us</language>
+    <lastBuildDate>Sun, 08 Mar 2020 00:00:00 +0000</lastBuildDate><atom:link href="https://qiaoin.github.io/categories/reading-notes/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>《微服务设计》读书笔记</title>
+      <link>https://qiaoin.github.io/2020/03/08/building-microservices-notes/</link>
+      <pubDate>Sun, 08 Mar 2020 00:00:00 +0000</pubDate>
+      
+      <guid>https://qiaoin.github.io/2020/03/08/building-microservices-notes/</guid>
+      <description>开始于 2020 年 3 月 8 日 Table of contents 幂等 版权声明 幂等 幂等的含义是，一个调用被发送多次所产生的总的副作用和被发送一次所产生的副作用是一样的。服务间的调用会</description>
+    </item>
+    
+    <item>
+      <title>《TCP/IP 详解》读书笔记</title>
+      <link>https://qiaoin.github.io/2019/10/29/tcp-ip-illustrated-notes/</link>
+      <pubDate>Tue, 29 Oct 2019 00:00:00 +0000</pubDate>
+      
+      <guid>https://qiaoin.github.io/2019/10/29/tcp-ip-illustrated-notes/</guid>
+      <description>Table of contents 路由表中保存的信息： 版权声明 TCP/IP 详解 卷 1：协议：强调动手操作，使用 tcpdump 工具来深入理解网络协议 学习笔记整理，最后梳理的时候： 对于重要知识点，</description>
+    </item>
+    
+    <item>
+      <title>《软件方法》读书笔记</title>
+      <link>https://qiaoin.github.io/2019/05/09/software-uml/</link>
+      <pubDate>Thu, 09 May 2019 00:00:00 +0000</pubDate>
+      
+      <guid>https://qiaoin.github.io/2019/05/09/software-uml/</guid>
+      <description>开始于 2019 年 5 月 9 日，整理于 2020 年 3 月 5 日 基于 Enterprise Architect（EA）初始模型，参考每一章节的【案例和工具操作】进行画 UML 图，能够加深理解。 根</description>
+    </item>
+    
+    <item>
+      <title>《程序设计实践》读书笔记</title>
+      <link>https://qiaoin.github.io/2019/04/02/practice-of-programming-notes/</link>
+      <pubDate>Tue, 02 Apr 2019 00:00:00 +0000</pubDate>
+      
+      <guid>https://qiaoin.github.io/2019/04/02/practice-of-programming-notes/</guid>
+      <description>很早以前就知道有这本书了，一直没有机会找来看，当然这只能说明自己比较懒，现在终于有了空闲和心情，遂找来看看，The Practice of Programming</description>
+    </item>
+    
+    <item>
+      <title>《UNIX 网络编程》读书笔记</title>
+      <link>https://qiaoin.github.io/2018/12/24/unix-network-programming-notes/</link>
+      <pubDate>Mon, 24 Dec 2018 00:00:00 +0000</pubDate>
+      
+      <guid>https://qiaoin.github.io/2018/12/24/unix-network-programming-notes/</guid>
+      <description>Table of contents 简单的非并发例子 Basic, non-concurrent examples 并发网络编程 Concurrent example 多机器上的数据处理 Data processing with multiple machines 高级主题 Advanced Topics 版权声明 UNIX 网络编程 阻塞式IO； 非阻塞式IO； 读写锁； etc&amp;hellip; 结</description>
+    </item>
+    
+    <item>
+      <title>《图解 HTTP》读书笔记</title>
+      <link>https://qiaoin.github.io/2018/09/21/illustration-http-notes/</link>
+      <pubDate>Fri, 21 Sep 2018 00:00:00 +0000</pubDate>
+      
+      <guid>https://qiaoin.github.io/2018/09/21/illustration-http-notes/</guid>
+      <description>Table of contents 基础概念 了解 Web 网络基础 HTTP 协议 请求报文与响应报文 HTTP 方法 GET 和 POST 的区别 HTTP 状态码 HTTP 首部 具体应用 Cookie &amp;amp; Session P25 P34 P37 P132 P177 用单台主机实现多个域名 P66 通信数据</description>
+    </item>
+    
+    <item>
+      <title>《编程珠玑》读书笔记</title>
+      <link>https://qiaoin.github.io/2018/04/19/programming-pearls-notes/</link>
+      <pubDate>Thu, 19 Apr 2018 00:00:00 +0000</pubDate>
+      
+      <guid>https://qiaoin.github.io/2018/04/19/programming-pearls-notes/</guid>
+      <description>Table of contents 前言 Part I: PRELIMINARIES 准备工作 Part II: PERFORMANCE Part III: THE PRODUCT [Summary] Column1 cracking the osster [Summary] Column4 writing correct programs Implementing Binary Search with C 版权声明 前言 在本书的前言部分，作者写到： 计算机编程有很多方面。Fred Brooks</description>
+    </item>
+    
+    <item>
+      <title>《计算机体系结构》Chapter1 读书笔记</title>
+      <link>https://qiaoin.github.io/2018/04/03/caaqa-chapter1/</link>
+      <pubDate>Tue, 03 Apr 2018 00:00:00 +0000</pubDate>
+      
+      <guid>https://qiaoin.github.io/2018/04/03/caaqa-chapter1/</guid>
+      <description>Table of contents Introduction Classes of Computers Classed of Parallelism and Parallel Architectures Defining Computer Architecture Trends in Technology Performance Trends: Bandwidth over Latency Scaling of Transistor Performance and Wires Trends in Power and Energy in Integrated Circuits Power and Energy: A Systems Perspective Energy and Power within a Microprocessor Trends in Cost The Impact of Time, Volume, and Commoditization Cost of an Integrated Circuits Dependability (without) Measuring, Reporting, and</description>
+    </item>
+    
+    <item>
+      <title>《UNIX 编程艺术》Chapter4 读书笔记</title>
+      <link>https://qiaoin.github.io/2017/04/15/art-of-unix-chapter4/</link>
+      <pubDate>Sat, 15 Apr 2017 00:00:00 +0000</pubDate>
+      
+      <guid>https://qiaoin.github.io/2017/04/15/art-of-unix-chapter4/</guid>
+      <description>Table of contents 模块性：保持清晰，保持简洁 封装和最佳模块大小 紧凑性和正交性 软件是多层的 程序库 Unix 和面向对象语言 模块式编码 版权声明 模块性：保持清晰，保持简</description>
+    </item>
+    
+  </channel>
+</rss>

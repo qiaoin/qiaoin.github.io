@@ -6,14 +6,41 @@
     <description>Recent content in 编程语言 on 在桥边</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
-    <lastBuildDate>Sun, 08 Sep 2019 00:00:00 +0000</lastBuildDate><atom:link href="https://qiaoin.github.io/categories/%E7%BC%96%E7%A8%8B%E8%AF%AD%E8%A8%80/index.xml" rel="self" type="application/rss+xml" />
+    <lastBuildDate>Sat, 31 Oct 2020 00:00:00 +0000</lastBuildDate><atom:link href="https://qiaoin.github.io/categories/%E7%BC%96%E7%A8%8B%E8%AF%AD%E8%A8%80/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>C&#43;&#43; 标准库</title>
+      <link>https://qiaoin.github.io/2020/10/31/stl-introduction/</link>
+      <pubDate>Sat, 31 Oct 2020 00:00:00 +0000</pubDate>
+      
+      <guid>https://qiaoin.github.io/2020/10/31/stl-introduction/</guid>
+      <description>Table of contents 目标 六大部件 版权声明 目标 level 0: 使用 C++ 标准库 level 1: 认识 C++ 标准库（胸中自有丘壑） level 2: 良好使用 C++ 标准库 level 3: 扩充 C++ 标准库 范型编程（Generic P</description>
+    </item>
+    
+    <item>
+      <title>《JavaScript DOM 编程艺术》读书笔记</title>
+      <link>https://qiaoin.github.io/2020/07/13/javascript-dom/</link>
+      <pubDate>Mon, 13 Jul 2020 00:00:00 +0000</pubDate>
+      
+      <guid>https://qiaoin.github.io/2020/07/13/javascript-dom/</guid>
+      <description>本书的精华：书中提到的关于 JavaScript 和 DOM 脚本编程工作的基本原则、良好习惯和正确思路 DOM 编程技术的设计思路和原则：平稳退化、渐进增强和以用户为中心，或者</description>
+    </item>
+    
+    <item>
+      <title>Go 语言基础 -- A Tour of Go</title>
+      <link>https://qiaoin.github.io/2020/06/09/go-basis/</link>
+      <pubDate>Tue, 09 Jun 2020 00:00:00 +0000</pubDate>
+      
+      <guid>https://qiaoin.github.io/2020/06/09/go-basis/</guid>
+      <description>Table of contents 环境搭建 语言基础 Packages and Imports Exported names Functions 变量 常量 基础数据类型 数据类型转换 类型推导 for if switch defer 指针 结构体 struct 数组 切片 slice 映射/字典 map 函数值 方法 接口 接口与隐式</description>
+    </item>
+    
     <item>
       <title>AWK 学习使用</title>
       <link>https://qiaoin.github.io/2019/09/08/learning-awk/</link>
       <pubDate>Sun, 08 Sep 2019 00:00:00 +0000</pubDate>
       
       <guid>https://qiaoin.github.io/2019/09/08/learning-awk/</guid>
-      <description>由于经常需要跟命令行和文本处理打交道，也确实在实际使用中体会到了 AWK 的强大力量，决定系统学习一下 AWK，此之为学习使用的笔记整理 下文中引用部分</description>
+      <description>由于经常需要跟命令行和文本处理打交道，也确实在实际使用中体会到了 AWK 的强大力量，决定系统学习一下 AWK，此之为学习使用的笔记整理 Table of contents 参考资料</description>
     </item>
     
     <item>
@@ -22,7 +49,25 @@
       <pubDate>Sat, 27 Jul 2019 00:00:00 +0000</pubDate>
       
       <guid>https://qiaoin.github.io/2019/07/27/object-based-and-object-oriented/</guid>
-      <description>写在最前面 侯捷老师翻译的 Effective C++，C++ 学习者人手必备一本。本系列博文是笔者在学习侯捷老师视频课程时整理的笔记，将课程内容的关键点与 Effective C++ 的对</description>
+      <description>Table of contents 写在最前面 0.0 目标 术语 Header（头文件）中的防御式编程 inline 函数 构造函数 constructor 区分赋值和初始化（assignment and initializat</description>
+    </item>
+    
+    <item>
+      <title>柔性数组</title>
+      <link>https://qiaoin.github.io/2018/10/24/soft-array/</link>
+      <pubDate>Wed, 24 Oct 2018 00:00:00 +0000</pubDate>
+      
+      <guid>https://qiaoin.github.io/2018/10/24/soft-array/</guid>
+      <description>印象中 int size[0] 这种在 C/C++ 是不允许的，但是在结构中确实可以使用的(C99 标准)。经过查看资料，知道这种可变数组被称为柔性数组。 Table of contents 从头开始说起 用法</description>
+    </item>
+    
+    <item>
+      <title>C 语言中的字符指针与字符数组</title>
+      <link>https://qiaoin.github.io/2018/04/13/c-char-point-and-char-array/</link>
+      <pubDate>Fri, 13 Apr 2018 00:00:00 +0000</pubDate>
+      
+      <guid>https://qiaoin.github.io/2018/04/13/c-char-point-and-char-array/</guid>
+      <description>昨天晚上和今天上午，一直在琢磨《剑指offer》上的面试题5：替换空格 ，之后还给书的作者提交了一个 issue，这道题目也就告一段落了。耗费了</description>
     </item>
     
   </channel>

@@ -13,7 +13,34 @@
       <pubDate>Mon, 26 Apr 2021 00:00:00 +0000</pubDate>
       
       <guid>https://qiaoin.github.io/2021/04/26/write-a-daemon/</guid>
-      <description>什么是 Daemon？ 守护进程（daemon）是生存期长的一种进程。它们常常在系统引导装入时启动，仅在系统关闭时才终止。因为它们没有控制终端，</description>
+      <description>Table of contents 什么是 Daemon？ 什么时候需要写一个 Daemon Daemon 的特征 会话、进程组、控制终端 nohup &amp;amp; 运行起来的是 Daemon 吗？ Daemon 编程最佳实践 单实例 Daemon 总结 画图工具 版权声明</description>
+    </item>
+    
+    <item>
+      <title>C&#43;&#43; 标准库</title>
+      <link>https://qiaoin.github.io/2020/10/31/stl-introduction/</link>
+      <pubDate>Sat, 31 Oct 2020 00:00:00 +0000</pubDate>
+      
+      <guid>https://qiaoin.github.io/2020/10/31/stl-introduction/</guid>
+      <description>Table of contents 目标 六大部件 版权声明 目标 level 0: 使用 C++ 标准库 level 1: 认识 C++ 标准库（胸中自有丘壑） level 2: 良好使用 C++ 标准库 level 3: 扩充 C++ 标准库 范型编程（Generic P</description>
+    </item>
+    
+    <item>
+      <title>《JavaScript DOM 编程艺术》读书笔记</title>
+      <link>https://qiaoin.github.io/2020/07/13/javascript-dom/</link>
+      <pubDate>Mon, 13 Jul 2020 00:00:00 +0000</pubDate>
+      
+      <guid>https://qiaoin.github.io/2020/07/13/javascript-dom/</guid>
+      <description>本书的精华：书中提到的关于 JavaScript 和 DOM 脚本编程工作的基本原则、良好习惯和正确思路 DOM 编程技术的设计思路和原则：平稳退化、渐进增强和以用户为中心，或者</description>
+    </item>
+    
+    <item>
+      <title>Go 语言基础 -- A Tour of Go</title>
+      <link>https://qiaoin.github.io/2020/06/09/go-basis/</link>
+      <pubDate>Tue, 09 Jun 2020 00:00:00 +0000</pubDate>
+      
+      <guid>https://qiaoin.github.io/2020/06/09/go-basis/</guid>
+      <description>Table of contents 环境搭建 语言基础 Packages and Imports Exported names Functions 变量 常量 基础数据类型 数据类型转换 类型推导 for if switch defer 指针 结构体 struct 数组 切片 slice 映射/字典 map 函数值 方法 接口 接口与隐式</description>
     </item>
     
     <item>
@@ -26,12 +53,84 @@
     </item>
     
     <item>
+      <title>《微服务设计》读书笔记</title>
+      <link>https://qiaoin.github.io/2020/03/08/building-microservices-notes/</link>
+      <pubDate>Sun, 08 Mar 2020 00:00:00 +0000</pubDate>
+      
+      <guid>https://qiaoin.github.io/2020/03/08/building-microservices-notes/</guid>
+      <description>开始于 2020 年 3 月 8 日 Table of contents 幂等 版权声明 幂等 幂等的含义是，一个调用被发送多次所产生的总的副作用和被发送一次所产生的副作用是一样的。服务间的调用会</description>
+    </item>
+    
+    <item>
+      <title>页面置换算法</title>
+      <link>https://qiaoin.github.io/2020/02/21/3-page-replacement-algorithms/</link>
+      <pubDate>Fri, 21 Feb 2020 00:00:00 +0000</pubDate>
+      
+      <guid>https://qiaoin.github.io/2020/02/21/3-page-replacement-algorithms/</guid>
+      <description>重学操作系统系列，清华大学操作系统课程笔记 Table of contents 页面置换算法的概念 局部置换算法 最优页面置换算法（OPT，optimal） 先进先出算法（FIF</description>
+    </item>
+    
+    <item>
+      <title>虚拟存储</title>
+      <link>https://qiaoin.github.io/2020/02/20/2-virtual-memory/</link>
+      <pubDate>Thu, 20 Feb 2020 00:00:00 +0000</pubDate>
+      
+      <guid>https://qiaoin.github.io/2020/02/20/2-virtual-memory/</guid>
+      <description>重学操作系统系列，清华大学操作系统课程笔记 Table of contents 虚拟存储的需求背景 覆盖技术 交换技术 覆盖与交换的比较 虚拟存储概念 虚拟存储的技术目标 局部性原理（</description>
+    </item>
+    
+    <item>
+      <title>内存管理</title>
+      <link>https://qiaoin.github.io/2020/02/19/1-memory-management/</link>
+      <pubDate>Wed, 19 Feb 2020 00:00:00 +0000</pubDate>
+      
+      <guid>https://qiaoin.github.io/2020/02/19/1-memory-management/</guid>
+      <description>重学操作系统系列，清华大学操作系统课程笔记 Table of contents 地址生成 地址空间的定义 逻辑地址生成 地址生成的时机和限制 地址的生成过程 连续内存分配 动态分区分配</description>
+    </item>
+    
+    <item>
+      <title>操作系统概述</title>
+      <link>https://qiaoin.github.io/2020/02/18/0-os-structures/</link>
+      <pubDate>Tue, 18 Feb 2020 00:00:00 +0000</pubDate>
+      
+      <guid>https://qiaoin.github.io/2020/02/18/0-os-structures/</guid>
+      <description>重学操作系统系列，清华大学操作系统课程笔记 Table of contents 操作系统结构 操作系统结构分类 VMM（虚拟机管理器） x86-32 硬件 x86-32 硬件-运行模式 x86-32 硬件-内存构架 x86-32 硬</description>
+    </item>
+    
+    <item>
+      <title>epoll 源码实现</title>
+      <link>https://qiaoin.github.io/2019/11/23/epoll-source-notes/</link>
+      <pubDate>Sat, 23 Nov 2019 00:00:00 +0000</pubDate>
+      
+      <guid>https://qiaoin.github.io/2019/11/23/epoll-source-notes/</guid>
+      <description>Table of contents References 版权声明 epoll 相关的内核代码在 fs/eventpoll.c 文件中，下面分别分析 epoll_create、epoll_ctl 和 epoll_wait 三个函数在内核中的实现，分析所用 linux 内</description>
+    </item>
+    
+    <item>
+      <title>MIT 6.828 Lab 2 - Memory Management</title>
+      <link>https://qiaoin.github.io/2019/11/03/mit-6-828-lab-2-memory-management/</link>
+      <pubDate>Sun, 03 Nov 2019 00:00:00 +0000</pubDate>
+      
+      <guid>https://qiaoin.github.io/2019/11/03/mit-6-828-lab-2-memory-management/</guid>
+      <description>重学操作系统系列，MIT 6.828 课程实验 Table of contents Part 1: Physical Page Management Part 2: Virtual Memory 虚拟地址、线性地址和物理地址 引用计数（reference count） 页表管理（pa</description>
+    </item>
+    
+    <item>
+      <title>《TCP/IP 详解》读书笔记</title>
+      <link>https://qiaoin.github.io/2019/10/29/tcp-ip-illustrated-notes/</link>
+      <pubDate>Tue, 29 Oct 2019 00:00:00 +0000</pubDate>
+      
+      <guid>https://qiaoin.github.io/2019/10/29/tcp-ip-illustrated-notes/</guid>
+      <description>Table of contents 路由表中保存的信息： 版权声明 TCP/IP 详解 卷 1：协议：强调动手操作，使用 tcpdump 工具来深入理解网络协议 学习笔记整理，最后梳理的时候： 对于重要知识点，</description>
+    </item>
+    
+    <item>
       <title>线性代数基础</title>
-      <link>https://qiaoin.github.io/2019/10/26/essense-linear-lgebra/</link>
+      <link>https://qiaoin.github.io/2019/10/26/essence-of-linear-algebra/</link>
       <pubDate>Sat, 26 Oct 2019 00:00:00 +0000</pubDate>
       
-      <guid>https://qiaoin.github.io/2019/10/26/essense-linear-lgebra/</guid>
-      <description>线性代数的本质 - 系列合集 我们学习了线性代数，却无法对下面的问题形成真正的理解： 为什么矩阵乘法要如此定义？（matrix multiplicat</description>
+      <guid>https://qiaoin.github.io/2019/10/26/essence-of-linear-algebra/</guid>
+      <description>序言（Introduction） 向量究竟是什么？（Essence of Linear Algebra） 向量加法 向量数乘 向量的线性组合、张成的空间和基（Line</description>
     </item>
     
     <item>
@@ -40,7 +139,7 @@
       <pubDate>Sun, 08 Sep 2019 00:00:00 +0000</pubDate>
       
       <guid>https://qiaoin.github.io/2019/09/08/learning-awk/</guid>
-      <description>由于经常需要跟命令行和文本处理打交道，也确实在实际使用中体会到了 AWK 的强大力量，决定系统学习一下 AWK，此之为学习使用的笔记整理 下文中引用部分</description>
+      <description>由于经常需要跟命令行和文本处理打交道，也确实在实际使用中体会到了 AWK 的强大力量，决定系统学习一下 AWK，此之为学习使用的笔记整理 Table of contents 参考资料</description>
     </item>
     
     <item>
@@ -49,7 +148,106 @@
       <pubDate>Sat, 27 Jul 2019 00:00:00 +0000</pubDate>
       
       <guid>https://qiaoin.github.io/2019/07/27/object-based-and-object-oriented/</guid>
-      <description>写在最前面 侯捷老师翻译的 Effective C++，C++ 学习者人手必备一本。本系列博文是笔者在学习侯捷老师视频课程时整理的笔记，将课程内容的关键点与 Effective C++ 的对</description>
+      <description>Table of contents 写在最前面 0.0 目标 术语 Header（头文件）中的防御式编程 inline 函数 构造函数 constructor 区分赋值和初始化（assignment and initializat</description>
+    </item>
+    
+    <item>
+      <title>《软件方法》读书笔记</title>
+      <link>https://qiaoin.github.io/2019/05/09/software-uml/</link>
+      <pubDate>Thu, 09 May 2019 00:00:00 +0000</pubDate>
+      
+      <guid>https://qiaoin.github.io/2019/05/09/software-uml/</guid>
+      <description>开始于 2019 年 5 月 9 日，整理于 2020 年 3 月 5 日 基于 Enterprise Architect（EA）初始模型，参考每一章节的【案例和工具操作】进行画 UML 图，能够加深理解。 根</description>
+    </item>
+    
+    <item>
+      <title>MIT 6.828 Lab 1 - Booting a PC</title>
+      <link>https://qiaoin.github.io/2019/04/07/mit-6-828-lab-1-booting-a-pc/</link>
+      <pubDate>Sun, 07 Apr 2019 00:00:00 +0000</pubDate>
+      
+      <guid>https://qiaoin.github.io/2019/04/07/mit-6-828-lab-1-booting-a-pc/</guid>
+      <description>重学操作系统系列，MIT 6.828 课程实验 Table of contents Part 1: PC Bootstrap Part 2: The Boot Loader ELF 文件格式 链接地址和加载地址（link address and load address） Part 3：The Kernel cprintf 函数的</description>
+    </item>
+    
+    <item>
+      <title>《程序设计实践》读书笔记</title>
+      <link>https://qiaoin.github.io/2019/04/02/practice-of-programming-notes/</link>
+      <pubDate>Tue, 02 Apr 2019 00:00:00 +0000</pubDate>
+      
+      <guid>https://qiaoin.github.io/2019/04/02/practice-of-programming-notes/</guid>
+      <description>很早以前就知道有这本书了，一直没有机会找来看，当然这只能说明自己比较懒，现在终于有了空闲和心情，遂找来看看，The Practice of Programming</description>
+    </item>
+    
+    <item>
+      <title>《UNIX 网络编程》读书笔记</title>
+      <link>https://qiaoin.github.io/2018/12/24/unix-network-programming-notes/</link>
+      <pubDate>Mon, 24 Dec 2018 00:00:00 +0000</pubDate>
+      
+      <guid>https://qiaoin.github.io/2018/12/24/unix-network-programming-notes/</guid>
+      <description>Table of contents 简单的非并发例子 Basic, non-concurrent examples 并发网络编程 Concurrent example 多机器上的数据处理 Data processing with multiple machines 高级主题 Advanced Topics 版权声明 UNIX 网络编程 阻塞式IO； 非阻塞式IO； 读写锁； etc&amp;hellip; 结</description>
+    </item>
+    
+    <item>
+      <title>柔性数组</title>
+      <link>https://qiaoin.github.io/2018/10/24/soft-array/</link>
+      <pubDate>Wed, 24 Oct 2018 00:00:00 +0000</pubDate>
+      
+      <guid>https://qiaoin.github.io/2018/10/24/soft-array/</guid>
+      <description>印象中 int size[0] 这种在 C/C++ 是不允许的，但是在结构中确实可以使用的(C99 标准)。经过查看资料，知道这种可变数组被称为柔性数组。 Table of contents 从头开始说起 用法</description>
+    </item>
+    
+    <item>
+      <title>《图解 HTTP》读书笔记</title>
+      <link>https://qiaoin.github.io/2018/09/21/illustration-http-notes/</link>
+      <pubDate>Fri, 21 Sep 2018 00:00:00 +0000</pubDate>
+      
+      <guid>https://qiaoin.github.io/2018/09/21/illustration-http-notes/</guid>
+      <description>Table of contents 基础概念 了解 Web 网络基础 HTTP 协议 请求报文与响应报文 HTTP 方法 GET 和 POST 的区别 HTTP 状态码 HTTP 首部 具体应用 Cookie &amp;amp; Session P25 P34 P37 P132 P177 用单台主机实现多个域名 P66 通信数据</description>
+    </item>
+    
+    <item>
+      <title>传输层模块的 RDMA 实现</title>
+      <link>https://qiaoin.github.io/2018/06/16/transport-with-ibverbs/</link>
+      <pubDate>Sat, 16 Jun 2018 00:00:00 +0000</pubDate>
+      
+      <guid>https://qiaoin.github.io/2018/06/16/transport-with-ibverbs/</guid>
+      <description>Table of contents 什么是 RDMA ？ RDMA 中的一些基础概念 一个典型的 RDMA 应用的流程 Gloo 的底层传输 RDMA 实现 address.cc / address.h device.cc / device.h pair.cc / pair.h memory_region.cc / memory_region.h buffer.cc / buffer.h References 版权声明 什么是 RDMA ？ DMA（Dire</description>
+    </item>
+    
+    <item>
+      <title>《编程珠玑》读书笔记</title>
+      <link>https://qiaoin.github.io/2018/04/19/programming-pearls-notes/</link>
+      <pubDate>Thu, 19 Apr 2018 00:00:00 +0000</pubDate>
+      
+      <guid>https://qiaoin.github.io/2018/04/19/programming-pearls-notes/</guid>
+      <description>Table of contents 前言 Part I: PRELIMINARIES 准备工作 Part II: PERFORMANCE Part III: THE PRODUCT [Summary] Column1 cracking the osster [Summary] Column4 writing correct programs Implementing Binary Search with C 版权声明 前言 在本书的前言部分，作者写到： 计算机编程有很多方面。Fred Brooks</description>
+    </item>
+    
+    <item>
+      <title>C 语言中的字符指针与字符数组</title>
+      <link>https://qiaoin.github.io/2018/04/13/c-char-point-and-char-array/</link>
+      <pubDate>Fri, 13 Apr 2018 00:00:00 +0000</pubDate>
+      
+      <guid>https://qiaoin.github.io/2018/04/13/c-char-point-and-char-array/</guid>
+      <description>昨天晚上和今天上午，一直在琢磨《剑指offer》上的面试题5：替换空格 ，之后还给书的作者提交了一个 issue，这道题目也就告一段落了。耗费了</description>
+    </item>
+    
+    <item>
+      <title>《计算机体系结构》Chapter1 读书笔记</title>
+      <link>https://qiaoin.github.io/2018/04/03/caaqa-chapter1/</link>
+      <pubDate>Tue, 03 Apr 2018 00:00:00 +0000</pubDate>
+      
+      <guid>https://qiaoin.github.io/2018/04/03/caaqa-chapter1/</guid>
+      <description>Table of contents Introduction Classes of Computers Classed of Parallelism and Parallel Architectures Defining Computer Architecture Trends in Technology Performance Trends: Bandwidth over Latency Scaling of Transistor Performance and Wires Trends in Power and Energy in Integrated Circuits Power and Energy: A Systems Perspective Energy and Power within a Microprocessor Trends in Cost The Impact of Time, Volume, and Commoditization Cost of an Integrated Circuits Dependability (without) Measuring, Reporting, and</description>
+    </item>
+    
+    <item>
+      <title>《UNIX 编程艺术》Chapter4 读书笔记</title>
+      <link>https://qiaoin.github.io/2017/04/15/art-of-unix-chapter4/</link>
+      <pubDate>Sat, 15 Apr 2017 00:00:00 +0000</pubDate>
+      
+      <guid>https://qiaoin.github.io/2017/04/15/art-of-unix-chapter4/</guid>
+      <description>Table of contents 模块性：保持清晰，保持简洁 封装和最佳模块大小 紧凑性和正交性 软件是多层的 程序库 Unix 和面向对象语言 模块式编码 版权声明 模块性：保持清晰，保持简</description>
     </item>
     
     <item>
@@ -59,6 +257,15 @@
       
       <guid>https://qiaoin.github.io/2017/02/24/cmake-tutorial/</guid>
       <description>本文为 CMake 官网入门教程 CMake Tutorial 的翻译，并添加了一些自己的理解，以帮助读者更好地理解文章内容。(对原文中引用过来的代码进行了一些简单的修改，如编程风</description>
+    </item>
+    
+    <item>
+      <title>递归的深度</title>
+      <link>https://qiaoin.github.io/2016/03/14/deepth-of-recursion/</link>
+      <pubDate>Mon, 14 Mar 2016 00:00:00 +0000</pubDate>
+      
+      <guid>https://qiaoin.github.io/2016/03/14/deepth-of-recursion/</guid>
+      <description>递归，我一直都理解不了，就算是理解了函数调用堆栈之后，还是对于递归的优化尾递归更是一头雾水，遂想先学学递归，然后写写自己的想法。 递归，是一座</description>
     </item>
     
     <item>

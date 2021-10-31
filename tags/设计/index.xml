@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>设计 on 在桥边</title>
+    <link>https://qiaoin.github.io/tags/%E8%AE%BE%E8%AE%A1/</link>
+    <description>Recent content in 设计 on 在桥边</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>en-us</language>
+    <lastBuildDate>Thu, 09 May 2019 00:00:00 +0000</lastBuildDate><atom:link href="https://qiaoin.github.io/tags/%E8%AE%BE%E8%AE%A1/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>《软件方法》读书笔记</title>
+      <link>https://qiaoin.github.io/2019/05/09/software-uml/</link>
+      <pubDate>Thu, 09 May 2019 00:00:00 +0000</pubDate>
+      
+      <guid>https://qiaoin.github.io/2019/05/09/software-uml/</guid>
+      <description>开始于 2019 年 5 月 9 日，整理于 2020 年 3 月 5 日 基于 Enterprise Architect（EA）初始模型，参考每一章节的【案例和工具操作】进行画 UML 图，能够加深理解。 根</description>
+    </item>
+    
+  </channel>
+</rss>

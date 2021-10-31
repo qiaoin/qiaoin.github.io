@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Socket on 在桥边</title>
+    <link>https://qiaoin.github.io/tags/socket/</link>
+    <description>Recent content in Socket on 在桥边</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>en-us</language>
+    <lastBuildDate>Tue, 29 Oct 2019 00:00:00 +0000</lastBuildDate><atom:link href="https://qiaoin.github.io/tags/socket/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>《TCP/IP 详解》读书笔记</title>
+      <link>https://qiaoin.github.io/2019/10/29/tcp-ip-illustrated-notes/</link>
+      <pubDate>Tue, 29 Oct 2019 00:00:00 +0000</pubDate>
+      
+      <guid>https://qiaoin.github.io/2019/10/29/tcp-ip-illustrated-notes/</guid>
+      <description>Table of contents 路由表中保存的信息： 版权声明 TCP/IP 详解 卷 1：协议：强调动手操作，使用 tcpdump 工具来深入理解网络协议 学习笔记整理，最后梳理的时候： 对于重要知识点，</description>
+    </item>
+    
+    <item>
+      <title>《UNIX 网络编程》读书笔记</title>
+      <link>https://qiaoin.github.io/2018/12/24/unix-network-programming-notes/</link>
+      <pubDate>Mon, 24 Dec 2018 00:00:00 +0000</pubDate>
+      
+      <guid>https://qiaoin.github.io/2018/12/24/unix-network-programming-notes/</guid>
+      <description>Table of contents 简单的非并发例子 Basic, non-concurrent examples 并发网络编程 Concurrent example 多机器上的数据处理 Data processing with multiple machines 高级主题 Advanced Topics 版权声明 UNIX 网络编程 阻塞式IO； 非阻塞式IO； 读写锁； etc&amp;hellip; 结</description>
+    </item>
+    
+  </channel>
+</rss>

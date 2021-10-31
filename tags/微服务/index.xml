@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>微服务 on 在桥边</title>
+    <link>https://qiaoin.github.io/tags/%E5%BE%AE%E6%9C%8D%E5%8A%A1/</link>
+    <description>Recent content in 微服务 on 在桥边</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>en-us</language>
+    <lastBuildDate>Sun, 08 Mar 2020 00:00:00 +0000</lastBuildDate><atom:link href="https://qiaoin.github.io/tags/%E5%BE%AE%E6%9C%8D%E5%8A%A1/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>《微服务设计》读书笔记</title>
+      <link>https://qiaoin.github.io/2020/03/08/building-microservices-notes/</link>
+      <pubDate>Sun, 08 Mar 2020 00:00:00 +0000</pubDate>
+      
+      <guid>https://qiaoin.github.io/2020/03/08/building-microservices-notes/</guid>
+      <description>开始于 2020 年 3 月 8 日 Table of contents 幂等 版权声明 幂等 幂等的含义是，一个调用被发送多次所产生的总的副作用和被发送一次所产生的副作用是一样的。服务间的调用会</description>
+    </item>
+    
+  </channel>
+</rss>

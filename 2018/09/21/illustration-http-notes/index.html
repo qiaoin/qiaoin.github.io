@@ -1,0 +1,651 @@
+<!DOCTYPE html>
+<html lang="en-us">
+  <head>
+    <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="generator" content="Hugo 0.82.0" />
+
+
+<title>《图解 HTTP》读书笔记 - 在桥边</title>
+<meta property="og:title" content="《图解 HTTP》读书笔记 - 在桥边">
+
+
+  <link href='https://qiaoin.github.io/favicon.ico' rel='icon' type='image/x-icon'/>
+
+
+
+  
+
+
+
+
+
+
+
+
+<link href='//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/styles/monokai.min.css' rel='stylesheet' type='text/css' />
+
+
+
+<link rel="stylesheet" href="/css/fonts.css" media="all">
+<link rel="stylesheet" href="/css/main.css" media="all">
+
+
+
+  </head>
+  <body>
+    <div class="wrapper">
+      <header class="header">
+        <nav class="nav">
+  <a href="/" class="nav-logo">
+    <img src="/images/logo.png"
+         width="50"
+         height="50"
+         alt="Logo">
+  </a>
+
+  <ul class="nav-links">
+    
+    <li><a href="/re-learning-cs/">重学基础</a></li>
+    
+    <li><a href="/about/">About</a></li>
+    
+    <li><a href="https://github.com/qiaoin">GitHub</a></li>
+    
+  </ul>
+</nav>
+
+      </header>
+
+
+<main class="content" role="main">
+
+  <article class="article">
+    
+    <span class="article-duration">11 min read</span>
+    
+
+    <h1 class="article-title">《图解 HTTP》读书笔记</h1>
+
+    
+    <span class="article-date">2018-09-21</span>
+    
+
+    <div class="article-content">
+      <hr>
+<div class="toc">
+    <details>
+        <summary>Table of contents</summary>
+        <nav id="TableOfContents">
+  <ul>
+    <li><a href="#基础概念">基础概念</a>
+      <ul>
+        <li><a href="#了解-web">了解 Web</a></li>
+        <li><a href="#网络基础">网络基础</a></li>
+      </ul>
+    </li>
+    <li><a href="#http-协议">HTTP 协议</a>
+      <ul>
+        <li><a href="#请求报文与响应报文">请求报文与响应报文</a></li>
+        <li><a href="#http-方法">HTTP 方法</a></li>
+      </ul>
+    </li>
+    <li><a href="#get-和-post-的区别">GET 和 POST 的区别</a></li>
+    <li><a href="#http-状态码">HTTP 状态码</a></li>
+    <li><a href="#http-首部">HTTP 首部</a></li>
+    <li><a href="#具体应用">具体应用</a>
+      <ul>
+        <li><a href="#cookie--session-p25-p34-p37-p132-p177">Cookie &amp; Session P25 P34 P37 P132 P177</a></li>
+        <li><a href="#用单台主机实现多个域名-p66">用单台主机实现多个域名 P66</a></li>
+        <li><a href="#通信数据转发程序代理网关隧道-p67">通信数据转发程序：代理、网关、隧道 P67</a></li>
+        <li><a href="#保存资源的缓存-p71">保存资源的缓存 P71</a></li>
+      </ul>
+    </li>
+    <li><a href="#https">HTTPS</a>
+      <ul>
+        <li><a href="#加密">加密</a></li>
+        <li><a href="#证书">证书</a></li>
+        <li><a href="#完整性保护">完整性保护</a></li>
+        <li><a href="#https-的缺点">HTTPS 的缺点</a></li>
+      </ul>
+    </li>
+    <li><a href="#web-的攻击技术">Web 的攻击技术</a>
+      <ul>
+        <li><a href="#跨站脚本攻击">跨站脚本攻击</a></li>
+        <li><a href="#sql-注入攻击">SQL 注入攻击</a></li>
+        <li><a href="#跨站点请求伪造">跨站点请求伪造</a></li>
+        <li><a href="#拒绝服务攻击">拒绝服务攻击</a></li>
+      </ul>
+    </li>
+    <li><a href="#版权声明">版权声明</a></li>
+  </ul>
+</nav>
+    </details>
+</div>
+<hr>
+<h2 id="基础概念">基础概念</h2>
+<h3 id="了解-web">了解 Web</h3>
+<ul>
+<li>WWW（World Wide Web，万维网）的 3 项构建技术：HTML、HTTP、URL
+WWW 这一名称，是 Web 浏览器当年用来浏览超文本的客户端应用程序的名称，现在则用来表示这一系列的集合，也可简称为 Web。</li>
+<li>HTML（HyperText Markup Language，超文本标记语言）</li>
+<li>HTTP（HyperText Transfer Protocol，超文本传输协议）
+当年 HTTP 协议的出现主要是为了解决文本传输的难题。由于协议本身非常简单，于是在此基础上设想了很多应用方法并投入了实际使用。现在 HTTP 协议已经超出了 Web 这个框架的局限，被运用到了各种场景里。</li>
+<li>URL（Uniform Resource Locator，统一资源定位符）</li>
+<li>URI（Uniform Resource Identifier，统一资源标识符）</li>
+</ul>
+<p>RFC2396 分别对这 3 个单词进行了如下定义：</p>
+<ul>
+<li><strong>Uniform</strong> 规定统一的格式可方便处理多种不同类型的资源，而不用根据上下文环境来识别资源指定的访问方式。另外，加入新增的协议方案（如，http: 或 ftp: ）也更容易。</li>
+<li><strong>Resource</strong> 资源的定义是『可标识的任何东西』。不仅是文档文件，图像或服务（例如当天的天气预报）等能够区别于其他类型的，全部可作为资源。另外，资源不仅可以是单一的，也可以是多数的集合体。</li>
+<li><strong>Identifier</strong> 表示可标识的对象。也称为标识符。</li>
+</ul>
+<p>综上所述，URI 就是由某个协议方案表示的资源的定位标识符。协议方案是指访问资源时所使用的协议类型名称。例如，采用 HTTP 协议时，协议方案就是 http；除此之外，还有 ftp、mailto、telnet、file 等。URI用字符串标识某一互联网资源，而 URL 表示资源的地点（互联网上所处的位置）。可见，URL 是 URI 的子集。</p>
+<p>RFC（Request for Comments，征求修正意见书）。由于不遵守 RFC 标准实现就无法进行 HTTP 协议通信，所以基本上客户端和服务器端都会以 RFC 为标准来实现 HTTP 协议。但也存在某些应用程序因客户端或服务器端的不同，而未遵照 RFC 标准，反而将自成一套的『标准』扩展的情况。</p>
+<h3 id="网络基础">网络基础</h3>
+<p>通常使用的网络（包括互联网）是在 TCP/IP 协议族的基础上运作的，而 HTTP 属于它内部的一个子集。</p>
+<p>TCP/IP 协议族里重要的一点就是分层。TCP/IP 协议族按层次分为一下 4 层：应用层、传输层、网络层和数据链路层。</p>
+<p>利用 TCP/IP 协议族进行网络通信时，会通过分层顺序与对方进行通信。发送端从应用层往下走，接收端则从链路层往上走。发送端在层与层之间传输数据时，每经过一层时必定会被打上一个该层所属的首部信息。反之，接收端在层与层传输数据时，每经过一层时会把对应的首消去。这种把数据信息包装起来的做法称为封装（encapsulate）。</p>
+<p>与 HTTP 关系密切的协议：IP、TCP 和 DNS</p>
+<p><strong>待补充 P10-15</strong></p>
+<h2 id="http-协议">HTTP 协议</h2>
+<p>HTTP 协议规定，请求从客户端发出，最后服务器端响应该请求并返回。换句话说，肯定是先从客户端开始建立通信的，服务器端没有接收到请求之前不会发送响应。</p>
+<h3 id="请求报文与响应报文">请求报文与响应报文</h3>
+<p><strong>请求报文</strong></p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-html" data-lang="html">GET /index.htm HTTP/1.1
+Host: www.example.com
+Connection: keep-alive
+Content-Type: application/x-www-form-urlencoded
+Content-Length: 16
+
+name=qiaoin<span style="color:#960050;background-color:#1e0010">&amp;</span>age=24
+</code></pre></div><ul>
+<li>GET 表示请求访问服务器的类型，称为方法（method）</li>
+<li>/index.htm 指明了请求访问的资源对象，也叫请求 URI（request-URI）</li>
+<li>HTTP/1.1 HTTP 的版本号，用来提示客户端使用的 HTTP 协议功能</li>
+<li>Host、Connection、Content-Type、Content-Length 等 为可选的请求首部字段</li>
+<li>空行 CR + LF</li>
+<li>内容实体</li>
+</ul>
+<p><strong>响应报文</strong></p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-html" data-lang="html">HTTP/1.1 200 OK
+Date: Mon, 28 May 2018 13:56:49 GMT
+Content-Length: 362
+Content-Type: text/html
+
+&lt;<span style="color:#f92672">html</span>&gt;
+......
+</code></pre></div><ul>
+<li>HTTP/1.1 表示服务器对应的 HTTP 版本</li>
+<li>200 OK 表示请求的处理结果的状态码（status code）和原因短语（reason-phrase）</li>
+<li>显示创建响应的日期时间，是首部字段（header field）内的一个属性</li>
+<li>可选的响应首部字段</li>
+<li>空行 CR + LF</li>
+<li>资源实体的主体（entity body）</li>
+</ul>
+<h3 id="http-方法">HTTP 方法</h3>
+<ul>
+<li><strong>GET</strong> 获取资源：当前网络请求中，绝大部分使用的是 GET 方法。</li>
+<li><strong>POST</strong> 传输实体主体：虽然用 GET 方法也可以传输实体主体，但一般不用 GET 方法进行传输，而是用 POST 方法。虽说 POST 的功能与 GET 很相近，但 POST 的主要目的并不是获取响应的主体内容。</li>
+<li><strong>PUT</strong> 传输文件：要求在请求报文的主体中包含文件内容，然后保存到请求 URI 指定的位置。但是，鉴于 HTTP、1.1 的 PUT 方法自身不带验证机制，任何人都可以上传文件，存在安全性问题，因此一般的 Web 网站不使用该方法。若配合 Web 应用程序的验证机制，或架构设计采用 REST（Representational State Transfer，表征状态转移）标准的同类 Web 网站，就可能会开放使用 PUT 方法。</li>
+<li><strong>HEAD</strong> 获得报文首部：HEAD 方法和 GET 方法一样，只是不返回报文主体部分。用于确认 URI 的有效性及资源更新的时间等。</li>
+<li><strong>DELETE</strong> 删除文件：DELETE 方法用来删除文件，是与 PUT 相反的方法。同样 DELETE 方法本身不带验证机制。</li>
+<li><strong>OPTIONS</strong> 询问支持的方法：用来查询针对请求 URI 指定的资源支持的方法。</li>
+<li><strong>TRACE</strong> 追踪路径：服务器会将通信路径返回给客户端。发送请求时，在 Max-Forwards 首部字段中填入数值，每经过一个服务器就会减 1，当数值为 0 时就停止传输。通常不会使用 TRACE，并且它容易受到 XST 攻击（Cross-Site Tracing，跨站追踪），因此更不会去使用它。</li>
+<li><strong>CONNECT</strong> 要求用隧道协议连接代理：要求在与代理服务器通信时建立隧道，实现用隧道协议进行 TCP 通信。主要使用 SSL（Secure Sockets Layer，安全套接层）和 TLS（Transport Layer Security，传输层安全）协议把通信内容加密后经网络隧道传输。<code>CONNECT 代理服务器名：端口号 HTTP 版本</code></li>
+</ul>
+<h2 id="get-和-post-的区别">GET 和 POST 的区别</h2>
+<h2 id="http-状态码">HTTP 状态码</h2>
+<p>状态码的职责是当客户端向服务器发送请求时，描述返回的请求结果。借助状态码，用户可以知道服务器是正常处理了请求，还是出现了错误。状态码如 200 OK，以 3 位数字和原因短语组成。数字的第一位指定了响应的类别，后两位无分类。响应类别有以下 5 种。</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>类别</th>
+<th>原因短语</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1XX</td>
+<td>Informational（信息性状态码）</td>
+<td>接收的请求正在处理</td>
+</tr>
+<tr>
+<td>2XX</td>
+<td>Success（成功状态码）</td>
+<td>请求正常处理完毕</td>
+</tr>
+<tr>
+<td>3XX</td>
+<td>Redirection（重定向状态码）</td>
+<td>需要进行附加操作以完成请求</td>
+</tr>
+<tr>
+<td>4XX</td>
+<td>Client Error（客户端错误状态码）</td>
+<td>服务器无法处理请求</td>
+</tr>
+<tr>
+<td>5XX</td>
+<td>Server Error（服务器错误状态码）</td>
+<td>服务器处理请求出错</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li>1XX 信息
+<ul>
+<li><em>100 Continue</em> 表明到目前为止都很正常，客户端可以继续发送请求或者忽略这个响应</li>
+</ul>
+</li>
+<li>2XX 成功
+<blockquote>
+<p>2XX 的响应结果表明请求被正常处理了。</p>
+</blockquote>
+<ul>
+<li><em>200 OK</em> 表示客户端发来的请求在服务器端被正常处理了</li>
+<li><em>204 No Content</em> 表示服务器接收的请求已成功处理，但在返回的响应报文中不含实体的主体部分。一般在只需要从客户端往服务器端发送信息，而不需要返回数据时使用</li>
+<li><em>206 Partial Content</em> 表示客户端进行了范围请求，而服务器成功执行了这部分的 GET 请求。响应报文种给你包含由 Content-Range 指定范围的实体内容</li>
+</ul>
+</li>
+<li>3XX 重定向
+<blockquote>
+<p>3XX 响应结果表明浏览器需要执行某些特殊的处理以正确完成请求。</p>
+</blockquote>
+<ul>
+<li><em>301 Moved Permanently</em> 永久性重定向。该状态码表示请求的资源已被分配了新的 URI，以后应使用资源现在所指的 URI</li>
+<li><em>302 Found</em> 临时性重定向。该状态码表示请求的资源已被分配了新的 URI，希望用户（本次）能使用新的 URI 访问</li>
+<li><em>303 See Other</em> 和 <em>302 Found</em> 状态码有着相同的功能，但 303 状态码明确表示客户端应当采用 GET 方法获取资源，这点与 302 状态码有区别
+::: warning 注意
+虽然 HTTP 协议规定 301、302 状态下重定向时不允许把 POST 方法改成 GET 方法，但是大多数浏览器都会在 301、302 和 303 状态下的重定向把 POST 方法改成 GET 方法。
+:::</li>
+<li><em>304 Not Modified</em> 如果请求报文首部包含一些条件，例如：If-Match，If-Modified-Since，If-None-Match，If-Range，If-Unmodified-Since，如果不满足条件，则服务器会返回 304 状态码</li>
+<li><em>307 Temporary Redirect</em> 临时重定向，与 302 的含义类似，但是 307 要求浏览器不会把重定向请求的 POST 方法改成 GET 方法</li>
+</ul>
+</li>
+<li>4XX 客户端错误
+<blockquote>
+<p>4XX 的响应结果表明客户端是发生错误的原因所在。</p>
+</blockquote>
+<ul>
+<li><em>400 Bad Request</em> 请求的报文中存在语法错误。当错误发生时，需修改请求的内容后再次发送请求。另外，浏览器会像 <em>200 OK</em> 一样对待此状态码</li>
+<li><em>401 Unauthorized</em> 需要进行 HTTP 认证（BASIC 认证、DIGEST 认证）</li>
+<li><em>403 Forbidden</em> 请求被拒绝。服务器没有必要给出详细的拒绝理由</li>
+<li><em>404 Not Found</em> 服务器上没有所请求的资源</li>
+</ul>
+</li>
+<li>5XX 服务器错误
+<blockquote>
+<p>5XX 的响应结果表明服务器本身发生错误。</p>
+</blockquote>
+<ul>
+<li><em>500 Internal Server Error</em> 服务器在执行请求时发生了错误，也可能是 Web 应用存在的 bug 或某些临时的故障</li>
+<li><em>503 Server Unavailable</em> 服务器暂时处于超负荷或正在进行停机维护，现在无法处理请求</li>
+</ul>
+</li>
+</ul>
+<h2 id="http-首部">HTTP 首部</h2>
+<p>HTTP 协议的请求和响应报文中必定包含 HTTP 首部，首部内容为客户端和服务器分别处理请求和响应提供所需要的信息。有 4 种类型的首部字段：通用首部字段、请求首部字段、响应首部字段和实体首部字段。各首部字段及其含义如下。</p>
+<p><strong>通用首部字段</strong></p>
+<table>
+<thead>
+<tr>
+<th>首部字段名</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Cache-Control</td>
+<td>控制缓存的行为</td>
+</tr>
+<tr>
+<td>Connection</td>
+<td>逐跳首部、连接的管理</td>
+</tr>
+<tr>
+<td>Date</td>
+<td>创建报文的日期时间</td>
+</tr>
+<tr>
+<td>Pragma</td>
+<td>报文指令</td>
+</tr>
+<tr>
+<td>Trailer</td>
+<td>报文末端的首部一览</td>
+</tr>
+<tr>
+<td>Transfer-Encoding</td>
+<td>指定报文主体的传输编码方式</td>
+</tr>
+<tr>
+<td>Upgrade</td>
+<td>升级为其他协议</td>
+</tr>
+<tr>
+<td>Via</td>
+<td>代理服务器的相关信息</td>
+</tr>
+<tr>
+<td>Warning</td>
+<td>错误通知</td>
+</tr>
+</tbody>
+</table>
+<p><strong>请求首部字段</strong></p>
+<table>
+<thead>
+<tr>
+<th>首部字段名</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Accept</td>
+<td>用户代理可处理的媒体类型</td>
+</tr>
+<tr>
+<td>Accept-Charset</td>
+<td>优先的字符集</td>
+</tr>
+<tr>
+<td>Accept-Encoding</td>
+<td>优先的内容编码</td>
+</tr>
+<tr>
+<td>Accept-Language</td>
+<td>优先的自然语言</td>
+</tr>
+<tr>
+<td>Authorization</td>
+<td>Web 认证信息</td>
+</tr>
+<tr>
+<td>Expect</td>
+<td>期待服务器的特定行为</td>
+</tr>
+<tr>
+<td>From</td>
+<td>用户的电子邮箱地址</td>
+</tr>
+<tr>
+<td>Host</td>
+<td>请求资源所在服务器</td>
+</tr>
+<tr>
+<td>If-Match</td>
+<td>比较实体标记（ETag）</td>
+</tr>
+<tr>
+<td>If-Modified-Since</td>
+<td>比较资源的更新时间</td>
+</tr>
+<tr>
+<td>If-None-Match</td>
+<td>比较实体标记（与 If-Match 相反）</td>
+</tr>
+<tr>
+<td>If-Range</td>
+<td>资源未更新时发送实体 Byte 的范围请求</td>
+</tr>
+<tr>
+<td>If-Unmodified-Since</td>
+<td>比较资源的更新时间（与 If-Modified-Since 相反）</td>
+</tr>
+<tr>
+<td>Max-Forwards</td>
+<td>最大传输逐跳数</td>
+</tr>
+<tr>
+<td>Proxy-Authorization</td>
+<td>代理服务器要求客户端的认证信息</td>
+</tr>
+<tr>
+<td>Range</td>
+<td>实体的字节范围请求</td>
+</tr>
+<tr>
+<td>Referer</td>
+<td>对请求中的 URI 的原始获取方</td>
+</tr>
+<tr>
+<td>TE</td>
+<td>传输编码的优先级</td>
+</tr>
+<tr>
+<td>User-Agent</td>
+<td>HTTP 客户端程序的信息</td>
+</tr>
+</tbody>
+</table>
+<p><strong>响应首部字段</strong></p>
+<table>
+<thead>
+<tr>
+<th>请求字段名</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Accept-Ranges</td>
+<td>是否接受字节范围的请求</td>
+</tr>
+<tr>
+<td>Age</td>
+<td>推算资源创建经过的时间</td>
+</tr>
+<tr>
+<td>ETag</td>
+<td>资源的匹配信息</td>
+</tr>
+<tr>
+<td>Location</td>
+<td>令客户端重定向至指定的 URI</td>
+</tr>
+<tr>
+<td>Proxy-Authenticate</td>
+<td>代理服务器对客户端的认证信息</td>
+</tr>
+<tr>
+<td>Retry-After</td>
+<td>对再次发起请求的时机要求</td>
+</tr>
+<tr>
+<td>Server</td>
+<td>HTTP 服务器的安装信息</td>
+</tr>
+<tr>
+<td>Vary</td>
+<td>代理服务器缓存的管理信息</td>
+</tr>
+<tr>
+<td>WWW-Authenticate</td>
+<td>服务器对客户端的认证信息</td>
+</tr>
+</tbody>
+</table>
+<p><strong>实体首部字段</strong></p>
+<table>
+<thead>
+<tr>
+<th>请求字段名</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Allow</td>
+<td>资源可支持的 HTTP 方法</td>
+</tr>
+<tr>
+<td>Content-Encoding</td>
+<td>实体主体适用的编码方式</td>
+</tr>
+<tr>
+<td>Content-Language</td>
+<td>实体主体的自然语言</td>
+</tr>
+<tr>
+<td>Content-Length</td>
+<td>实体主体的大小（单位：字节）</td>
+</tr>
+<tr>
+<td>Content-MD5</td>
+<td>实体主体的报文摘要</td>
+</tr>
+<tr>
+<td>Content-Range</td>
+<td>实体主体的位置范围</td>
+</tr>
+<tr>
+<td>Content-Type</td>
+<td>实体主体的媒体类型</td>
+</tr>
+<tr>
+<td>Expires</td>
+<td>实体主体过期的日期时间</td>
+</tr>
+<tr>
+<td>Last-Modified</td>
+<td>资源的最后修改日期时间</td>
+</tr>
+</tbody>
+</table>
+<p>在 HTTP 协议通信交互中使用到的首部字段，不限于 RFC2616 中定义的 47 中首部字段。还有 Cookie、Set-Cookie 和 Content-Disposition 等在其他 RFC 中定义的首部字段，它们的使用频率也很高。</p>
+<h2 id="具体应用">具体应用</h2>
+<h3 id="cookie--session-p25-p34-p37-p132-p177">Cookie &amp; Session P25 P34 P37 P132 P177</h3>
+<h3 id="用单台主机实现多个域名-p66">用单台主机实现多个域名 P66</h3>
+<h3 id="通信数据转发程序代理网关隧道-p67">通信数据转发程序：代理、网关、隧道 P67</h3>
+<h3 id="保存资源的缓存-p71">保存资源的缓存 P71</h3>
+<h2 id="https">HTTPS</h2>
+<p>HTTP 有以下安全性问题：</p>
+<ul>
+<li>使用明文进行通信（不加密），内容可能会被窃听；</li>
+<li>不验证通信方的身份，有可能遭遇伪装；</li>
+<li>无法证明报文的完整性，有可能已遭篡改。</li>
+</ul>
+<p><strong>HTTP + 加密 + 认证 + 完整性保护 = HTTPS</strong></p>
+<p>为了统一解决上述这些问题，需要在 HTTP 上再加入加密处理和认证等机制。我们把添加了加密及认证机制的 HTTP 称为 HTTPS（HTTP Secure）</p>
+<p>HTTPS 并非是应用层的一种新协议。只是 HTTP 通信接口部分用 SSL（Secure Socket Layer）和TLS（Transport Layer Security）协议代替而已。通常，HTTP 直接和 TCP 通信。当使用 HTTPS 时，则演变成先和 SSL 通信，再由 SSL 和 TCP 通信了。简言之，HTTPS 使用了隧道进行通信。</p>
+<h3 id="加密">加密</h3>
+<ul>
+<li><strong>对称密钥加密</strong> 也称为共享密钥加密（Common-Key Encryption），加密的加密和解密使用同一密钥
+<ul>
+<li>优点：运算速度快</li>
+<li>缺点：密钥容易被获取</li>
+</ul>
+</li>
+<li><strong>非对称密钥加密</strong> 也称为公开密钥加密（Public-Key Encryption），使用一对密钥用于加密和解密，分别为公开密钥和私有密钥。公开密钥所有人都可以获得，通信发送方获得接收方的公开密钥之后，就可以使用公开密钥进行加密，接收方收到通信内容后使用私有密钥解密
+<ul>
+<li>优点：更为安全</li>
+<li>缺点：运算速度慢</li>
+</ul>
+</li>
+<li><strong>HTTPS 采用混合加密方式</strong> HTTPs 采用混合的加密机制，使用公开密钥加密用于传输对称密钥来保证安全性，之后使用对称密钥加密进行通信来保证效率。（下图中的 Session Key 就是对称密钥）</li>
+</ul>
+<h3 id="证书">证书</h3>
+<p>通过使用证书来对通信方进行验证。数字证书认证机构处在客户端与服务器双方都可信赖的第三方机构的立场上。见 P157 配图。</p>
+<ol>
+<li>服务器把自己的公开密钥登录至数字证书认证机构<strong>服务器的公开密钥</strong></li>
+<li>数字证书认证机构用自己的私有密钥向服务器的公开密码部署数字签名并颁发公钥证书<strong>数字证书认证机构的私有密钥</strong></li>
+<li>数字证书认证机构的公开密钥已事先植入到浏览器里了<strong>数字证书认证机构的公开密钥</strong></li>
+<li>客户端拿到服务器的公钥证书之后，使用数字证书认证机构的公开密钥，向数字证书认证机构验证公钥证书上的数字签名，以确认服务器的公开密钥的真实性<strong>数字证书认证机构的公开密钥</strong> <strong>服务器的公开密钥</strong></li>
+<li>使用服务器的公开密钥对报文进行加密后发送<strong>服务器的公开密钥</strong></li>
+<li>服务器用私有密钥对报文进行解密<strong>服务器的私有密钥</strong></li>
+</ol>
+<h3 id="完整性保护">完整性保护</h3>
+<p>SSL 提供报文摘要功能来进行完整性保护。</p>
+<p>HTTP 也提供了 MD5 报文摘要功能，但是却不是安全的。例如报文内容被篡改之后，同时重新计算 MD5 的值，通信接收方是无法意识到发生篡改。</p>
+<p>HTTPS 的报文摘要功能之所以安全，是因为它结合了加密和认证这两个操作。试想一下，加密之后的报文，遭到篡改之后，也很难重新计算报文摘要，因为无法轻易获取明文。</p>
+<h3 id="https-的缺点">HTTPS 的缺点</h3>
+<ul>
+<li>与纯文本通信相比，加密通信会消耗更多的 CPU 及内存资源。如果每次通信都加密，会消耗相当多的资源，平摊到一台计算机上时，能够处理的请求数量必定也会随之减少。在进行加密处理时，并非对所有内容都进行加密处理，而是仅在那些需要进行信息隐藏时，才会加密，以节约资源</li>
+<li>需要支付证书授权的高费用</li>
+</ul>
+<h2 id="web-的攻击技术">Web 的攻击技术</h2>
+<blockquote>
+<p><em>TODO</em> 之后对某一项技术具体感兴趣时再来补充 &lt;2018-05-29 Tue&gt;</p>
+</blockquote>
+<h3 id="跨站脚本攻击">跨站脚本攻击</h3>
+<h3 id="sql-注入攻击">SQL 注入攻击</h3>
+<h3 id="跨站点请求伪造">跨站点请求伪造</h3>
+<h3 id="拒绝服务攻击">拒绝服务攻击</h3>
+<h2 id="版权声明">版权声明</h2>
+<p>本作品采用<a href="http://creativecommons.org/licenses/by/4.0/">知识共享署名 4.0 国际许可协议</a>进行许可，转载时请注明原文链接。</p>
+
+    </div>
+  </article>
+
+  
+<section class="comments">
+<script src="https://utteranc.es/client.js"
+        repo="qiaoin/hugo-blog-comments"
+        issue-term="og:title"
+        theme="github-light"
+        crossorigin="anonymous"
+        async>
+</script>
+</section>
+
+
+
+</main>
+
+      <footer class="footer">
+        <ul class="footer-links">
+          <li>
+            <a href="https://qiaoin.github.io">在桥边</a> © 2016 - 2021
+          </li>
+          <li>
+            <a href="https://gohugo.io/" class="footer-links-kudos">Made with <img src="/images/hugo-logo.png" alt="Img link to Hugo website" width="22" height="22"></a>
+          </li>
+        </ul>
+      </footer>
+
+    </div>
+    
+
+
+
+<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/highlight.min.js"></script>
+
+
+
+<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/languages/awk.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/languages/bash.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/languages/c.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/languages/c&#43;&#43;.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/languages/cmake.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/languages/go.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/languages/html.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/languages/java.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/languages/javascript.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/languages/python.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/languages/rust.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/languages/typescript.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/languages/yaml.min.js"></script>
+<script>hljs.configure({languages: []}); hljs.initHighlightingOnLoad();</script>
+
+
+
+    
+
+    
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-EBLEJGMMQV"></script>
+<script>
+var doNotTrack = false;
+if (!doNotTrack) {
+	window.dataLayer = window.dataLayer || [];
+	function gtag(){dataLayer.push(arguments);}
+	gtag('js', new Date());
+	gtag('config', 'G-EBLEJGMMQV', { 'anonymize_ip': false });
+}
+</script>
+
+  </body>
+</html>
+

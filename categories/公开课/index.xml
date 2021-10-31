@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>公开课 on 在桥边</title>
+    <link>https://qiaoin.github.io/categories/%E5%85%AC%E5%BC%80%E8%AF%BE/</link>
+    <description>Recent content in 公开课 on 在桥边</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>en-us</language>
+    <lastBuildDate>Sun, 03 Nov 2019 00:00:00 +0000</lastBuildDate><atom:link href="https://qiaoin.github.io/categories/%E5%85%AC%E5%BC%80%E8%AF%BE/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>MIT 6.828 Lab 2 - Memory Management</title>
+      <link>https://qiaoin.github.io/2019/11/03/mit-6-828-lab-2-memory-management/</link>
+      <pubDate>Sun, 03 Nov 2019 00:00:00 +0000</pubDate>
+      
+      <guid>https://qiaoin.github.io/2019/11/03/mit-6-828-lab-2-memory-management/</guid>
+      <description>重学操作系统系列，MIT 6.828 课程实验 Table of contents Part 1: Physical Page Management Part 2: Virtual Memory 虚拟地址、线性地址和物理地址 引用计数（reference count） 页表管理（pa</description>
+    </item>
+    
+    <item>
+      <title>MIT 6.828 Lab 1 - Booting a PC</title>
+      <link>https://qiaoin.github.io/2019/04/07/mit-6-828-lab-1-booting-a-pc/</link>
+      <pubDate>Sun, 07 Apr 2019 00:00:00 +0000</pubDate>
+      
+      <guid>https://qiaoin.github.io/2019/04/07/mit-6-828-lab-1-booting-a-pc/</guid>
+      <description>重学操作系统系列，MIT 6.828 课程实验 Table of contents Part 1: PC Bootstrap Part 2: The Boot Loader ELF 文件格式 链接地址和加载地址（link address and load address） Part 3：The Kernel cprintf 函数的</description>
+    </item>
+    
+  </channel>
+</rss>

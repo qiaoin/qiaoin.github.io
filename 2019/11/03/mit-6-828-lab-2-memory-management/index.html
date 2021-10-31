@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="en-us">
+  <head>
+    <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="generator" content="Hugo 0.82.0" />
+
+
+<title>MIT 6.828 Lab 2 - Memory Management - 在桥边</title>
+<meta property="og:title" content="MIT 6.828 Lab 2 - Memory Management - 在桥边">
+
+
+  <link href='https://qiaoin.github.io/favicon.ico' rel='icon' type='image/x-icon'/>
+
+
+
+  
+
+
+
+
+
+
+
+
+<link href='//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/styles/monokai.min.css' rel='stylesheet' type='text/css' />
+
+
+
+<link rel="stylesheet" href="/css/fonts.css" media="all">
+<link rel="stylesheet" href="/css/main.css" media="all">
+
+
+
+  </head>
+  <body>
+    <div class="wrapper">
+      <header class="header">
+        <nav class="nav">
+  <a href="/" class="nav-logo">
+    <img src="/images/logo.png"
+         width="50"
+         height="50"
+         alt="Logo">
+  </a>
+
+  <ul class="nav-links">
+    
+    <li><a href="/re-learning-cs/">重学基础</a></li>
+    
+    <li><a href="/about/">About</a></li>
+    
+    <li><a href="https://github.com/qiaoin">GitHub</a></li>
+    
+  </ul>
+</nav>
+
+      </header>
+
+
+<main class="content" role="main">
+
+  <article class="article">
+    
+    <span class="article-duration">16 min read</span>
+    
+
+    <h1 class="article-title">MIT 6.828 Lab 2 - Memory Management</h1>
+
+    
+    <span class="article-date">2019-11-03</span>
+    
+
+    <div class="article-content">
+      <blockquote>
+<p>重学操作系统系列，MIT 6.828 课程实验</p>
+</blockquote>
+<hr>
+<div class="toc">
+    <details>
+        <summary>Table of contents</summary>
+        <nav id="TableOfContents">
+  <ul>
+    <li><a href="#part-1-physical-page-management">Part 1: Physical Page Management</a></li>
+    <li><a href="#part-2-virtual-memory">Part 2: Virtual Memory</a>
+      <ul>
+        <li><a href="#虚拟地址线性地址和物理地址">虚拟地址、线性地址和物理地址</a></li>
+        <li><a href="#引用计数reference-count">引用计数（reference count）</a></li>
+        <li><a href="#页表管理page-table-management">页表管理（page table management）</a></li>
+      </ul>
+    </li>
+    <li><a href="#part-3kernel-address-space">Part 3：Kernel Address Space</a></li>
+    <li><a href="#版权声明">版权声明</a></li>
+  </ul>
+</nav>
+    </details>
+</div>
+<hr>
+<p>In fact, in the next lab, we will map the entire bottom 256MB of the PC&rsquo;s physical address space, from physical addresses 0x00000000 through 0x0fffffff, to virtual addresses 0xf0000000 through 0xffffffff respectively. You should now see why JOS can only use the first 256MB of physical memory.</p>
+<blockquote>
+<p><a href="https://pdos.csail.mit.edu/6.828/2018/labs/lab2/">Lab2: Memory Management</a></p>
+<ul>
+<li>【实验二于2019年4月11日开始，于4月13日完成 Part 1，初稿报告完成于4月xx日】</li>
+<li>【从学校毕业，正式参加工作后，就没有再看这部分内容了，现在重新拾起，2019年11月3日】</li>
+<li>【11月29日晚上和12月30日 做完lab2】</li>
+</ul>
+</blockquote>
+<p>内存管理（Memory management）主要包含两个部分：</p>
+<ul>
+<li>1）<code>kernel</code> 的物理内存分配器（a physical memory allocator for the kernel），使用 4KB 的页大小，需要使用数据结构来记录哪些物理页面已被分配、哪些处于空闲，对于已分配的物理页面，记录该页面被多少个进程所共享；</li>
+<li>2）虚拟内存（virtual memory），将内核和用户程序使用的虚拟地址映射为物理地址。当指令执行时，x86 的硬件 MMU（内存管理单元）会进行虚拟地址向物理地址的映射。</li>
+</ul>
+<p>与实验相关的源代码文件：</p>
+<ul>
+<li><strong><code>inc/mmu.h</code></strong>：包含一些定义，需要好好看看</li>
+<li><strong><code>inc/memlayout.h</code></strong>：虚拟地址空间的布局，<code>PageInfo struct</code></li>
+<li><strong><code>kern/pmap.h[.c]</code></strong>：物理内存管理，读取 CMOS RAM 得到物理内存的大小（这部分代已经实现了，我们不需要关心 CMOS 工作的具体细节【透明与抽象】）</li>
+<li><strong><code>kern/kclock.h[.c]</code></strong>：manipulate the PC&rsquo;s battery-backed clock and CMOS RAM hardware, in which the BIOS records the amout of physical memory the PC contains</li>
+</ul>
+<h2 id="part-1-physical-page-management">Part 1: Physical Page Management</h2>
+<p>操作系统需要维护好哪些物理内存单元是空闲的，哪些是正在被使用的。实验中，我们以页（page，4KB）为基本单位进行物理内存管理，因此可以使用 MMU 来完成地址映射并且为已分配的内存添加保护机制。</p>
+<p>实现物理内存（以页为基本单位）分配器，记录哪些页面是空闲的，使用一个链表来完成（链表节点表示 <code>struct PageInfo</code> 对象，其对应一个真实的物理内存页面）。</p>
+<hr>
+<blockquote>
+<p><strong>Exercise 1</strong>：实现 <code>kern/pmap.c</code> 中的函数 <code>boot_alloc()</code>、<code>men_init()</code>、<code>page_init()</code>、<code>page_alloc()</code>、<code>page_free()</code>，使用 <code>check_page_free_list()</code> 和 <code>check_page_alloc()</code> 检查物理内存分配器的实现是否正确。Hint：添加 <code>assert()</code> 使用防御式编程，判断假设是否正确</p>
+</blockquote>
+<hr>
+<p>查看源文件，注意以下全局变量：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c"><span style="color:#75715e">// These variables are set by i386_detect_memory()
+</span><span style="color:#75715e"></span>size_t npages;                  <span style="color:#75715e">// Amount of physical memory (in pages)
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">static</span> size_t npages_basemem;   <span style="color:#75715e">// Amount of base memory (in pages)
+</span><span style="color:#75715e"></span>
+<span style="color:#75715e">// These variables are set in mem_init()
+</span><span style="color:#75715e"></span>pde_t <span style="color:#f92672">*</span>kern_pgdir;                      <span style="color:#75715e">// Kernel&#39;s initial page directory
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">struct</span> PageInfo <span style="color:#f92672">*</span>pages;                 <span style="color:#75715e">// Physical page state array
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">static</span> <span style="color:#66d9ef">struct</span> PageInfo <span style="color:#f92672">*</span>page_free_list; <span style="color:#75715e">// Free list of physical pages
+</span></code></pre></div><p>在 Part 1 中重点关注：</p>
+<ul>
+<li><strong><code>npages</code></strong>：物理内存的总帧数，以页大小为单位（<code>PGSIZE</code> = 4096，4KB）。在 JOS 内核中维护了每个物理帧的空闲状态，每个物理帧对应一个 <code>struct PageInfo</code> 对象；</li>
+<li><strong><code>pages</code></strong>：表示物理内存的空闲状态（“占用”，“空闲”）的数组，数组的每一项对应物理内存中的一个 <code>PGSIZE</code> 大小的物理帧，因此数组总共有 <code>npages</code> 项；</li>
+<li><strong><code>page_free_list</code></strong>：全部的物理内存可以表示为 <code>npages</code> 个物理页帧（页帧大小为 4KB），每个物理页帧在内核的数据结构 <code>pages</code> 中对应数组的一项（one-to-one mapping），为 <code>struct PageInfo</code> 对象。在系统运行的过程中，执行程序、存储数据需要使用物理内存，对应的物理页帧的状态就会由之前的“空闲”变为“占用”。将所有空闲页帧对应的 <code>struct PageInfo</code> 对象串联为空闲链表，使用 <code>page_free_list</code> 表示链表头，每次要申请物理内存时就将当前 <code>page_free_list</code> 指向的 <code>struct PageInfo</code> 对象所对应的物理页帧给分配出去，并且将其从空闲链表移出，<code>page_free_list</code> 链表头向后移动。</li>
+</ul>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c"><span style="color:#75715e">/*
+</span><span style="color:#75715e"> * Each struct PageInfo stores metadata for one physical page.
+</span><span style="color:#75715e"> * Is it NOT the physical page itself, but there is a one-to-one
+</span><span style="color:#75715e"> * correspondence between physical pages and struct PageInfo&#39;s.
+</span><span style="color:#75715e"> * You can map a struct PageInfo * to the corresponding physical address
+</span><span style="color:#75715e"> * with page2pa() in kern/pmap.h.
+</span><span style="color:#75715e"> */</span>
+<span style="color:#66d9ef">struct</span> PageInfo {
+    <span style="color:#75715e">// Next page on the free list.
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">struct</span> PageInfo <span style="color:#f92672">*</span>pp_link;
+
+    <span style="color:#75715e">// pp_ref is the count of pointers (usually in page table entries)
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// to this page, for pages allocated using page_alloc.
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// Pages allocated at boot time using pmap.c&#39;s
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// boot_alloc do not have valid reference count fields.
+</span><span style="color:#75715e"></span>    uint16_t pp_ref;
+};
+</code></pre></div><p>如下示意图，<strong>灰色</strong>表示正被使用的物理内存，在内核数据结构 <code>pages</code> 中，正在被使用的物理页帧对应的数组项 <code>pp_link</code> 为 <code>NULL</code>，<code>pp_ref</code> 为 1（初始化为 1，记录对应物理页帧被引用的次数）。<strong>绿色</strong>表示空闲物理内存，在内核数据结构 <code>pages</code> 中，空闲物理页帧对应的数组项 <code>pp_ref</code> 为 0；各空闲物理页帧对应在 <code>pages</code> 数组中的项串联成<strong>单向链表</strong>，<code>page_free_list</code> 指向链表头，链表的最后一项 <code>pp_link</code> 为 <code>NULL</code>（用于判断空闲链表是否为空，out of free memory）。在下面的 <code>page_init()</code> 函数中会更细致地说明空闲链表的建立过程。</p>
+<p><img src="images/pages-npages-free.png" alt="pages-npages-free"></p>
+<p>由 <a href="https://qiaoin.github.io/2019/04/07/mit-6-828-lab-1-booting-a-pc/#part-3the-kernel">Lab1 Part 3</a> 中分析得到，在 JOS 内核映像被加载进入内存之后，系统便立即跳转开始执行 <code>kern/entry.S</code> 的代码，开启页机制，设置好函数调用栈就开始执行 C 程序代码，即 <code>kern/init.c</code> 中的  <code>i386_init()</code> 函数。在 <code>i386_init()</code> 中调用 <code>mem_init()</code>，首先<strong>创建初始化时内核的数据结构</strong>：</p>
+<ol>
+<li>分配物理内存，创建初始化的 page directory 并设置访问权限</li>
+</ol>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c"><span style="color:#75715e">// create initial page directory.
+</span><span style="color:#75715e"></span>kern_pgdir <span style="color:#f92672">=</span> (pde_t <span style="color:#f92672">*</span>) boot_alloc(PGSIZE);
+memset(kern_pgdir, <span style="color:#ae81ff">0</span>, PGSIZE);
+
+<span style="color:#75715e">// Permissions: kernel R, user R
+</span><span style="color:#75715e"></span>kern_pgdir[PDX(UVPT)] <span style="color:#f92672">=</span> PADDR(kern_pgdir) <span style="color:#f92672">|</span> PTE_U <span style="color:#f92672">|</span> PTE_P;  <span style="color:#75715e">// 待分析
+</span></code></pre></div><ol start="2">
+<li>分配物理内存，创建并初始化 pages 数组</li>
+</ol>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c"><span style="color:#75715e">// Allocate an array of npages &#39;struct PageInfo&#39;s and store it in &#39;pages&#39;.
+</span><span style="color:#75715e">// The kernel uses this array to keep track of physical pages: for
+</span><span style="color:#75715e">// each physical page, there is a corresponding struct PageInfo in this
+</span><span style="color:#75715e">// array.  &#39;npages&#39; is the number of physical pages in memory.
+</span><span style="color:#75715e"></span>pages <span style="color:#f92672">=</span> (<span style="color:#66d9ef">struct</span> PageInfo <span style="color:#f92672">*</span>) boot_alloc(npages <span style="color:#f92672">*</span> <span style="color:#66d9ef">sizeof</span>(<span style="color:#66d9ef">struct</span> PageInfo));
+memset(pages, <span style="color:#ae81ff">0</span>, npages <span style="color:#f92672">*</span> <span style="color:#66d9ef">sizeof</span>(<span style="color:#66d9ef">struct</span> PageInfo));
+</code></pre></div><p>其后执行 <code>page_init()</code>，完成 <code>pages</code> 数组中各项的填充，建立好空闲链表，以 <code>page_free_list</code> 作为链表头：</p>
+<ol>
+<li>物理页帧第 0 页正在被使用，用于实模式下的 IDT 和 BIOS；</li>
+</ol>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c"><span style="color:#66d9ef">void</span> <span style="color:#a6e22e">page_init</span>(<span style="color:#66d9ef">void</span>)
+{
+    <span style="color:#75715e">// 页面大小为 4KB
+</span><span style="color:#75715e"></span>    pages[<span style="color:#ae81ff">0</span>].pp_ref <span style="color:#f92672">=</span> <span style="color:#ae81ff">1</span>;
+    pages[<span style="color:#ae81ff">0</span>].pp_link <span style="color:#f92672">=</span> NULL;
+</code></pre></div><ol start="2">
+<li>剩余的 base memory（或称为 low memory）空闲，物理内存地址区间 <code>[PGSIZE, npages_basemem * PGSIZE)</code>，640KB 处；</li>
+</ol>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c">    <span style="color:#66d9ef">for</span>(i <span style="color:#f92672">=</span> <span style="color:#ae81ff">1</span>; i <span style="color:#f92672">&lt;</span> npages_basemem; i<span style="color:#f92672">++</span>) {
+        pages[i].pp_ref <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>;
+        pages[i].pp_link <span style="color:#f92672">=</span> page_free_list;  <span style="color:#75715e">// i.
+</span><span style="color:#75715e"></span>        page_free_list <span style="color:#f92672">=</span> <span style="color:#f92672">&amp;</span>pages[i];         <span style="color:#75715e">// ii.
+</span><span style="color:#75715e"></span>    }
+</code></pre></div><p>空闲链表是怎么建立的呢？初始化时，<code>page_free_list</code> 默认初始化为 <code>NULL</code>。有空闲物理页帧时，插入对应的 <code>struct PageInfo</code> 对象，</p>
+<ul>
+<li>i. 将待插入的 <code>struct PageInfo</code> 对象的 <code>pp_link</code> 指向空闲链表首部，</li>
+<li>ii. 同时将已插入的 <code>struct PageInfo</code> 对象设置为空闲链表的新首部；</li>
+</ul>
+<p><img src="images/freelist-init.png" alt="freelist-init"></p>
+<ol start="3">
+<li>IO hole 正在被使用，保留它用（VGA Display，16-bit devices，expansion ROMs，BIOS ROM），物理内存地址区间 <code>[IOPHYSMEM, EXTPHYSMEM)</code>，640KB ~ 1MB，使用宏 <code>PGNUM</code> 根据物理地址得到对应的物理帧号；</li>
+</ol>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c">    <span style="color:#66d9ef">for</span> (i <span style="color:#f92672">=</span> PGNUM(IOPHYSMEM); i <span style="color:#f92672">&lt;</span> PGNUM(EXTPHYSMEM); i<span style="color:#f92672">++</span>) {
+        pages[i].pp_ref <span style="color:#f92672">=</span> <span style="color:#ae81ff">1</span>;
+        pages[i].pp_link <span style="color:#f92672">=</span> NULL;
+    }
+</code></pre></div><ol start="4">
+<li>Extended Memory，<code>bootloader</code> 将内核映像加载到 1MB 处，同时其链接地址为 <code>KERNBASE+1MB</code>，<code>kernel.img</code> 真实存放在物理内存中的页面需要保留，另外刚创建的内核数据结构 <code>kern_pgdir</code> 和 <code>pages</code> 也需要保留。这里调用 <code>boot_alloc(0)</code> 返回 <code>nextfree</code>，其保存着内核虚拟空间中能够使用的空闲空间的首地址，使用宏 <code>PADDR</code> 根据位于内核中的虚拟地址（以 <code>boot_alloc(0)</code> 返回的内核虚拟空间中空闲空间的首地址为参数）得到对应的物理地址；</li>
+</ol>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c">    <span style="color:#66d9ef">for</span> (i <span style="color:#f92672">=</span> PGNUM(EXTPHYSMEM); i <span style="color:#f92672">&lt;</span> PGNUM(PADDR(boot_alloc(<span style="color:#ae81ff">0</span>))); i<span style="color:#f92672">++</span>) {
+        pages[i].pp_ref <span style="color:#f92672">=</span> <span style="color:#ae81ff">1</span>;
+        pages[i].pp_link <span style="color:#f92672">=</span> NULL;
+    }
+</code></pre></div><ol start="5">
+<li>从内核虚拟地址 <code>nextfree</code> 对应的物理地址得到的帧号到 <code>npages</code> 全都是空闲帧；</li>
+</ol>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c">    <span style="color:#66d9ef">for</span> (i <span style="color:#f92672">=</span> PGNUM(PADDR(boot_alloc(<span style="color:#ae81ff">0</span>))); i <span style="color:#f92672">&lt;</span> npages; i<span style="color:#f92672">++</span>) {
+        pages[i].pp_ref <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>;
+        pages[i].pp_link <span style="color:#f92672">=</span> page_free_list;  <span style="color:#75715e">// i.
+</span><span style="color:#75715e"></span>        page_free_list <span style="color:#f92672">=</span> <span style="color:#f92672">&amp;</span>pages[i];         <span style="color:#75715e">// ii. 同上面解释，构建空闲链表
+</span><span style="color:#75715e"></span>    }
+}
+</code></pre></div><p>至此就建立起了虚拟地址、空闲链表和物理地址的对应关系，之后均使用 <code>page_free_list</code> 来进行物理内存空间的分配和释放，并且维护 <code>pages</code> 数组以完成对物理页帧的空闲状态的跟踪：</p>
+<p><img src="images/page-init.png" alt="page-init"></p>
+<p>接下来我们来看 <code>boot_alloc(uint32_t)</code> 函数应该如何实现，其作为真实的物理内存分配器，仅会在 JOS 设置虚拟存储系统时被调用（由 <code>mem_init()</code> 函数调用），在初始化完成之后，物理内存帧的分配与释放都是使用 <code>page_free_list</code> 来进行的：</p>
+<ul>
+<li>1）如果 <code>n == 0</code>，返回 <code>nextfree</code>，其为内核虚拟空间中能够使用的空闲空间的首地址；</li>
+<li>2）如果 <code>n &gt; 0</code>，分配连续的物理帧，足够容纳下 <code>n</code> 个 byte，返回分配的物理帧的首地址，并将 <code>nextfree</code> 设置为空闲空间的首地址（注意对齐，需要是 <code>PGSIZE</code> 的整数倍）；</li>
+<li>3）如果物理内存不够用（out-of-memory），调用 <code>_painc()</code> 函数打印错误信息。</li>
+</ul>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c"><span style="color:#66d9ef">static</span> <span style="color:#66d9ef">void</span> <span style="color:#f92672">*</span><span style="color:#a6e22e">boot_alloc</span>(uint32_t n)
+{
+    <span style="color:#75715e">// 处于 0xf0000000 之上的内核虚拟地址空间
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">static</span> <span style="color:#66d9ef">char</span> <span style="color:#f92672">*</span>nextfree;  <span style="color:#75715e">// virtual address of next byte of free memory
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">char</span> <span style="color:#f92672">*</span>result;
+
+    <span style="color:#75715e">// Initialize nextfree if this is the first time.
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// &#39;end&#39; is a magic symbol automatically generated by the linker,
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// which points to the end of the kernel&#39;s bss segment:
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// the first virtual address that the linker did *not* assign
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// to any kernel code or global variables.
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">if</span> (<span style="color:#f92672">!</span>nextfree) {
+        <span style="color:#66d9ef">extern</span> <span style="color:#66d9ef">char</span> end[];
+        nextfree <span style="color:#f92672">=</span> ROUNDUP((<span style="color:#66d9ef">char</span> <span style="color:#f92672">*</span>) end, PGSIZE);  <span style="color:#75715e">// 对 end 向上取 PGSIZE 的整数倍
+</span><span style="color:#75715e"></span>    }
+
+    <span style="color:#75715e">// Allocate a chunk large enough to hold &#39;n&#39; bytes, then update
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// nextfree.  Make sure nextfree is kept aligned
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// to a multiple of PGSIZE.
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">//
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// LAB 2: Your code here.
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// 返回 next free page 的地址，虚拟地址
+</span><span style="color:#75715e"></span>    result <span style="color:#f92672">=</span> nextfree;
+    <span style="color:#66d9ef">if</span> (n <span style="color:#f92672">&gt;</span> <span style="color:#ae81ff">0</span>) {  <span style="color:#75715e">// n 为无符号数，一定大于等于 0
+</span><span style="color:#75715e"></span>        nextfree <span style="color:#f92672">=</span> ROUNDUP(nextfree <span style="color:#f92672">+</span> n, PGSIZE);
+        <span style="color:#66d9ef">if</span> (PGNUM(PADDR(nextfree)) <span style="color:#f92672">&gt;</span> npages)  <span style="color:#75715e">// 判断 out-of-memory
+</span><span style="color:#75715e"></span>            _panic(__FILE__, __LINE__, <span style="color:#e6db74">&#34;boot_alloc %u bytes, out of memory&#34;</span>, n);
+    }
+
+    <span style="color:#66d9ef">return</span> result;
+}
+</code></pre></div><p>主要需要理解 <code>end</code> 是如何得到的？注释里写是链接器（linker）生成的，需要理解【TODO】</p>
+<p><code>page_alloc()</code> 作为后续的物理页帧分配器，每执行一次，仅仅分配<strong>一个</strong>空闲的物理页帧，并不会将 <code>pages</code> 数组中相应的 <code>struct PageInfo</code> 的 <code>pp_ref</code> 域加 1（对引用的计数需要调用方来维护），但一定要将 <code>pp_link</code> 域设置为 <code>NULL</code>（so <code>page_free</code> can check for double-free bugs）。为什么一定要将 <code>pp_link</code> 域设置为 <code>NULL</code> 呢？在初始化 <code>pages</code> 数组时，被占用物理页帧对应的数组项就是设置 <code>pp_link</code> 为 <code>NULL</code> 的。</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c"><span style="color:#66d9ef">struct</span> PageInfo <span style="color:#f92672">*</span><span style="color:#a6e22e">page_alloc</span>(<span style="color:#66d9ef">int</span> alloc_flags)
+{
+    <span style="color:#75715e">// Fill this function in
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// return NULL if out of free memory
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">if</span> (<span style="color:#f92672">!</span>page_free_list)
+        <span style="color:#66d9ef">return</span> NULL;
+
+    <span style="color:#66d9ef">struct</span> PageInfo <span style="color:#f92672">*</span>pp;
+    pp <span style="color:#f92672">=</span> page_free_list;  <span style="color:#75715e">// page_free_list 所在页的虚拟地址高于 KERNBASE？怎么确定
+</span><span style="color:#75715e"></span>                <span style="color:#75715e">// page_free_list 指向 pages 数组的一项，pages 数组首地址高于 KERNBASE
+</span><span style="color:#75715e"></span>    page_free_list <span style="color:#f92672">=</span> pp<span style="color:#f92672">-&gt;</span>pp_link;
+    pp<span style="color:#f92672">-&gt;</span>pp_link <span style="color:#f92672">=</span> NULL;   <span style="color:#75715e">// page_free can check for double-free bugs
+</span><span style="color:#75715e"></span>
+    <span style="color:#66d9ef">if</span> (alloc_flags <span style="color:#f92672">&amp;</span> ALLOC_ZERO)
+        <span style="color:#75715e">// 设置了 ALLOC_ZERO 标记，将物理帧的内容全部用&#39;\0&#39;填充
+</span><span style="color:#75715e"></span>        memset(page2kva(pp), <span style="color:#ae81ff">0</span>, PGSIZE);
+
+    <span style="color:#66d9ef">return</span> pp;
+}
+</code></pre></div><p><img src="images/page-alloc.png" alt="page-alloc"></p>
+<p>使用宏 <code>page2kva</code> 根据 <code>pages</code> 数组的数组项得到对应的位于内核空间的虚拟地址：</p>
+<ul>
+<li>1）首先，得到该数组项对应的数组索引，执行指针相减 <code>pp - pages</code>；</li>
+<li>2）根据得到的数组索引就能够得到对应的物理地址，左移 12 位，<code>(pp - pages) &lt;&lt; PGSHIFT</code>；</li>
+<li>3）调用宏 <code>KADDR</code> 根据物理地址得到位于内核空间的虚拟地址。</li>
+</ul>
+<p><code>page_free()</code> 实现比较简单，将 <code>pp</code> 指向当前空闲链表头 <code>page_free_list</code>，然后修改空闲链表头为新加入的空闲物理页帧标识 <code>pp</code> 即可，与 <code>page_init()</code> 的新建空闲链表是一样的。</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c"><span style="color:#66d9ef">void</span> <span style="color:#a6e22e">page_free</span>(<span style="color:#66d9ef">struct</span> PageInfo <span style="color:#f92672">*</span>pp)
+{
+    <span style="color:#75715e">// Fill this function in
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// Hint: You may want to panic if pp-&gt;pp_ref is nonzero or
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// pp-&gt;pp_link is not NULL.
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">if</span> (pp<span style="color:#f92672">-&gt;</span>pp_ref <span style="color:#f92672">!=</span> <span style="color:#ae81ff">0</span>)
+        _panic(__FILE__, __LINE__, <span style="color:#e6db74">&#34;PageInfo has ref = %08x&#34;</span>, pp<span style="color:#f92672">-&gt;</span>pp_ref);
+    <span style="color:#66d9ef">if</span> (pp<span style="color:#f92672">-&gt;</span>pp_link)
+        _panic(__FILE__, __LINE__, <span style="color:#e6db74">&#34;PageInfo has link = %p&#34;</span>, pp<span style="color:#f92672">-&gt;</span>pp_link);
+
+    pp<span style="color:#f92672">-&gt;</span>pp_link <span style="color:#f92672">=</span> page_free_list;
+    page_free_list <span style="color:#f92672">=</span> pp;
+}
+</code></pre></div><p>至此，我们使用内核数据结构 <code>pages</code> 数组跟踪记录实际物理内存页帧的使用情况，数组项与物理页帧一一对应，物理页帧空闲，则对应数组项 <code>pp_ref</code> 域为 0、<code>pp_link</code> 域指向下一个空闲物理页帧对应的数组项；物理页帧正在被使用，则对应数组项 <code>pp_ref</code> 为引用计数（记录该物理页帧被引用的次数，Part 2 会更详细解释）、<code>pp_link</code> 指向 <code>NULL</code>。<code>page_free_list</code> 指向空闲链表头，在 <code>page_init()</code> 初始化完成之后，接下来的物理内存管理都经由 <code>page_*()</code> 系列函数（不会再去显式调用 <code>boot_alloc()</code>）。</p>
+<p>在 <code>mem_init()</code> 函数完成 <code>page_init()</code> 初始化之后，会调用 <code>check_page_free_list()</code> 和 <code>check_page_alloc()</code> 检查实现实现是否正确，当 <code>QEMU</code> 打印以下字样说明完成 Exercise 1：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c">check_page_free_list() succeeded<span style="color:#f92672">!</span>
+check_page_alloc() succeeded<span style="color:#f92672">!</span>
+</code></pre></div><p>在 <code>check_page_free_list()</code> 函数中的这块代码实现很有意思：【TODO 之后可以好好分析一下】</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c">    <span style="color:#66d9ef">if</span> (only_low_memory) {
+        <span style="color:#75715e">// Move pages with lower addresses first in the free
+</span><span style="color:#75715e"></span>        <span style="color:#75715e">// list, since entry_pgdir does not map all pages.
+</span><span style="color:#75715e"></span>        <span style="color:#75715e">// 这段代码写的很巧妙，pdx_limit 以 4MB 为界限
+</span><span style="color:#75715e"></span>        <span style="color:#75715e">// above 4MB =&gt; pagetype = 1
+</span><span style="color:#75715e"></span>        <span style="color:#75715e">// below 4MB =&gt; pagetype = 0
+</span><span style="color:#75715e"></span>        <span style="color:#75715e">// 实现了 page_free_list 从 4MB 之下开始，一直到最低的地址，
+</span><span style="color:#75715e"></span>        <span style="color:#75715e">// 再转向到最高物理地址的空闲帧，然后到 4MB 结束
+</span><span style="color:#75715e"></span>        <span style="color:#66d9ef">struct</span> PageInfo <span style="color:#f92672">*</span>pp1, <span style="color:#f92672">*</span>pp2;
+        <span style="color:#66d9ef">struct</span> PageInfo <span style="color:#f92672">**</span>tp[<span style="color:#ae81ff">2</span>] <span style="color:#f92672">=</span> { <span style="color:#f92672">&amp;</span>pp1, <span style="color:#f92672">&amp;</span>pp2 };
+        <span style="color:#66d9ef">for</span> (pp <span style="color:#f92672">=</span> page_free_list; pp; pp <span style="color:#f92672">=</span> pp<span style="color:#f92672">-&gt;</span>pp_link) {
+            <span style="color:#66d9ef">int</span> pagetype <span style="color:#f92672">=</span> PDX(page2pa(pp)) <span style="color:#f92672">&gt;=</span> pdx_limit;
+            <span style="color:#f92672">*</span>tp[pagetype] <span style="color:#f92672">=</span> pp;
+            tp[pagetype] <span style="color:#f92672">=</span> <span style="color:#f92672">&amp;</span>pp<span style="color:#f92672">-&gt;</span>pp_link;
+        }
+        <span style="color:#f92672">*</span>tp[<span style="color:#ae81ff">1</span>] <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>;
+        <span style="color:#f92672">*</span>tp[<span style="color:#ae81ff">0</span>] <span style="color:#f92672">=</span> pp2;
+        page_free_list <span style="color:#f92672">=</span> pp1;
+    }
+</code></pre></div><h2 id="part-2-virtual-memory">Part 2: Virtual Memory</h2>
+<p>x86 保护模式下的内存管理架构——分段（segmentation）和分页（paging）</p>
+<hr>
+<blockquote>
+<p><strong>Exercise 2</strong>：阅读 Intel 80386 Reference Manual 第 5 章和第 6 章，主要阅读 5.2 节和 6.4 节，基于页的地址翻译（page translation）和基于页的保护机制（page-based protection），同时建议略读段机制（segmentation）的章节。虽然 JOS 主要使用页机制来完成虚拟存储和保护，但对于 x86 处理器段地址翻译（segment translation）和基于段的保护机制（segment-based protection）不能被禁用（为了向下兼容），因此需要对段机制和页机制（<strong>重点</strong>）都有所了解。</p>
+</blockquote>
+<hr>
+<h3 id="虚拟地址线性地址和物理地址">虚拟地址、线性地址和物理地址</h3>
+<p>x86 中虚拟地址（virtual address，或称逻辑地址，logical address）由段基址和段内偏移两部分组成（<code>segment:offset</code>），经由段机制映射得到线性地址（linear address）。在页机制开启之前，线性地址与物理地址（physics address）相等；当开启页机制之后，线性地址还需经页机制映射得到物理地址。CPU 根据物理地址经由总线（bus）访问物理内存。</p>
+<p><img src="images/va-la-pa.png" alt="va-la-pa"></p>
+<p>在 <code>boot/boot.S</code> 中，我们在初始化全局描述符表 <code>GDT</code>（Global Descriptor Table）时，将所有的段基址（<code>base</code>）设置为 0，段的长度限制（<code>limit</code>）设置为 <code>0xffffffff</code>（宏 <code>SEG_NULL</code> 和 <code>SEG</code> 定义在 <code>inc/mmu.h</code> 中）</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c"><span style="color:#75715e"># Bootstrap GDT
+</span><span style="color:#75715e"></span>.p2align <span style="color:#ae81ff">2</span>                            <span style="color:#960050;background-color:#1e0010">#</span> force <span style="color:#ae81ff">4</span> byte alignment
+gdt:
+  SEG_NULL                            <span style="color:#960050;background-color:#1e0010">#</span> null seg
+  SEG(STA_X<span style="color:#f92672">|</span>STA_R, <span style="color:#ae81ff">0x0</span>, <span style="color:#ae81ff">0xffffffff</span>)   <span style="color:#960050;background-color:#1e0010">#</span> code seg
+  SEG(STA_W, <span style="color:#ae81ff">0x0</span>, <span style="color:#ae81ff">0xffffffff</span>)         <span style="color:#960050;background-color:#1e0010">#</span> data seg
+</code></pre></div><p>这样就类似关闭了（disabled）段机制，因此虚拟地址（<code>segment:offset</code>）中的段基址（<code>segment</code>）没有了作用（其被设置为 0），线性地址与虚拟地址中的偏移（<code>offset</code>）相等。在 Lab3 中我们会使用段机制去设置特权级（privilege levels），但是对于内存地址映射，我们可以暂时忽略掉段机制，在本实验中重点关注页机制。</p>
+<p>在 <a href="./mit-6.828-lab1.html#part-3%EF%BC%9Athe-kernel">Lab1 的 Part 3</a>， <code>kern/entrypgdir.c</code> 中创建了 <code>4MB*2</code> 的虚拟地址到物理地址的映射关系（在本实验的 Part 1 中已经给出了映射关系图）：</p>
+<ul>
+<li>将 <code>0xf0000000 ~ 0xf0400000</code> 虚拟地址翻译为对应的物理地址 <code>0x00000000 ~ 0x00400000</code></li>
+<li>将 <code>0x00000000 ~ 0x00400000</code> 虚拟地址翻译为对应的物理地址 <code>0x00000000 ~ 0x00400000</code></li>
+</ul>
+<p>使得 JOS 内核能够在 <code>0xf0100000</code> 链接地址处运行，<code>bootloader</code> 将内核映像实际载入的物理地址为 <code>0x00100000</code>（刚好在 BIOS ROM 的上面，从 <code>1MB</code> 地址往上）。<code>kern/entrypgdir.c</code> 中的 <code>entry_pgdir</code> 仅映射了 <code>4MB</code> 的内存空间，在本实验中我们将映射第一个 <code>256MB</code> 的物理内存到虚拟地址 <code>0xf0000000</code> 处，还会映射虚拟地址空间中的很多其他区域。</p>
+<ul>
+<li>将 <code>0xf0000000 ~ 0xffffffff</code> 虚拟地址翻译为对应的物理地址 <code>0x00000000 ~ 0x0fffffff</code></li>
+</ul>
+<hr>
+<blockquote>
+<p><strong>Exercise 3</strong>：同时按下 <code>Ctrl-a c</code> 进入 QEMU monitor 模式（再次按 <code>Ctrl-a c</code> 回到串口控制台），使用 <code>xp</code> 命令直接查看物理内存。</p>
+</blockquote>
+<hr>
+<p>在 <a href="https://pdos.csail.mit.edu/6.828/2018/labguide.html">6.828 lab tools guide</a> 的 QEMU 部分，列出了一些有用的命令：</p>
+<ul>
+<li><strong><code>xp/Nx paddr</code></strong>：打印出物理地址 <code>paddr</code> 开始的 <code>N</code> 个字的十六进制表示，与 GDB 命令 <code>x/Nx paddr</code> 相同。使用 QEMU monitor 的 <code>xp</code> 命令和 GDB 的 <code>x</code> 命令检查匹配的虚拟地址和物理地址处的数据是否相同。</li>
+</ul>
+<p>在 <code>kern/entry.S</code> 中启动分页机制后，虚拟地址和物理地址映射关系已经建立好（<code>4MB</code>），这里我们选择查看 JOS 内核加载地址 <code>0x00100000</code> 和链接地址 <code>0xf0100000</code>，在 QEMU monitor 中查看物理地址 <code>0x00100000</code> 处的数据，在 GDB 中查看虚拟地址 <code>0xf0100000</code> 处的数据：</p>
+<ul>
+<li>1）重新启动 QEMU 和 GDB；</li>
+<li>2）在 GDB 中设置断点，<code>b *0xf010039</code>，查看 <code>obj/kern/kernel.asm</code> 找到调用 <code>i386_init()</code> 函数时的链接地址；</li>
+<li>3）执行 <code>c(ontinue)</code>，在 GDB 中 <code>x/10x 0xf0100000</code> 打印，在 QEMU monitor 中 <code>xp/10x 0x00100000</code> 打印，得到相同的结果。</li>
+</ul>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c">(gdb) x<span style="color:#f92672">/</span><span style="color:#ae81ff">10</span>x <span style="color:#ae81ff">0xf0100000</span>
+<span style="color:#ae81ff">0xf0100000</span> <span style="color:#f92672">&lt;</span>_start<span style="color:#f92672">+</span><span style="color:#ae81ff">4026531828</span><span style="color:#f92672">&gt;:</span> <span style="color:#ae81ff">0x1badb002</span> <span style="color:#ae81ff">0x00000000</span> <span style="color:#ae81ff">0xe4524ffe</span> <span style="color:#ae81ff">0x7205c766</span>
+<span style="color:#ae81ff">0xf0100010</span> <span style="color:#f92672">&lt;</span>entry<span style="color:#f92672">+</span><span style="color:#ae81ff">4</span><span style="color:#f92672">&gt;:</span>           <span style="color:#ae81ff">0x34000004</span> <span style="color:#ae81ff">0x3000b812</span> <span style="color:#ae81ff">0x220f0011</span> <span style="color:#ae81ff">0xc0200fd8</span>
+<span style="color:#ae81ff">0xf0100020</span> <span style="color:#f92672">&lt;</span>entry<span style="color:#f92672">+</span><span style="color:#ae81ff">20</span><span style="color:#f92672">&gt;:</span>          <span style="color:#ae81ff">0x0100010d</span> <span style="color:#ae81ff">0xc0220f80</span>
+
+(qemu) xp<span style="color:#f92672">/</span><span style="color:#ae81ff">10</span>x <span style="color:#ae81ff">0x00100000</span>
+<span style="color:#ae81ff">0000000000100000</span><span style="color:#f92672">:</span>               <span style="color:#ae81ff">0x1badb002</span> <span style="color:#ae81ff">0x00000000</span> <span style="color:#ae81ff">0xe4524ffe</span> <span style="color:#ae81ff">0x7205c766</span>
+<span style="color:#ae81ff">0000000000100010</span><span style="color:#f92672">:</span>               <span style="color:#ae81ff">0x34000004</span> <span style="color:#ae81ff">0x3000b812</span> <span style="color:#ae81ff">0x220f0011</span> <span style="color:#ae81ff">0xc0200fd8</span>
+<span style="color:#ae81ff">0000000000100020</span><span style="color:#f92672">:</span>               <span style="color:#ae81ff">0x0100010d</span> <span style="color:#ae81ff">0xc0220f80</span>
+</code></pre></div><hr>
+<ul>
+<li><strong><code>info registers</code></strong>：打印机器的内部寄存器状态，包含段选择子（segment selector）的隐藏部分、GDT 和 LDT、IDT，以及任务寄存器（task register）。这样从（可见的）段寄存器中得到选择子，以选择子作为索引去 GDT 中找对应表项，就得到了段的隐藏信息（<code>base+limit</code> 等）。</li>
+</ul>
+<p>打印运行到断点 <code>b *0xf010039</code> 处的寄存器状态：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c">CS <span style="color:#f92672">=</span><span style="color:#ae81ff">000</span><span style="color:#ae81ff">8</span> <span style="color:#ae81ff">00000000</span> ffffffff <span style="color:#ae81ff">00</span>cf9a00 DPL<span style="color:#f92672">=</span><span style="color:#ae81ff">0</span> CS32 [<span style="color:#f92672">-</span>R<span style="color:#f92672">-</span>]
+</code></pre></div><ul>
+<li>1）<code>CS =0008</code>：代码段选择子的可见部分为 <code>0x0008</code>，就能够得到需要去 GDT 中查找（<code>0x0008 &amp; 4 = 0</code>），并且当前特权级（CPL，current privilege level）为 0（段选择子的 <code>0x0008 &amp; 3 = 0</code>）。高 13 位为 <code>index</code> 去索引 GDT 或 LDT，第 14 位为 <code>0</code> 就表示 GDT，最低两位表示特权级（0/1/2/3）；</li>
+<li>2）<code>00000000</code>：段基址（<code>base</code>）。线性地址 = 逻辑地址 + 段基址；</li>
+<li>3）<code>ffffffff</code>：段的长度（<code>limit</code>），段内偏移要小于段的长度，否则报告异常；</li>
+<li>4）<code>00cf9a00</code>：段的各个标志位（raw flags）；</li>
+<li>5）<code>DPL=0</code>：段的特权级，只有在特权级 0 下执行的代码才能够加载这个段；</li>
+<li>6）<code>CS32</code>：32 位的代码段。对于其他的寄存器这个位置的表示不同，DS 表示代码段（data segments），DS 寄存器（DS register）为代码段选择子，二者要分清楚，另外还有 LDT（local descriptor table）局部描述符表；</li>
+<li>7）<code>[-R-]</code>：只读。</li>
+</ul>
+<hr>
+<ul>
+<li><strong><code>info mem</code></strong>：已建立好映射关系的虚拟地址空间及其对应的访问权限：</li>
+</ul>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c"><span style="color:#ae81ff">0000000000000000</span><span style="color:#f92672">-</span><span style="color:#ae81ff">0000000000400000</span> <span style="color:#ae81ff">0000000000400000</span> <span style="color:#f92672">-</span>r<span style="color:#f92672">-</span>
+<span style="color:#ae81ff">00000000f</span><span style="color:#ae81ff">0000000</span><span style="color:#f92672">-</span><span style="color:#ae81ff">00000000f</span><span style="color:#ae81ff">0400000</span> <span style="color:#ae81ff">0000000000400000</span> <span style="color:#f92672">-</span>rw
+</code></pre></div><ul>
+<li>1）从 <code>0000000000000000-0000000000400000</code> 的 <code>0000000000400000</code> bytes 的虚拟内存已经建立好映射关系，只读（read）</li>
+<li>2）从 <code>00000000f0000000-00000000f0400000</code> 的 <code>0000000000400000</code> bytes 的虚拟内存已经建立好映射关系，可读可写（read&amp;write）</li>
+</ul>
+<p>与 <code>kern/entrypgdir.c</code> 中建立的映射关系相一致。</p>
+<hr>
+<ul>
+<li><strong><code>info pg</code></strong>：打印当前二级页表结构（page directory 10 位 + page table 10 位），偏移（<code>offset</code>）位于低 12 位。一个 PDE（page directory entry）对应同一组里的多个 PTE（page table entry）：</li>
+</ul>
+<p><img src="images/page-table-hardware.png" alt="page-table-hardware"></p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c">VPN range     Entry         Flags        Physical page
+[<span style="color:#ae81ff">00000</span><span style="color:#f92672">-</span><span style="color:#ae81ff">003ff</span>]  PDE[<span style="color:#ae81ff">000</span>]     <span style="color:#f92672">----</span>A<span style="color:#f92672">----</span>P
+  [<span style="color:#ae81ff">00000</span><span style="color:#f92672">-</span><span style="color:#ae81ff">000ff</span>]  PTE[<span style="color:#ae81ff">000</span><span style="color:#f92672">-</span><span style="color:#ae81ff">0ff</span>] <span style="color:#f92672">--------</span>WP <span style="color:#ae81ff">00000</span><span style="color:#f92672">-</span><span style="color:#ae81ff">000ff</span>
+  [<span style="color:#ae81ff">00100</span><span style="color:#f92672">-</span><span style="color:#ae81ff">00100</span>]  PTE[<span style="color:#ae81ff">100</span>]     <span style="color:#f92672">----</span>A<span style="color:#f92672">---</span>WP <span style="color:#ae81ff">00100</span>
+  [<span style="color:#ae81ff">00101</span><span style="color:#f92672">-</span><span style="color:#ae81ff">003ff</span>]  PTE[<span style="color:#ae81ff">101</span><span style="color:#f92672">-</span><span style="color:#ae81ff">3ff</span>] <span style="color:#f92672">--------</span>WP <span style="color:#ae81ff">00101</span><span style="color:#f92672">-</span><span style="color:#ae81ff">003ff</span>
+[f0000<span style="color:#f92672">-</span>f03ff]  PDE[<span style="color:#ae81ff">3</span>c0]     <span style="color:#f92672">----</span>A<span style="color:#f92672">---</span>WP
+  [f0000<span style="color:#f92672">-</span>f00ff]  PTE[<span style="color:#ae81ff">000</span><span style="color:#f92672">-</span><span style="color:#ae81ff">0ff</span>] <span style="color:#f92672">--------</span>WP <span style="color:#ae81ff">00000</span><span style="color:#f92672">-</span><span style="color:#ae81ff">000ff</span>
+  [f0100<span style="color:#f92672">-</span>f0100]  PTE[<span style="color:#ae81ff">100</span>]     <span style="color:#f92672">----</span>A<span style="color:#f92672">---</span>WP <span style="color:#ae81ff">00100</span>
+  [f0101<span style="color:#f92672">-</span>f03ff]  PTE[<span style="color:#ae81ff">101</span><span style="color:#f92672">-</span><span style="color:#ae81ff">3ff</span>] <span style="color:#f92672">--------</span>WP <span style="color:#ae81ff">00101</span><span style="color:#f92672">-</span><span style="color:#ae81ff">003ff</span>
+</code></pre></div><p>包含两个 PDE，虚拟地址范围为 <code>0x00000000 ~ 0x003fffff</code> 和 <code>0xf0000000 ~ 0xf03fffff</code>，两个 PED 都是 <code>present</code> 和 <code>accessed</code>（TODO 这个具体表示什么，上面截图里也有），可使用 <code>PED[xxx]</code> 中的 <code>xxx</code> 来进行索引，即 page directory 的第 <code>0x000</code> 项和第 <code>0x3c0</code> 项，分别对应一个 page table，QEMU 将每个 page table 中当前已经完成映射的 <code>1024</code> 项 PTE 对应的标识（Flags）和物理页帧号都标识出来了。</p>
+<p><strong>一旦我们进入保护模式，在 CPU 上执行的指令就都是使用虚拟地址了</strong>。所有的地址引用（memory references）都会被解释为虚拟地址，并且由硬件 MMU 负责执行地址转换——在使能页机制之前，虚拟地址转化为线性地址，线性地址与物理地址相等；当使能页机制之后，虚拟地址转化为线性地址，线性地址需在页机制的作用下转换为物理地址。因此，在 C 语言中使用的所有指针都是虚拟地址（all pointers in C are virtual addresses）。</p>
+<p>JOS 内核有时候使用的物理地址，有时候使用的是虚拟地址，为了方便，做如下规定：</p>
+<ul>
+<li><code>T*</code>：虚拟地址（各种常见数据类型的指针，例如 <code>uint32_t</code>）</li>
+<li><code>uintptr_t</code>：虚拟地址</li>
+<li><code>physaddr_t</code>：物理地址</li>
+</ul>
+<p>JOS 内核首先将 <code>uintptr_t</code> 强制类型转化（<code>casting</code>）为一个指针类型，然后就能够执行解引用（<code>dereference</code>）。“将 <code>physaddr_t</code> 强制类型转化为指针类型然后解引用”，这样的做法并不明智，因为 MMU 会将这个物理地址误认为是虚拟地址，然后进行地址映射，这并不是我们希望得到的内存地址。</p>
+<p>这里我们再次提一下 Part 1 中使用过的两个宏 <code>KADDR(pa)</code> 和 <code>PADDR(va)</code>：</p>
+<ul>
+<li><code>KADDR(pa)</code>：将实际的物理地址转换为内核空间的虚拟地址；</li>
+<li><code>PADDR(va)</code>：将内核数据结构对应的内核空间的虚拟地址转换为实际的物理地址。</li>
+</ul>
+<p>::: warning Question 1
+假设以下的 JOS 内核代码片段是正确的，那么变量 <code>x</code> 是什么类型，<code>uintptr_t</code> 还是 <code>physaddr_t</code>？</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c">    mystery_t x;
+    <span style="color:#66d9ef">char</span><span style="color:#f92672">*</span> value <span style="color:#f92672">=</span> return_a_pointer();
+    <span style="color:#f92672">*</span>value <span style="color:#f92672">=</span> <span style="color:#ae81ff">10</span>;
+    x <span style="color:#f92672">=</span> (mystery_t) value;
+</code></pre></div><p>虚拟地址 <code>uintptr_t</code></p>
+<h3 id="引用计数reference-count">引用计数（reference count）</h3>
+<p>多个虚拟页面可能使用到相同的物理页帧，这样我们就需要在该物理页帧对应的 <code>struct PageInfo</code> 结构体的 <code>pp_ref</code> 域中保存当前物理页帧的引用计数。并且在 PDE 和 PTE 中的每一个项也对应有引用位标记（TODO 待考察）。当该物理页帧的引用计数减少为 0 时（说明现在该物理页帧未被使用），可以释放，标记为空闲物理页帧（free frame），即调用 <code>page_free(pp)</code>。</p>
+<p>另外需要注意的是，如 <a href="./mit-6.828-lab2.html#part-1-physical-page-management">Part 1</a> <code>page_alloc</code> 的实现，分配空闲的物理页帧给调用者（<code>caller</code>），其 <code>struct PageInfo</code> 结构体的引用计数为 0，<code>pp_ref</code> 域里引用计数的增加或减少是由调用者来维护的。</p>
+<h3 id="页表管理page-table-management">页表管理（page table management）</h3>
+<hr>
+<blockquote>
+<p><strong>Exercise 4</strong>：实现 <code>kern/pmap.c</code> 中的函数 <code>pgdir_walk()</code>、<code>boot_map_region()</code>、<code>page_lookup()</code>、<code>page_remove()</code>、<code>page_insert()</code>，从 <code>mem_init()</code> 中调用 <code>check_page()</code> 来检查页表管理的实现是否正确</p>
+</blockquote>
+<hr>
+<h2 id="part-3kernel-address-space">Part 3：Kernel Address Space</h2>
+<p>操作系统</p>
+<hr>
+<blockquote>
+<p><strong>Exercise 5</strong>：
+使用 QEMU 和 GDB 单步跟踪 JOS，执行到 <code>movl %eax, %cr0</code>，检查在执行这条汇编指令前后内存单元 <code>0x00100000</code> 和 <code>0xf0100000</code> 的内容</p>
+</blockquote>
+<hr>
+<p>::: warning Question 2
+填充
+:::</p>
+<p>::: warning Question 3
+填充
+:::</p>
+<p>::: warning Question 4
+填充
+:::</p>
+<p>::: warning Question 5
+填充
+:::</p>
+<p>::: warning Question 6
+填充
+:::</p>
+<p>::: danger Challenge! 1
+We cons
+:::</p>
+<p>::: danger Challenge! 2
+We cons
+:::</p>
+<p>::: danger Challenge! 3
+We cons
+:::</p>
+<p>::: danger Challenge! 4
+We cons
+:::</p>
+<p>::: danger Challenge! 5
+We cons
+:::</p>
+<p>主要参考：</p>
+<h2 id="版权声明">版权声明</h2>
+<p>本作品采用<a href="http://creativecommons.org/licenses/by/4.0/">知识共享署名 4.0 国际许可协议</a>进行许可，转载时请注明原文链接。</p>
+
+    </div>
+  </article>
+
+  
+<section class="comments">
+<script src="https://utteranc.es/client.js"
+        repo="qiaoin/hugo-blog-comments"
+        issue-term="og:title"
+        theme="github-light"
+        crossorigin="anonymous"
+        async>
+</script>
+</section>
+
+
+
+</main>
+
+      <footer class="footer">
+        <ul class="footer-links">
+          <li>
+            <a href="https://qiaoin.github.io">在桥边</a> © 2016 - 2021
+          </li>
+          <li>
+            <a href="https://gohugo.io/" class="footer-links-kudos">Made with <img src="/images/hugo-logo.png" alt="Img link to Hugo website" width="22" height="22"></a>
+          </li>
+        </ul>
+      </footer>
+
+    </div>
+    
+
+
+
+<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/highlight.min.js"></script>
+
+
+
+<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/languages/awk.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/languages/bash.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/languages/c.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/languages/c&#43;&#43;.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/languages/cmake.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/languages/go.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/languages/html.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/languages/java.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/languages/javascript.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/languages/python.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/languages/rust.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/languages/typescript.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/languages/yaml.min.js"></script>
+<script>hljs.configure({languages: []}); hljs.initHighlightingOnLoad();</script>
+
+
+
+    
+<script src="/js/math-code.js"></script>
+<script async src="//cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+
+
+    
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-EBLEJGMMQV"></script>
+<script>
+var doNotTrack = false;
+if (!doNotTrack) {
+	window.dataLayer = window.dataLayer || [];
+	function gtag(){dataLayer.push(arguments);}
+	gtag('js', new Date());
+	gtag('config', 'G-EBLEJGMMQV', { 'anonymize_ip': false });
+}
+</script>
+
+  </body>
+</html>
+

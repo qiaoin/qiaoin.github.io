@@ -26,7 +26,31 @@
     <loc>https://qiaoin.github.io/about/</loc>
     <lastmod>2021-04-05T00:00:00+00:00</lastmod>
   </url><url>
+    <loc>https://qiaoin.github.io/tags/c&#43;&#43;/</loc>
+    <lastmod>2020-10-31T00:00:00+00:00</lastmod>
+  </url><url>
+    <loc>https://qiaoin.github.io/2020/10/31/stl-introduction/</loc>
+    <lastmod>2020-10-31T00:00:00+00:00</lastmod>
+  </url><url>
+    <loc>https://qiaoin.github.io/tags/stl/</loc>
+    <lastmod>2020-10-31T00:00:00+00:00</lastmod>
+  </url><url>
+    <loc>https://qiaoin.github.io/categories/%E7%BC%96%E7%A8%8B%E8%AF%AD%E8%A8%80/</loc>
+    <lastmod>2020-10-31T00:00:00+00:00</lastmod>
+  </url><url>
+    <loc>https://qiaoin.github.io/tags/js/</loc>
+    <lastmod>2020-07-13T00:00:00+00:00</lastmod>
+  </url><url>
+    <loc>https://qiaoin.github.io/2020/07/13/javascript-dom/</loc>
+    <lastmod>2020-07-13T00:00:00+00:00</lastmod>
+  </url><url>
     <loc>https://qiaoin.github.io/categories/algorithm/</loc>
+    <lastmod>2020-06-09T00:00:00+00:00</lastmod>
+  </url><url>
+    <loc>https://qiaoin.github.io/tags/go/</loc>
+    <lastmod>2020-06-09T00:00:00+00:00</lastmod>
+  </url><url>
+    <loc>https://qiaoin.github.io/2020/06/09/go-basis/</loc>
     <lastmod>2020-06-09T00:00:00+00:00</lastmod>
   </url><url>
     <loc>https://qiaoin.github.io/tags/rsa/</loc>
@@ -35,13 +59,58 @@
     <loc>https://qiaoin.github.io/2020/06/09/rsa/</loc>
     <lastmod>2020-06-09T00:00:00+00:00</lastmod>
   </url><url>
+    <loc>https://qiaoin.github.io/categories/reading-notes/</loc>
+    <lastmod>2020-03-08T00:00:00+00:00</lastmod>
+  </url><url>
+    <loc>https://qiaoin.github.io/2020/03/08/building-microservices-notes/</loc>
+    <lastmod>2020-03-08T00:00:00+00:00</lastmod>
+  </url><url>
+    <loc>https://qiaoin.github.io/tags/%E5%BE%AE%E6%9C%8D%E5%8A%A1/</loc>
+    <lastmod>2020-03-08T00:00:00+00:00</lastmod>
+  </url><url>
+    <loc>https://qiaoin.github.io/categories/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/</loc>
+    <lastmod>2020-02-21T00:00:00+00:00</lastmod>
+  </url><url>
+    <loc>https://qiaoin.github.io/2020/02/21/3-page-replacement-algorithms/</loc>
+    <lastmod>2020-02-21T00:00:00+00:00</lastmod>
+  </url><url>
+    <loc>https://qiaoin.github.io/2020/02/20/2-virtual-memory/</loc>
+    <lastmod>2020-02-20T00:00:00+00:00</lastmod>
+  </url><url>
+    <loc>https://qiaoin.github.io/2020/02/19/1-memory-management/</loc>
+    <lastmod>2020-02-19T00:00:00+00:00</lastmod>
+  </url><url>
+    <loc>https://qiaoin.github.io/2020/02/18/0-os-structures/</loc>
+    <lastmod>2020-02-18T00:00:00+00:00</lastmod>
+  </url><url>
+    <loc>https://qiaoin.github.io/2019/11/23/epoll-source-notes/</loc>
+    <lastmod>2019-11-23T00:00:00+00:00</lastmod>
+  </url><url>
+    <loc>https://qiaoin.github.io/tags/unix/</loc>
+    <lastmod>2019-11-23T00:00:00+00:00</lastmod>
+  </url><url>
+    <loc>https://qiaoin.github.io/categories/%E6%BA%90%E7%A0%81%E9%98%85%E8%AF%BB/</loc>
+    <lastmod>2019-11-23T00:00:00+00:00</lastmod>
+  </url><url>
+    <loc>https://qiaoin.github.io/2019/11/03/mit-6-828-lab-2-memory-management/</loc>
+    <lastmod>2019-11-03T00:00:00+00:00</lastmod>
+  </url><url>
+    <loc>https://qiaoin.github.io/categories/%E5%85%AC%E5%BC%80%E8%AF%BE/</loc>
+    <lastmod>2019-11-03T00:00:00+00:00</lastmod>
+  </url><url>
+    <loc>https://qiaoin.github.io/tags/socket/</loc>
+    <lastmod>2019-10-29T00:00:00+00:00</lastmod>
+  </url><url>
+    <loc>https://qiaoin.github.io/2019/10/29/tcp-ip-illustrated-notes/</loc>
+    <lastmod>2019-10-29T00:00:00+00:00</lastmod>
+  </url><url>
     <loc>https://qiaoin.github.io/categories/math/</loc>
     <lastmod>2019-10-26T00:00:00+00:00</lastmod>
   </url><url>
     <loc>https://qiaoin.github.io/tags/%E7%BA%BF%E6%80%A7%E4%BB%A3%E6%95%B0/</loc>
     <lastmod>2019-10-26T00:00:00+00:00</lastmod>
   </url><url>
-    <loc>https://qiaoin.github.io/2019/10/26/essense-linear-lgebra/</loc>
+    <loc>https://qiaoin.github.io/2019/10/26/essence-of-linear-algebra/</loc>
     <lastmod>2019-10-26T00:00:00+00:00</lastmod>
   </url><url>
     <loc>https://qiaoin.github.io/tags/awk/</loc>
@@ -50,17 +119,77 @@
     <loc>https://qiaoin.github.io/2019/09/08/learning-awk/</loc>
     <lastmod>2019-09-08T00:00:00+00:00</lastmod>
   </url><url>
-    <loc>https://qiaoin.github.io/categories/%E7%BC%96%E7%A8%8B%E8%AF%AD%E8%A8%80/</loc>
-    <lastmod>2019-09-08T00:00:00+00:00</lastmod>
-  </url><url>
-    <loc>https://qiaoin.github.io/tags/c&#43;&#43;/</loc>
-    <lastmod>2019-07-27T00:00:00+00:00</lastmod>
-  </url><url>
     <loc>https://qiaoin.github.io/2019/07/27/object-based-and-object-oriented/</loc>
     <lastmod>2019-07-27T00:00:00+00:00</lastmod>
   </url><url>
     <loc>https://qiaoin.github.io/tags/%E9%9D%A2%E5%90%91%E5%AF%B9%E8%B1%A1/</loc>
     <lastmod>2019-07-27T00:00:00+00:00</lastmod>
+  </url><url>
+    <loc>https://qiaoin.github.io/tags/ddd/</loc>
+    <lastmod>2019-05-09T00:00:00+00:00</lastmod>
+  </url><url>
+    <loc>https://qiaoin.github.io/2019/05/09/software-uml/</loc>
+    <lastmod>2019-05-09T00:00:00+00:00</lastmod>
+  </url><url>
+    <loc>https://qiaoin.github.io/tags/%E8%AE%BE%E8%AE%A1/</loc>
+    <lastmod>2019-05-09T00:00:00+00:00</lastmod>
+  </url><url>
+    <loc>https://qiaoin.github.io/tags/%E9%9C%80%E6%B1%82/</loc>
+    <lastmod>2019-05-09T00:00:00+00:00</lastmod>
+  </url><url>
+    <loc>https://qiaoin.github.io/2019/04/07/mit-6-828-lab-1-booting-a-pc/</loc>
+    <lastmod>2019-04-07T00:00:00+00:00</lastmod>
+  </url><url>
+    <loc>https://qiaoin.github.io/tags/refactor/</loc>
+    <lastmod>2019-04-02T00:00:00+00:00</lastmod>
+  </url><url>
+    <loc>https://qiaoin.github.io/2019/04/02/practice-of-programming-notes/</loc>
+    <lastmod>2019-04-02T00:00:00+00:00</lastmod>
+  </url><url>
+    <loc>https://qiaoin.github.io/2018/12/24/unix-network-programming-notes/</loc>
+    <lastmod>2018-12-24T00:00:00+00:00</lastmod>
+  </url><url>
+    <loc>https://qiaoin.github.io/tags/c/</loc>
+    <lastmod>2018-10-24T00:00:00+00:00</lastmod>
+  </url><url>
+    <loc>https://qiaoin.github.io/2018/10/24/soft-array/</loc>
+    <lastmod>2018-10-24T00:00:00+00:00</lastmod>
+  </url><url>
+    <loc>https://qiaoin.github.io/tags/http/</loc>
+    <lastmod>2018-09-21T00:00:00+00:00</lastmod>
+  </url><url>
+    <loc>https://qiaoin.github.io/2018/09/21/illustration-http-notes/</loc>
+    <lastmod>2018-09-21T00:00:00+00:00</lastmod>
+  </url><url>
+    <loc>https://qiaoin.github.io/tags/gloo/</loc>
+    <lastmod>2018-06-16T00:00:00+00:00</lastmod>
+  </url><url>
+    <loc>https://qiaoin.github.io/2018/06/16/transport-with-ibverbs/</loc>
+    <lastmod>2018-06-16T00:00:00+00:00</lastmod>
+  </url><url>
+    <loc>https://qiaoin.github.io/2018/04/19/programming-pearls-notes/</loc>
+    <lastmod>2018-04-19T00:00:00+00:00</lastmod>
+  </url><url>
+    <loc>https://qiaoin.github.io/tags/%E4%BA%8C%E5%88%86%E6%9F%A5%E6%89%BE/</loc>
+    <lastmod>2018-04-19T00:00:00+00:00</lastmod>
+  </url><url>
+    <loc>https://qiaoin.github.io/2018/04/13/c-char-point-and-char-array/</loc>
+    <lastmod>2018-04-13T00:00:00+00:00</lastmod>
+  </url><url>
+    <loc>https://qiaoin.github.io/tags/tips/</loc>
+    <lastmod>2018-04-13T00:00:00+00:00</lastmod>
+  </url><url>
+    <loc>https://qiaoin.github.io/tags/cache/</loc>
+    <lastmod>2018-04-03T00:00:00+00:00</lastmod>
+  </url><url>
+    <loc>https://qiaoin.github.io/2018/04/03/caaqa-chapter1/</loc>
+    <lastmod>2018-04-03T00:00:00+00:00</lastmod>
+  </url><url>
+    <loc>https://qiaoin.github.io/categories/%E8%AE%A1%E7%AE%97%E6%9C%BA%E4%BD%93%E7%B3%BB%E7%BB%93%E6%9E%84/</loc>
+    <lastmod>2018-04-03T00:00:00+00:00</lastmod>
+  </url><url>
+    <loc>https://qiaoin.github.io/2017/04/15/art-of-unix-chapter4/</loc>
+    <lastmod>2017-04-15T00:00:00+00:00</lastmod>
   </url><url>
     <loc>https://qiaoin.github.io/2017/02/24/cmake-tutorial/</loc>
     <lastmod>2017-02-24T00:00:00+00:00</lastmod>
@@ -68,10 +197,18 @@
     <loc>https://qiaoin.github.io/tags/%E7%BF%BB%E8%AF%91/</loc>
     <lastmod>2017-02-24T00:00:00+00:00</lastmod>
   </url><url>
+    <loc>https://qiaoin.github.io/tags/%E9%80%92%E5%BD%92/</loc>
+    <lastmod>2016-03-14T00:00:00+00:00</lastmod>
+  </url><url>
+    <loc>https://qiaoin.github.io/2016/03/14/deepth-of-recursion/</loc>
+    <lastmod>2016-03-14T00:00:00+00:00</lastmod>
+  </url><url>
     <loc>https://qiaoin.github.io/tags/%E9%9A%8F%E6%9C%BA%E6%95%B0/</loc>
     <lastmod>2016-01-23T00:00:00+00:00</lastmod>
   </url><url>
     <loc>https://qiaoin.github.io/2016/01/23/random-numbers/</loc>
     <lastmod>2016-01-23T00:00:00+00:00</lastmod>
+  </url><url>
+    <loc>https://qiaoin.github.io/tags/tcp/ip/</loc>
   </url>
 </urlset>

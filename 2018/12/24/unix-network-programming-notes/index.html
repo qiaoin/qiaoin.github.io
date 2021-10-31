@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en-us">
+  <head>
+    <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="generator" content="Hugo 0.82.0" />
+
+
+<title>《UNIX 网络编程》读书笔记 - 在桥边</title>
+<meta property="og:title" content="《UNIX 网络编程》读书笔记 - 在桥边">
+
+
+  <link href='https://qiaoin.github.io/favicon.ico' rel='icon' type='image/x-icon'/>
+
+
+
+  
+
+
+
+
+
+
+
+<link rel="stylesheet" href="/css/fonts.css" media="all">
+<link rel="stylesheet" href="/css/main.css" media="all">
+
+
+
+  </head>
+  <body>
+    <div class="wrapper">
+      <header class="header">
+        <nav class="nav">
+  <a href="/" class="nav-logo">
+    <img src="/images/logo.png"
+         width="50"
+         height="50"
+         alt="Logo">
+  </a>
+
+  <ul class="nav-links">
+    
+    <li><a href="/re-learning-cs/">重学基础</a></li>
+    
+    <li><a href="/about/">About</a></li>
+    
+    <li><a href="https://github.com/qiaoin">GitHub</a></li>
+    
+  </ul>
+</nav>
+
+      </header>
+
+
+<main class="content" role="main">
+
+  <article class="article">
+    
+    <span class="article-duration">3 min read</span>
+    
+
+    <h1 class="article-title">《UNIX 网络编程》读书笔记</h1>
+
+    
+    <span class="article-date">2018-12-24</span>
+    
+
+    <div class="article-content">
+      <hr>
+<div class="toc">
+    <details>
+        <summary>Table of contents</summary>
+        <nav id="TableOfContents">
+  <ul>
+    <li><a href="#简单的非并发例子-basic-non-concurrent-examples">简单的非并发例子 Basic, non-concurrent examples</a></li>
+    <li><a href="#并发网络编程-concurrent-example">并发网络编程 Concurrent example</a></li>
+    <li><a href="#多机器上的数据处理-data-processing-with-multiple-machines">多机器上的数据处理 Data processing with multiple machines</a></li>
+    <li><a href="#高级主题-advanced-topics">高级主题 Advanced Topics</a></li>
+    <li><a href="#版权声明">版权声明</a></li>
+  </ul>
+</nav>
+    </details>
+</div>
+<hr>
+<h1 id="unix-网络编程">UNIX 网络编程</h1>
+<ul>
+<li>阻塞式IO；</li>
+<li>非阻塞式IO；</li>
+<li>读写锁；</li>
+<li>etc&hellip;</li>
+</ul>
+<p><strong>结合陈硕的网络编程实战视频课程进行学习，并整理笔记</strong></p>
+<p>Unix 网络编程第一卷上有两点没有着重讲解：</p>
+<ol>
+<li>对消息格式的处理，特别是非阻塞 IO 下如何正确地处理 TCP 分包；</li>
+<li>讲授的并发模型稍显陈旧，高并发服务往往是采用事件驱动＋非阻塞 IO 的办法，这是传统的，在 UNIX 网络编程卷一中关于这方面的介绍，分量不足，只有一章介绍。高级的并发模型： Thread-per-connection, non-blocking / event-driven / epoll, thread pool, etc。专门有本书讲解这方面的知识，面向模式的软件架构第二卷，讲各种并发模型， POSA2: Patterns for Concurrent and Networked Objects, pub in 2000</li>
+</ol>
+<p>程序员主要关注的网络层：</p>
+<ol>
+<li>以太网层，帧 Ethernet frame</li>
+<li>IP 层，分组 IP packet <em>注意</em> IP 分组和 IP 分片是两个事情，一般我们不用管 IP 分片</li>
+<li>传输层，分节 TCP segment</li>
+<li>应用层，消息 Application message</li>
+</ol>
+<p>网络编程存在的一些常见错误：</p>
+<ul>
+<li>往往将网络 IO 与业务逻辑穿插在一起，应尽量分开；</li>
+<li>TCP 不可靠，收到的数据不完整。主要是涉及 TCP 连接断开的时机和条件，<code>close</code> 太早的话，有可能导致协议栈发送 <code>RST</code> 分节，将连接给重置，数据自然就收不完了。在阻塞编程中可以使用 <code>solinger</code> 这个选项，在非阻塞 IO 中，<code>linger</code> 选项失效，我们需要从应用层协议上入手解决这个问题，设计应用层协议的时候把 TCP 连接的断开放到协议设计的考虑中去；</li>
+<li>TCP 是一个字节流协议，它保证字节按顺序到达，但不保留消息的边界。因为对于 TCP 本身来说，是没有消息这个概念的；</li>
+<li>直接发送 C 语言的结构体，这个需要考虑两个问题，1）对齐，就有人会直接修改全局的对齐方式，会导致第三方库 core dump，因为破坏了 ABI，二进制接口；2） 高度的不可扩展</li>
+<li>TCP 的自连接，客户端会自己和自己连接；</li>
+<li>非阻塞 IO 网络编程的一些特点。</li>
+</ul>
+<p>使用 Netcat 和 dd 测试 TCP 有效带宽及吞吐量</p>
+<ul>
+<li>在 cn11 上 <code>dd if=/dev/zero bs=1MB count=1000 | nc cn13 5001</code></li>
+<li>在 cn13 上 <code>nc -l 5001 &gt; /dev/null</code></li>
+</ul>
+<p>课程主要讲解哪几个例子：</p>
+<h2 id="简单的非并发例子-basic-non-concurrent-examples">简单的非并发例子 Basic, non-concurrent examples</h2>
+<ul>
+<li>TTCP: TCP 性能测试工具</li>
+<li>Round-trip: 测试两台机器之间的时间差，唯一一个 UDP 编程的例子</li>
+<li>Netcat: 网络编程中的瑞士军刀，其与标准输入输出打交道</li>
+<li>Slow sink / source: 慢速收发工具，用于模拟网速比较慢的情况，从应用层模拟，故意地收到之后等一下再收下一个数据；发送也是一样。这样可以帮助找出服务端，特别是在非阻塞情况下，能不能正确应对接收速度慢的情况</li>
+</ul>
+<h2 id="并发网络编程-concurrent-example">并发网络编程 Concurrent example</h2>
+<ul>
+<li>Socks 代理服务器，将两个 TCP 连接进行中继一下，阻塞、非阻塞两种情况考虑</li>
+<li>数独求解，典型的请求-响应式模型，特点是连接之间是独立的，可扩展为计算量更大的情况</li>
+<li>简单的 Memcached 的实现，非阻塞</li>
+<li>应用层 TCP 的广播，连接之间有交互，连接的生命周期管理，某一个连接接受收据慢该如何处理？</li>
+</ul>
+<h2 id="多机器上的数据处理-data-processing-with-multiple-machines">多机器上的数据处理 Data processing with multiple machines</h2>
+<blockquote>
+<p>直接使用 Hadoop / Spark 进行求解</p>
+</blockquote>
+<ul>
+<li>并行的 N-皇后问题求解</li>
+<li>求解分布在多台机器上的数的中位数</li>
+<li>查询/求解出现次数最多的项</li>
+<li>分布式排序 Map -&gt; Shuffle -&gt; Reduce</li>
+</ul>
+<h2 id="高级主题-advanced-topics">高级主题 Advanced Topics</h2>
+<ul>
+<li>RPC: A basic building block for various servers</li>
+<li>负载均衡 load balance</li>
+<li>服务系统的容量管理</li>
+<li>延迟 latency 测延时的方法（百分位数的各个延迟），衡量</li>
+</ul>
+<h2 id="版权声明">版权声明</h2>
+<p>本作品采用<a href="http://creativecommons.org/licenses/by/4.0/">知识共享署名 4.0 国际许可协议</a>进行许可，转载时请注明原文链接。</p>
+
+    </div>
+  </article>
+
+  
+<section class="comments">
+<script src="https://utteranc.es/client.js"
+        repo="qiaoin/hugo-blog-comments"
+        issue-term="og:title"
+        theme="github-light"
+        crossorigin="anonymous"
+        async>
+</script>
+</section>
+
+
+
+</main>
+
+      <footer class="footer">
+        <ul class="footer-links">
+          <li>
+            <a href="https://qiaoin.github.io">在桥边</a> © 2016 - 2021
+          </li>
+          <li>
+            <a href="https://gohugo.io/" class="footer-links-kudos">Made with <img src="/images/hugo-logo.png" alt="Img link to Hugo website" width="22" height="22"></a>
+          </li>
+        </ul>
+      </footer>
+
+    </div>
+    
+
+    
+
+    
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-EBLEJGMMQV"></script>
+<script>
+var doNotTrack = false;
+if (!doNotTrack) {
+	window.dataLayer = window.dataLayer || [];
+	function gtag(){dataLayer.push(arguments);}
+	gtag('js', new Date());
+	gtag('config', 'G-EBLEJGMMQV', { 'anonymize_ip': false });
+}
+</script>
+
+  </body>
+</html>
+

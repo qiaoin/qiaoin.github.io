@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en-us">
+  <head>
+    <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="generator" content="Hugo 0.82.0" />
+
+
+<title>柔性数组 - 在桥边</title>
+<meta property="og:title" content="柔性数组 - 在桥边">
+
+
+  <link href='https://qiaoin.github.io/favicon.ico' rel='icon' type='image/x-icon'/>
+
+
+
+  
+
+
+
+
+
+
+
+
+<link href='//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/styles/monokai.min.css' rel='stylesheet' type='text/css' />
+
+
+
+<link rel="stylesheet" href="/css/fonts.css" media="all">
+<link rel="stylesheet" href="/css/main.css" media="all">
+
+
+
+  </head>
+  <body>
+    <div class="wrapper">
+      <header class="header">
+        <nav class="nav">
+  <a href="/" class="nav-logo">
+    <img src="/images/logo.png"
+         width="50"
+         height="50"
+         alt="Logo">
+  </a>
+
+  <ul class="nav-links">
+    
+    <li><a href="/re-learning-cs/">重学基础</a></li>
+    
+    <li><a href="/about/">About</a></li>
+    
+    <li><a href="https://github.com/qiaoin">GitHub</a></li>
+    
+  </ul>
+</nav>
+
+      </header>
+
+
+<main class="content" role="main">
+
+  <article class="article">
+    
+    <span class="article-duration">5 min read</span>
+    
+
+    <h1 class="article-title">柔性数组</h1>
+
+    
+    <span class="article-date">2018-10-24</span>
+    
+
+    <div class="article-content">
+      <p>印象中 <code>int size[0]</code> 这种在 C/C++ 是不允许的，但是在结构中确实可以使用的(C99 标准)。经过查看资料，知道这种可变数组被称为柔性数组。</p>
+<hr>
+<div class="toc">
+    <details>
+        <summary>Table of contents</summary>
+        <nav id="TableOfContents">
+  <ul>
+    <li><a href="#从头开始说起">从头开始说起</a></li>
+    <li><a href="#用法说明">用法说明</a></li>
+    <li><a href="#例子">例子</a></li>
+    <li><a href="#小结">小结</a></li>
+    <li><a href="#版权声明">版权声明</a></li>
+    <li><a href="#references">References</a></li>
+  </ul>
+</nav>
+    </details>
+</div>
+<hr>
+<h2 id="从头开始说起">从头开始说起</h2>
+<p>在日常的编程中，有时候需要在结构体中存放一个长度动态的字符串，一般的做法，是在结构体中定义一个指针成员，这个指针成员指向该字符串所在的动态内存空间，例如：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c"><span style="color:#66d9ef">typedef</span> <span style="color:#66d9ef">struct</span> test {  
+    <span style="color:#66d9ef">int</span> a;  
+    <span style="color:#66d9ef">double</span> b;  
+    <span style="color:#66d9ef">char</span> <span style="color:#f92672">*</span>p;  
+};
+</code></pre></div><p><code>p</code> 指向字符串。这种方法造成字符串与结构体是分离的，不利于操作。如果把字符串跟结构体直接连在一起，不是更好吗？于是，可以把代码修改为这样：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c"><span style="color:#66d9ef">char</span> a[] <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;hello world&#34;</span>;
+test <span style="color:#f92672">*</span>stpTest <span style="color:#f92672">=</span> (test <span style="color:#f92672">*</span>)malloc(<span style="color:#66d9ef">sizeof</span>(test) <span style="color:#f92672">+</span> strlen(a) <span style="color:#f92672">+</span> <span style="color:#ae81ff">1</span>);
+strcpy(stpTest <span style="color:#f92672">+</span> <span style="color:#ae81ff">1</span>, a);
+</code></pre></div><p>这样一来，<code>(char*)(stpTest + 1)</code> 就是字符串&quot;hello world&quot;的地址了。这时候 <code>p</code> 成了多余的东西，可以去掉。但是，又产生了另外一个问题：老是使用 <code>(char* )((stpTest + 1)</code> 不方便。如果能够找出一种方法，既能直接引用该字符串，又不占用结构体的空间，就完美了。符合这种条件的代码结构应该是一个非对象的符号地址，在结构体的尾部放置一个0长度的数组是一个绝妙的解决方案。不过，C/C++ 标准规定不能定义长度为 0 的数组，因此，有些编译器就把 0 长度的数组成员作为自己的非标准扩展。</p>
+<p>在讲述柔性数组成员之前，首先要介绍一下不完整类型(incomplete type)。不完整类型是这样一种类型，它缺乏足够的信息例如长度去描述一个完整的对象，它的出现反映了 C 程序员对精炼代码的极致追求，这种代码结构产生于对动态结构体的需求。</p>
+<p>鉴于这种代码结构所产生的重要作用，C99 甚至把它收入了标准中。C99 使用不完整类型实现柔性数组成员，在 C99 中，结构中的最后一个元素允许是未知大小的数组，这就叫做柔性数组(flexible array)成员(也叫伸缩性数组成员)。</p>
+<ul>
+<li>结构中的柔性数组成员前面必须至少一个其他成员。</li>
+<li>柔性数组成员允许结构中包含一个大小可变的数组。</li>
+<li>柔性数组成员只作为一个符号地址存在，而且必须是结构体的最后一个成员，<code>sizeof</code> 返回的这种结构大小不包括柔性数组的内存。</li>
+<li>柔性数组成员不仅可以用于字符数组，还可以是元素为其它类型的数组。</li>
+<li>包含柔性数组成员的结构用 <code>malloc</code> 函数进行内存的动态分配，并且分配的内存应该大于结构的大小，以适应柔性数组的预期大小。</li>
+</ul>
+<blockquote>
+<ul>
+<li>Flexible array members are written as contents[] without the 0.</li>
+<li>Flexible array members have incomplete type, and so the sizeof operator may not be applied. As a quirk of the original implementation of zero-length arrays, sizeof evaluates to zero.</li>
+<li>Flexible array members may only appear as the last member of a struct that is otherwise non-empty.</li>
+<li>A structure containing a flexible array member, or a union containing such a structure (possibly recursively), may not be a member of a structure or an element of an array. (However, these uses are permitted by GCC as extensions.)</li>
+</ul>
+</blockquote>
+<p>柔性数组的使用请看下面的例子：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c"><span style="color:#66d9ef">typedef</span> <span style="color:#66d9ef">struct</span> test {
+    <span style="color:#66d9ef">int</span> a;
+    <span style="color:#66d9ef">double</span> b;
+    <span style="color:#66d9ef">char</span> c[<span style="color:#ae81ff">0</span>];
+};
+</code></pre></div><p>有些编译器会报错无法编译可以改成：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c"><span style="color:#66d9ef">typedef</span> <span style="color:#66d9ef">struct</span> test {
+    <span style="color:#66d9ef">int</span> a;
+    <span style="color:#66d9ef">double</span> b;
+    <span style="color:#66d9ef">char</span> c[];
+};
+</code></pre></div><blockquote>
+<p>在一个结构体的最后，申明一个长度为0的数组，就可以使得这个结构体是可变长的。对于编译器来说，此时长度为0的数组并不占用空间，因为数组名本身不占空间，它只是一个偏移量，数组名这个符号本身代 表了一个不可修改的地址常量（注意：数组名永远都不会是指针！），但对于这个数组的大小，我们可以进行动态分配
+请仔细理解后半部分，对于编译器而言，数组名仅仅是一个符号，它不会占用任何空间，它在结构体中，只是代表了一个偏移量，代表一个不可修改的地址常量！</p>
+</blockquote>
+<p>通过如下表达式给结构体分配内存：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c">test <span style="color:#f92672">*</span>stpTest <span style="color:#f92672">=</span> (test <span style="color:#f92672">*</span>)malloc(<span style="color:#66d9ef">sizeof</span>(test) <span style="color:#f92672">+</span> <span style="color:#ae81ff">100</span><span style="color:#f92672">*</span><span style="color:#66d9ef">sizeof</span>(<span style="color:#66d9ef">char</span>));
+</code></pre></div><p><code>c</code> 就是一个柔性数组成员，如果把 <code>stpTest</code> 指向的动态分配内存看作一个整体，<code>c</code> 就是一个长度可以动态变化的结构体成员，柔性一词来源于此。<code>c</code> 的长度为 0，因此它不占用 <code>test</code> 的空间，同时 <code>stpTest-&gt;c</code> 就是“hello world”的首地址，不需要再使用 <code>(char *)(stpTest + 1)</code> 这么丑陋的代码了。那个 0 个元素的数组没有占用空间，而后我们可以进行变长操作了。这样我们为结构体指针 <code>c</code> 分配了一块内存。用 <code>stpTest-&gt;c[n]</code> 就能简单地访问可变长元素。</p>
+<p>当然，上面既然用 <code>malloc</code> 函数分配了内存，肯定就需要用 <code>free</code> 函数来释放内存：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c">free(stpTest);
+</code></pre></div><p>应当尽量使用标准形式，在非 C99 的场合，可以使用指针方法。需要说明的是：C89 不支持这种东西，C99 把它作为一种特例加入了标准。但是，C99 所支持的是 incomplete type，而不是 zero array，形同 <code>int a[0];</code> 这种形式是非法的，C99 支持的形式是形同 <code>int a[];</code> 只不过有些编译器把 <code>int a[0];</code> 作为非标准扩展来支持，而且在 C99 发布之前已经有了这种非标准扩展了，C99 发布之后，有些编译器把两者合而为一了。</p>
+<h2 id="用法说明">用法说明</h2>
+<p>C99 的标准形式如下：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c"><span style="color:#66d9ef">struct</span> sample {
+    <span style="color:#66d9ef">int</span> a;
+    <span style="color:#66d9ef">double</span> b;
+    <span style="color:#66d9ef">char</span> c[]; <span style="color:#75715e">/* char c[0]*/</span>
+};
+</code></pre></div><p>在结构体的最后，可以加入一个长度为 0 的数组 <code>c</code>，这个数组 <code>c</code> 就是所谓的柔性数组。<code>c</code> 只是一个偏移，通过动态申请 <code>c</code> 的大小可以达到动态结构的效果。</p>
+<h2 id="例子">例子</h2>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c++" data-lang="c++"><span style="color:#75715e">#include</span><span style="color:#75715e">&lt;cstring&gt;</span><span style="color:#75715e">
+</span><span style="color:#75715e">#include</span><span style="color:#75715e">&lt;iostream&gt;</span><span style="color:#75715e">
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">using</span> <span style="color:#66d9ef">namespace</span> std;
+
+<span style="color:#75715e">#define uint32 unsigned int
+</span><span style="color:#75715e"></span>
+
+<span style="color:#66d9ef">typedef</span> <span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">_normal_array_t</span>
+{
+    <span style="color:#66d9ef">char</span> a;
+    uint32 b;
+    <span style="color:#66d9ef">int</span> <span style="color:#f92672">*</span>c;
+}__attribute ((packed)) normal_array_t;
+
+<span style="color:#66d9ef">typedef</span> <span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">_dynamic_array_t</span>
+{
+    <span style="color:#66d9ef">char</span> a;
+    uint32 b;
+    <span style="color:#66d9ef">int</span> c[]; 
+}__attribute ((packed)) dynamic_array_t;
+
+<span style="color:#66d9ef">int</span> <span style="color:#a6e22e">main</span>()
+{
+    normal_array_t<span style="color:#f92672">*</span> n1 <span style="color:#f92672">=</span> (normal_array_t<span style="color:#f92672">*</span>)malloc(<span style="color:#66d9ef">sizeof</span>(normal_array_t) );
+    cout <span style="color:#f92672">&lt;&lt;</span> <span style="color:#e6db74">&#34;n1: before malloc size is &#34;</span> <span style="color:#f92672">&lt;&lt;</span> <span style="color:#66d9ef">sizeof</span>(<span style="color:#f92672">*</span>n1) <span style="color:#f92672">&lt;&lt;</span> endl;
+    n1<span style="color:#f92672">-&gt;</span>c <span style="color:#f92672">=</span> (<span style="color:#66d9ef">int</span><span style="color:#f92672">*</span>) malloc(<span style="color:#ae81ff">100</span> <span style="color:#f92672">*</span> <span style="color:#66d9ef">sizeof</span>(<span style="color:#66d9ef">int</span>));
+    n1<span style="color:#f92672">-&gt;</span>c[<span style="color:#ae81ff">50</span>] <span style="color:#f92672">=</span>  <span style="color:#ae81ff">100</span>;
+    cout <span style="color:#f92672">&lt;&lt;</span> <span style="color:#e6db74">&#34;n1: after malloc c, n1-&gt;c[50] is &#34;</span> <span style="color:#f92672">&lt;&lt;</span> n1<span style="color:#f92672">-&gt;</span>c[<span style="color:#ae81ff">50</span>] <span style="color:#f92672">&lt;&lt;</span> endl;
+    cout <span style="color:#f92672">&lt;&lt;</span> <span style="color:#e6db74">&#34;n1: after malloc c, size is &#34;</span> <span style="color:#f92672">&lt;&lt;</span> <span style="color:#66d9ef">sizeof</span>(<span style="color:#f92672">*</span>n1) <span style="color:#f92672">&lt;&lt;</span> endl;
+    free(n1<span style="color:#f92672">-&gt;</span>c);
+    free(n1);
+
+    dynamic_array_t<span style="color:#f92672">*</span> d1 <span style="color:#f92672">=</span> (dynamic_array_t<span style="color:#f92672">*</span>)malloc(<span style="color:#66d9ef">sizeof</span>(dynamic_array_t) <span style="color:#f92672">+</span> <span style="color:#ae81ff">100</span> <span style="color:#f92672">*</span> <span style="color:#66d9ef">sizeof</span>(<span style="color:#66d9ef">int</span>) );
+    cout <span style="color:#f92672">&lt;&lt;</span> <span style="color:#e6db74">&#34;d1: size is &#34;</span> <span style="color:#f92672">&lt;&lt;</span> <span style="color:#66d9ef">sizeof</span>(<span style="color:#f92672">*</span>d1) <span style="color:#f92672">&lt;&lt;</span> endl;
+    d1<span style="color:#f92672">-&gt;</span>c[<span style="color:#ae81ff">50</span>] <span style="color:#f92672">=</span> <span style="color:#ae81ff">200</span>;
+    cout <span style="color:#f92672">&lt;&lt;</span> <span style="color:#e6db74">&#34;d1: d1-&gt;c[50] is &#34;</span> <span style="color:#f92672">&lt;&lt;</span> d1<span style="color:#f92672">-&gt;</span>c[<span style="color:#ae81ff">50</span>] <span style="color:#f92672">&lt;&lt;</span> endl;
+    free(d1);
+}
+</code></pre></div><p>结果运行如下：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-shell" data-lang="shell">n1: before malloc size is <span style="color:#ae81ff">13</span>
+n1: after malloc c, n1-&gt;c<span style="color:#f92672">[</span>50<span style="color:#f92672">]</span> is <span style="color:#ae81ff">100</span>
+n1: after malloc c, size is <span style="color:#ae81ff">13</span>
+d1: size is <span style="color:#ae81ff">5</span>
+d1: d1-&gt;c<span style="color:#f92672">[</span>50<span style="color:#f92672">]</span> is <span style="color:#ae81ff">200</span>
+</code></pre></div><p>如上图，我们如果想在 <code>struct</code> 里面声明一个动态的数组，可以有 2 种方式(里面的 <code>__attribute ((packed))</code> 是禁止编译器做字节对齐，效果明显)。</p>
+<p>第一种如下所示，这种方法可以先申请 <code>normal_array_t</code> 自身，然后在申请 <code>normal_array_t-&gt;c</code>，然后通过 <code>normal_array_t-&gt;c[index]</code> 来访问动态数组，使用之后，需要先 <code>free(normal_array_t-&gt;c)</code>，然后再 <code>free(normal_array_t)</code>;</p>
+<p>机器是 64 位，所以指针为 8 个字节，进而 <code>normal_array_t</code> 大小为 13。</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c"><span style="color:#66d9ef">typedef</span> <span style="color:#66d9ef">struct</span> _normal_array_t
+{
+    <span style="color:#66d9ef">char</span> a;
+    uint32 b;
+    <span style="color:#66d9ef">int</span> <span style="color:#f92672">*</span>c;
+}__attribute ((packed)) normal_array_t;
+</code></pre></div><p>第二种方法如下所示，这种方法一次性申请 <code>normal_array_t</code> 加上需要动态数组的大小来申请一整块内存，然后通过 <code>dynamic_array_t-&gt;c[index]</code> 来访问动态数组，使用之后，直接 <code>free(dynamic_array_t)</code> 就可以释放整个内存。</p>
+<p>可以看到 <code>dynamic_array_t-&gt;c</code> 仅仅是一个符号，<code>dynamic_array_t</code> 的大小为 5（char 1, uint32 4）。</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c"><span style="color:#66d9ef">typedef</span> <span style="color:#66d9ef">struct</span> _normal_array_t
+{
+    <span style="color:#66d9ef">char</span> a;
+    uint32 b;
+    <span style="color:#66d9ef">int</span> <span style="color:#f92672">*</span>c;
+}__attribute ((packed)) normal_array_t;
+</code></pre></div><h2 id="小结">小结</h2>
+<p>可以看到使用柔性数组可以大大简化内容的管理，只需要一次申请，然后通过数组的指针偏移就可以直接获得相应的数据缓冲区，非常简单，释放的时候也仅仅只需要一次释放。</p>
+<h2 id="版权声明">版权声明</h2>
+<p>本作品采用<a href="http://creativecommons.org/licenses/by/4.0/">知识共享署名 4.0 国际许可协议</a>进行许可，转载时请注明原文链接。</p>
+<h2 id="references">References</h2>
+<ul>
+<li><a href="https://my.oschina.net/jungleliu0923/blog/192956">关于柔性数组</a></li>
+<li><a href="https://blog.csdn.net/ce123_zhouwei/article/details/8973073">深入浅出C语言中的柔性数组</a></li>
+<li><a href="https://blog.csdn.net/gatieme/article/details/64131322">C语言0长度数组(可变数组/柔性数组)详解</a> 详细解释了定长包、指针数据包、变长数据缓冲区</li>
+<li><a href="https://blog.csdn.net/yby4769250/article/details/7294696">C/C++ 中的0长数组（柔性数组）</a></li>
+<li><a href="https://www.cnblogs.com/wuyudong/p/c-flexible-array.html">C语言柔性数组</a></li>
+<li><a href="https://coolshell.cn/articles/11377.html">C语言结构体里的成员数组和指针</a></li>
+</ul>
+
+    </div>
+  </article>
+
+  
+<section class="comments">
+<script src="https://utteranc.es/client.js"
+        repo="qiaoin/hugo-blog-comments"
+        issue-term="og:title"
+        theme="github-light"
+        crossorigin="anonymous"
+        async>
+</script>
+</section>
+
+
+
+</main>
+
+      <footer class="footer">
+        <ul class="footer-links">
+          <li>
+            <a href="https://qiaoin.github.io">在桥边</a> © 2016 - 2021
+          </li>
+          <li>
+            <a href="https://gohugo.io/" class="footer-links-kudos">Made with <img src="/images/hugo-logo.png" alt="Img link to Hugo website" width="22" height="22"></a>
+          </li>
+        </ul>
+      </footer>
+
+    </div>
+    
+
+
+
+<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/highlight.min.js"></script>
+
+
+
+<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/languages/awk.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/languages/bash.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/languages/c.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/languages/c&#43;&#43;.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/languages/cmake.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/languages/go.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/languages/html.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/languages/java.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/languages/javascript.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/languages/python.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/languages/rust.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/languages/typescript.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/languages/yaml.min.js"></script>
+<script>hljs.configure({languages: []}); hljs.initHighlightingOnLoad();</script>
+
+
+
+    
+
+    
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-EBLEJGMMQV"></script>
+<script>
+var doNotTrack = false;
+if (!doNotTrack) {
+	window.dataLayer = window.dataLayer || [];
+	function gtag(){dataLayer.push(arguments);}
+	gtag('js', new Date());
+	gtag('config', 'G-EBLEJGMMQV', { 'anonymize_ip': false });
+}
+</script>
+
+  </body>
+</html>
+

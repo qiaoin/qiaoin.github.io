@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en-us">
+  <head>
+    <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="generator" content="Hugo 0.82.0" />
+
+
+<title>《程序设计实践》读书笔记 - 在桥边</title>
+<meta property="og:title" content="《程序设计实践》读书笔记 - 在桥边">
+
+
+  <link href='https://qiaoin.github.io/favicon.ico' rel='icon' type='image/x-icon'/>
+
+
+
+  
+
+
+
+
+
+
+
+
+<link href='//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/styles/monokai.min.css' rel='stylesheet' type='text/css' />
+
+
+
+<link rel="stylesheet" href="/css/fonts.css" media="all">
+<link rel="stylesheet" href="/css/main.css" media="all">
+
+
+
+  </head>
+  <body>
+    <div class="wrapper">
+      <header class="header">
+        <nav class="nav">
+  <a href="/" class="nav-logo">
+    <img src="/images/logo.png"
+         width="50"
+         height="50"
+         alt="Logo">
+  </a>
+
+  <ul class="nav-links">
+    
+    <li><a href="/re-learning-cs/">重学基础</a></li>
+    
+    <li><a href="/about/">About</a></li>
+    
+    <li><a href="https://github.com/qiaoin">GitHub</a></li>
+    
+  </ul>
+</nav>
+
+      </header>
+
+
+<main class="content" role="main">
+
+  <article class="article">
+    
+    <span class="article-duration">6 min read</span>
+    
+
+    <h1 class="article-title">《程序设计实践》读书笔记</h1>
+
+    
+    <span class="article-date">2019-04-02</span>
+    
+
+    <div class="article-content">
+      <p>很早以前就知道有这本书了，一直没有机会找来看，当然这只能说明自己比较懒，现在终于有了空闲和心情，遂找来看看，<code>The Practice of Programming</code>，中文译名为《程序设计实践》，在这里，记录下自己看这本书，以及一些心得体会。</p>
+<blockquote>
+<p>This book is about the practice of programming &ndash; how to write programs for real.</p>
+</blockquote>
+<hr>
+<div class="toc">
+    <details>
+        <summary>Table of contents</summary>
+        <nav id="TableOfContents">
+  <ul>
+    <li><a href="#第一章程序设计风格">第一章：程序设计风格</a>
+      <ul>
+        <li><a href="#命名-names">命名 Names</a></li>
+        <li><a href="#表达式和语句-expressions-and-statements">表达式和语句 Expressions and Statements</a></li>
+        <li><a href="#一致性和惯用写法-consistency-and-idioms">一致性和惯用写法 <strong>Consistency and Idioms</strong></a></li>
+      </ul>
+    </li>
+    <li><a href="#版权声明">版权声明</a></li>
+  </ul>
+</nav>
+    </details>
+</div>
+<hr>
+<h2 id="第一章程序设计风格">第一章：程序设计风格</h2>
+<p>在第一章的开始，作者就指出：</p>
+<blockquote>
+<p>There is more to writing a program than getting the syntax right, fixing the bugs, and making it run fast enough.</p>
+</blockquote>
+<p>程序不仅是写给计算机读的，同时也是给人读的。一个“<strong>well-written</strong>”的程序相较于一个“<strong>poorly-written</strong>”的，更容易被理解和修改维护。</p>
+<p>程序设计的原则就是简单清晰：</p>
+<blockquote>
+<p>The principles of programming style are based on common sense guided by experience, not on arbitrary rules and prescriptions. Code <strong>should</strong> be clear and simple &ndash; straightforward logic, natural expression, conventional language use, meaningful names, neat formatting, helpful comments &ndash; and it should avoid clever tricks and unusual constructions. Consistency is important because others will find it easier to read your code, and you theirs, if you all stick to the same style.</p>
+</blockquote>
+<ul>
+<li>
+<p><code>straightforward logic</code> &ndash; 如何将自己的思想用代码有条理地表述出来，这是我们的第一步要求，这里有一个特别重要的是，一定不要在早期就陷入细节之中，不要在刚开始着手时就想着能够写出很好很优秀的代码，因为后期我们需要重新来进行修改；就如同写文字一样，初稿只要能够清晰地将自己的思想给表述出来，让我们自己能够明白接下来准备做的是什么，如何做，我们可以使用一个抽象的思想，并不是要马上就能写出一个实际可以运行的程序，而是应该能够说清楚一件事。</p>
+</li>
+<li>
+<p><code>natural expression，conventional language use</code> &ndash; 常用的表达式和常见用法，不使用花里胡哨的技巧，这样只是使得代码不好阅读和理解，当然这个也有“例外”，在<em>The C Programming Language</em>这本口碑很好的书里面随处可见<code>i++</code>的使用，这反而增强了程序的表达能力，减少了代码行数。(这本书，我只是粗略的翻过一些，没有很系统的学习C语言，一定得找个机会看看，之后再做评价。)</p>
+</li>
+<li>
+<p><code>meaningful names</code> &ndash; 有一个好的名字很重要，这需要有很强的功力，<a href="http://mp.weixin.qq.com/s?__biz=MzA3NDM0ODQwMw==&amp;mid=2649827483&amp;idx=1&amp;sn=228be8c6c3448a56f7ecd00e20e3ae1d&amp;chksm=8704aa87b0732391ceca19893103f58f7aa360c815faec08a334daddbff74a62b4db724125b7&amp;mpshare=1&amp;scene=1&amp;srcid=1013FED3GLSb5JApWgUpkeC2#rd">这篇微信推送</a>给出来很好的解释。</p>
+</li>
+<li>
+<p><code>neat formatting</code> &ndash; 格式要清晰，不能让自己在编写完之后都不想第二次打开，自己要有一个特有的风格，但在团队合作时，要有一致的规范。</p>
+</li>
+<li>
+<p><code>helpful comments</code> &ndash; 注释不仅是给自己看的，更是方便别人来阅读你的代码，所以要遵循一定的社区规范，要写一些有意义的注释。</p>
+</li>
+</ul>
+<h3 id="命名-names">命名 Names</h3>
+<p>&ldquo;What&rsquo;s in a name?&rdquo; 一个变量的名称标识着一个对象，一个函数的名称是对其所能执行操作的一个表示，因此，命名应该富含信息、表述清晰、容易记忆，可能的话，应该能够发出音来。</p>
+<ol>
+<li>
+<p>全局变量采用描述性的名字，局部变量采用短名字（ <strong>Use descriptive names for globals, short names for locals</strong> ）</p>
+<p>全局变量可能出现在程序的任何地方，因而它应是足够长并且有一定的描述性以让读代码的人能够清楚地知道它的意思。推荐在声明每一个全局变量时，添加上简短的注释。</p>
+<p>局部变量应该使用简短的命名，我们习惯使用<code>i</code>和<code>j</code>表示循环的次数，使用<code>p</code>和<code>q</code>表示指针，使用<code>s</code>和<code>t</code>表示字符串。</p>
+<p><strong>naming conventions and local customs</strong></p>
+<ul>
+<li>using names that begin or end with <code>p</code> for <em>pointers</em>;</li>
+<li>initial <strong>captital</strong> letters for <em>Globals</em>;</li>
+<li><strong>all</strong> captital for <em>CONSTANTS</em>.</li>
+</ul>
+<blockquote>
+<p>Programmers are often encouraged to use long variable names regardless of context. That is a mistake: <strong>clarity(清晰) is often achieved through brevity(简洁)</strong>.</p>
+</blockquote>
+</li>
+<li>
+<p>保持一致性（ <strong>Be consistent</strong> ）</p>
+<blockquote>
+<p>Give related things related names that show their relationship and highlight their difference.</p>
+</blockquote>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-java" data-lang="java"><span style="color:#66d9ef">class</span> <span style="color:#a6e22e">UserQueue</span> <span style="color:#f92672">{</span>
+    <span style="color:#66d9ef">int</span> noOfItemsInQ<span style="color:#f92672">,</span> frontOfTheQueue<span style="color:#f92672">,</span> queueCapacity<span style="color:#f92672">;</span>
+    <span style="color:#66d9ef">public</span> <span style="color:#66d9ef">int</span> <span style="color:#a6e22e">noOfUsersInQueue</span><span style="color:#f92672">()</span> <span style="color:#f92672">{...}</span>
+<span style="color:#f92672">}</span>
+</code></pre></div><p>上面这段简单的代码，对<code>queue</code>进行了三种不同的表述——<code>Q</code>、<code>Queue</code>、<code>queue</code>，这个是没必要的。另一个问题是，这个<code>UserQueue</code>类中的属性和方法仅可以被这个类的实例所访问，因此这些属性和方法的命名中可以省略<code>queue</code>的表示。更加清晰简单的表示如下：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-java" data-lang="java"><span style="color:#66d9ef">class</span> <span style="color:#a6e22e">UserQueue</span> <span style="color:#f92672">{</span>
+    <span style="color:#66d9ef">int</span> nitems<span style="color:#f92672">,</span> front<span style="color:#f92672">,</span> capacity<span style="color:#f92672">;</span>
+    <span style="color:#66d9ef">public</span> <span style="color:#66d9ef">int</span> <span style="color:#a6e22e">nusers</span><span style="color:#f92672">()</span> <span style="color:#f92672">{...}</span>
+<span style="color:#f92672">}</span>
+</code></pre></div><p>由于<code>users</code>和<code>items</code>是表示同样的事物，因此可以仅使用一种表示。</p>
+</li>
+<li>
+<p>函数名采用动作性的名字（ <strong>Use active names for functions</strong> ）</p>
+<p>这个就很容易理解了，我们在写Java类的时候，一个<code>private</code>的属性值<code>X</code>，如何进行访问呢，一般的做法就是<code>setX(someValue)</code>和<code>getX()</code>。还有，在<code>SICP</code>中可以看到的，当我们需要使用一个谓词时，一般使用于条件判断处，<code>Scheme</code>的做法是在动词后面加上问号，例如：<code>improved?</code>/<code>good-enough?</code>，相应地在C语言中，判断一个<code>char</code>是否为数字时，使用<code>isDigit()</code>，就是“动词+名词”形式，这样我们可以很清楚地知道当<code>char</code>为数字时返回<code>true</code>，否则为<code>false</code>。</p>
+</li>
+<li>
+<p>保持准确（ <strong>Be accurate</strong> ）</p>
+</li>
+</ol>
+<h3 id="表达式和语句-expressions-and-statements">表达式和语句 Expressions and Statements</h3>
+<ol>
+<li>
+<p>缩进显示（<strong>Indent to show structure</strong>）</p>
+<p>缩进显示能够让代码更容易阅读，当然，对于<code>Python</code>，缩进就是它的全部了。</p>
+</li>
+<li>
+<p>采用表达式的正常写法（<strong>Use the natural form for expressions</strong>）</p>
+<p>例如，条件表达式包含“取非”操作是难让人理解的。</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-java" data-lang="java"><span style="color:#66d9ef">if</span> <span style="color:#f92672">(!(</span>block_id <span style="color:#f92672">&lt;</span> actblks<span style="color:#f92672">)</span> <span style="color:#f92672">||</span> <span style="color:#f92672">!(</span>block_id <span style="color:#f92672">&gt;=</span> unblocks<span style="color:#f92672">))</span> <span style="color:#f92672">{...}</span>
+</code></pre></div><p>更加符合我们阅读习惯的是，</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-java" data-lang="java"><span style="color:#66d9ef">if</span> <span style="color:#f92672">((</span>block_id <span style="color:#f92672">&gt;=</span> actblks<span style="color:#f92672">)</span> <span style="color:#f92672">||</span> <span style="color:#f92672">(</span>block_id <span style="color:#f92672">&lt;</span> unblocks<span style="color:#f92672">))</span> <span style="color:#f92672">{...}</span>
+</code></pre></div></li>
+<li>
+<p>采用括号排除二义性（<strong>Parenthesize to resolve ambiguity</strong>）</p>
+<blockquote>
+<p>Parenthesizes specify grouping and can be used to make the intent clear even when they are not required.</p>
+</blockquote>
+</li>
+<li>
+<p>拆分复杂的表达式（<strong>Break up complex expressions</strong>）</p>
+</li>
+<li>
+<p>要清晰明了（<strong>Be clear</strong>）</p>
+<p>这段代码的作用是什么？</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c">subkey <span style="color:#f92672">=</span> subkey <span style="color:#f92672">&gt;&gt;</span> (bitoff <span style="color:#f92672">-</span> ((bitoff <span style="color:#f92672">&gt;&gt;</span> <span style="color:#ae81ff">3</span>) <span style="color:#f92672">&lt;&lt;</span> <span style="color:#ae81ff">3</span>));
+</code></pre></div><p>取<code>bitoff</code>二进制表示的最低三位，可以重写为：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-java" data-lang="java">subkey <span style="color:#f92672">&gt;&gt;=</span> bitoff <span style="color:#f92672">&amp;</span> 0x7<span style="color:#f92672">;</span>
+</code></pre></div></li>
+<li>
+<p>当心副作用（<strong>Be careful with side effects</strong>）</p>
+<blockquote>
+<p>Operators like ++ have <em><strong>side effects</strong></em>: besides returning a value, they also modify an underlying variable. Side effects can be extremely convenient, but they can also cause trouble because the actions of retrieving the value and updating the variable might not happen at the same time. <strong>In C and C++, the order of execution of side effects is undefined</strong>, so this multiple assignment is likely to produce the wrong answer.</p>
+</blockquote>
+<p>当在一个表达式中要同时要访问某一个变量和给这个变量进行赋值时，就会出现这样的问题：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c">array[i<span style="color:#f92672">++</span>] <span style="color:#f92672">=</span> i;
+</code></pre></div><p><code>i</code>的初始值为3，这个数组的索引为3的位置的值可能会被设置为3或者4。</p>
+<p>实际写代码编译的情况是：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c"><span style="color:#75715e">#include</span> <span style="color:#75715e">&lt;stdio.h&gt;</span><span style="color:#75715e">
+</span><span style="color:#75715e"></span>   
+<span style="color:#66d9ef">int</span> <span style="color:#a6e22e">main</span>() {
+    <span style="color:#66d9ef">int</span> array[<span style="color:#ae81ff">10</span>];
+    <span style="color:#66d9ef">int</span> i;
+    <span style="color:#66d9ef">for</span> (i <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>; i <span style="color:#f92672">&lt;</span> <span style="color:#ae81ff">10</span>; i<span style="color:#f92672">++</span>) {
+        array[i] <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>;
+    }
+    <span style="color:#66d9ef">for</span> (i <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>; i <span style="color:#f92672">&lt;</span> <span style="color:#ae81ff">10</span>; ) {
+        array[i<span style="color:#f92672">++</span>] <span style="color:#f92672">=</span> i;
+    }
+    <span style="color:#66d9ef">for</span> (i <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>; i <span style="color:#f92672">&lt;</span> <span style="color:#ae81ff">10</span>; i<span style="color:#f92672">++</span>) {
+        printf(<span style="color:#e6db74">&#34;%d</span><span style="color:#ae81ff">\t</span><span style="color:#e6db74">&#34;</span>, array[i]);
+    }
+   
+    <span style="color:#66d9ef">return</span> <span style="color:#ae81ff">0</span>;
+}
+</code></pre></div><p>我的配置是：</p>
+<blockquote>
+<p>系统：OS X EI Capitan，版本 10.11.6</p>
+<p>gcc &ndash;version: Apple LLVM version 7.3.0 (clang-703.0.31)</p>
+</blockquote>
+<p>使用<code>gcc hello.c -o hello</code>编译的结果是给了一个<code>warning: unsequenced modification and access to 'i'</code>，运行结果如下：<code>0    1    2   3   4   5   6   7   8   9</code>，运行结果正确。因此推断<code>array[i++] = i;</code>的处理是<code>array[i] = i; i++;</code>。</p>
+<blockquote>
+<p>It&rsquo;s not just increments and decrements that have side effects; I/O is another source of behind-the-scenes action.</p>
+</blockquote>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c">scanf(<span style="color:#e6db74">&#34;%d %d&#34;</span>, <span style="color:#f92672">&amp;</span>yr, <span style="color:#f92672">&amp;</span>profit[yr]);
+</code></pre></div><p>以上代码段，前一部分是接受标准输入给<code>yr</code>赋值，后一部分是使用这个得到的值访问数组，给数组的某个元素赋值。“<em>all the arguments to scanf are evaluated before the routine is called, so <code>&amp;profit[yr]</code> will always be evaluated using the old value of yr.</em>”因此我们将这个语句拆分开：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c">scanf(<span style="color:#e6db74">&#34;%d&#34;</span>, <span style="color:#f92672">&amp;</span>yr);
+scanf(<span style="color:#e6db74">&#34;%d&#34;</span>, <span style="color:#f92672">&amp;</span>profit[yr]);
+</code></pre></div></li>
+</ol>
+<h3 id="一致性和惯用写法-consistency-and-idioms">一致性和惯用写法 <strong>Consistency and Idioms</strong></h3>
+<h2 id="版权声明">版权声明</h2>
+<p>本作品采用<a href="http://creativecommons.org/licenses/by/4.0/">知识共享署名 4.0 国际许可协议</a>进行许可，转载时请注明原文链接。</p>
+
+    </div>
+  </article>
+
+  
+<section class="comments">
+<script src="https://utteranc.es/client.js"
+        repo="qiaoin/hugo-blog-comments"
+        issue-term="og:title"
+        theme="github-light"
+        crossorigin="anonymous"
+        async>
+</script>
+</section>
+
+
+
+</main>
+
+      <footer class="footer">
+        <ul class="footer-links">
+          <li>
+            <a href="https://qiaoin.github.io">在桥边</a> © 2016 - 2021
+          </li>
+          <li>
+            <a href="https://gohugo.io/" class="footer-links-kudos">Made with <img src="/images/hugo-logo.png" alt="Img link to Hugo website" width="22" height="22"></a>
+          </li>
+        </ul>
+      </footer>
+
+    </div>
+    
+
+
+
+<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/highlight.min.js"></script>
+
+
+
+<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/languages/awk.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/languages/bash.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/languages/c.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/languages/c&#43;&#43;.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/languages/cmake.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/languages/go.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/languages/html.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/languages/java.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/languages/javascript.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/languages/python.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/languages/rust.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/languages/typescript.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/languages/yaml.min.js"></script>
+<script>hljs.configure({languages: []}); hljs.initHighlightingOnLoad();</script>
+
+
+
+    
+<script src="/js/math-code.js"></script>
+<script async src="//cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+
+
+    
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-EBLEJGMMQV"></script>
+<script>
+var doNotTrack = false;
+if (!doNotTrack) {
+	window.dataLayer = window.dataLayer || [];
+	function gtag(){dataLayer.push(arguments);}
+	gtag('js', new Date());
+	gtag('config', 'G-EBLEJGMMQV', { 'anonymize_ip': false });
+}
+</script>
+
+  </body>
+</html>
+

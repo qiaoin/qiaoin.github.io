@@ -13,7 +13,7 @@
       <pubDate>Sat, 27 Jul 2019 00:00:00 +0000</pubDate>
       
       <guid>https://qiaoin.github.io/2019/07/27/object-based-and-object-oriented/</guid>
-      <description>写在最前面 侯捷老师翻译的 Effective C++，C++ 学习者人手必备一本。本系列博文是笔者在学习侯捷老师视频课程时整理的笔记，将课程内容的关键点与 Effective C++ 的对</description>
+      <description>Table of contents 写在最前面 0.0 目标 术语 Header（头文件）中的防御式编程 inline 函数 构造函数 constructor 区分赋值和初始化（assignment and initializat</description>
     </item>
     
   </channel>

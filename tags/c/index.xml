@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>C on 在桥边</title>
+    <link>https://qiaoin.github.io/tags/c/</link>
+    <description>Recent content in C on 在桥边</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>en-us</language>
+    <lastBuildDate>Wed, 24 Oct 2018 00:00:00 +0000</lastBuildDate><atom:link href="https://qiaoin.github.io/tags/c/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>柔性数组</title>
+      <link>https://qiaoin.github.io/2018/10/24/soft-array/</link>
+      <pubDate>Wed, 24 Oct 2018 00:00:00 +0000</pubDate>
+      
+      <guid>https://qiaoin.github.io/2018/10/24/soft-array/</guid>
+      <description>印象中 int size[0] 这种在 C/C++ 是不允许的，但是在结构中确实可以使用的(C99 标准)。经过查看资料，知道这种可变数组被称为柔性数组。 Table of contents 从头开始说起 用法</description>
+    </item>
+    
+    <item>
+      <title>C 语言中的字符指针与字符数组</title>
+      <link>https://qiaoin.github.io/2018/04/13/c-char-point-and-char-array/</link>
+      <pubDate>Fri, 13 Apr 2018 00:00:00 +0000</pubDate>
+      
+      <guid>https://qiaoin.github.io/2018/04/13/c-char-point-and-char-array/</guid>
+      <description>昨天晚上和今天上午，一直在琢磨《剑指offer》上的面试题5：替换空格 ，之后还给书的作者提交了一个 issue，这道题目也就告一段落了。耗费了</description>
+    </item>
+    
+  </channel>
+</rss>

@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>操作系统 on 在桥边</title>
+    <link>https://qiaoin.github.io/categories/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/</link>
+    <description>Recent content in 操作系统 on 在桥边</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>en-us</language>
+    <lastBuildDate>Fri, 21 Feb 2020 00:00:00 +0000</lastBuildDate><atom:link href="https://qiaoin.github.io/categories/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>页面置换算法</title>
+      <link>https://qiaoin.github.io/2020/02/21/3-page-replacement-algorithms/</link>
+      <pubDate>Fri, 21 Feb 2020 00:00:00 +0000</pubDate>
+      
+      <guid>https://qiaoin.github.io/2020/02/21/3-page-replacement-algorithms/</guid>
+      <description>重学操作系统系列，清华大学操作系统课程笔记 Table of contents 页面置换算法的概念 局部置换算法 最优页面置换算法（OPT，optimal） 先进先出算法（FIF</description>
+    </item>
+    
+    <item>
+      <title>虚拟存储</title>
+      <link>https://qiaoin.github.io/2020/02/20/2-virtual-memory/</link>
+      <pubDate>Thu, 20 Feb 2020 00:00:00 +0000</pubDate>
+      
+      <guid>https://qiaoin.github.io/2020/02/20/2-virtual-memory/</guid>
+      <description>重学操作系统系列，清华大学操作系统课程笔记 Table of contents 虚拟存储的需求背景 覆盖技术 交换技术 覆盖与交换的比较 虚拟存储概念 虚拟存储的技术目标 局部性原理（</description>
+    </item>
+    
+    <item>
+      <title>内存管理</title>
+      <link>https://qiaoin.github.io/2020/02/19/1-memory-management/</link>
+      <pubDate>Wed, 19 Feb 2020 00:00:00 +0000</pubDate>
+      
+      <guid>https://qiaoin.github.io/2020/02/19/1-memory-management/</guid>
+      <description>重学操作系统系列，清华大学操作系统课程笔记 Table of contents 地址生成 地址空间的定义 逻辑地址生成 地址生成的时机和限制 地址的生成过程 连续内存分配 动态分区分配</description>
+    </item>
+    
+    <item>
+      <title>操作系统概述</title>
+      <link>https://qiaoin.github.io/2020/02/18/0-os-structures/</link>
+      <pubDate>Tue, 18 Feb 2020 00:00:00 +0000</pubDate>
+      
+      <guid>https://qiaoin.github.io/2020/02/18/0-os-structures/</guid>
+      <description>重学操作系统系列，清华大学操作系统课程笔记 Table of contents 操作系统结构 操作系统结构分类 VMM（虚拟机管理器） x86-32 硬件 x86-32 硬件-运行模式 x86-32 硬件-内存构架 x86-32 硬</description>
+    </item>
+    
+    <item>
+      <title>MIT 6.828 Lab 2 - Memory Management</title>
+      <link>https://qiaoin.github.io/2019/11/03/mit-6-828-lab-2-memory-management/</link>
+      <pubDate>Sun, 03 Nov 2019 00:00:00 +0000</pubDate>
+      
+      <guid>https://qiaoin.github.io/2019/11/03/mit-6-828-lab-2-memory-management/</guid>
+      <description>重学操作系统系列，MIT 6.828 课程实验 Table of contents Part 1: Physical Page Management Part 2: Virtual Memory 虚拟地址、线性地址和物理地址 引用计数（reference count） 页表管理（pa</description>
+    </item>
+    
+    <item>
+      <title>MIT 6.828 Lab 1 - Booting a PC</title>
+      <link>https://qiaoin.github.io/2019/04/07/mit-6-828-lab-1-booting-a-pc/</link>
+      <pubDate>Sun, 07 Apr 2019 00:00:00 +0000</pubDate>
+      
+      <guid>https://qiaoin.github.io/2019/04/07/mit-6-828-lab-1-booting-a-pc/</guid>
+      <description>重学操作系统系列，MIT 6.828 课程实验 Table of contents Part 1: PC Bootstrap Part 2: The Boot Loader ELF 文件格式 链接地址和加载地址（link address and load address） Part 3：The Kernel cprintf 函数的</description>
+    </item>
+    
+  </channel>
+</rss>

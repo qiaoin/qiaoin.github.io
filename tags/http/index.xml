@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>HTTP on 在桥边</title>
+    <link>https://qiaoin.github.io/tags/http/</link>
+    <description>Recent content in HTTP on 在桥边</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>en-us</language>
+    <lastBuildDate>Fri, 21 Sep 2018 00:00:00 +0000</lastBuildDate><atom:link href="https://qiaoin.github.io/tags/http/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>《图解 HTTP》读书笔记</title>
+      <link>https://qiaoin.github.io/2018/09/21/illustration-http-notes/</link>
+      <pubDate>Fri, 21 Sep 2018 00:00:00 +0000</pubDate>
+      
+      <guid>https://qiaoin.github.io/2018/09/21/illustration-http-notes/</guid>
+      <description>Table of contents 基础概念 了解 Web 网络基础 HTTP 协议 请求报文与响应报文 HTTP 方法 GET 和 POST 的区别 HTTP 状态码 HTTP 首部 具体应用 Cookie &amp;amp; Session P25 P34 P37 P132 P177 用单台主机实现多个域名 P66 通信数据</description>
+    </item>
+    
+  </channel>
+</rss>

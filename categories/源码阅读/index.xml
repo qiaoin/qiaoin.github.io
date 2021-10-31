@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>源码阅读 on 在桥边</title>
+    <link>https://qiaoin.github.io/categories/%E6%BA%90%E7%A0%81%E9%98%85%E8%AF%BB/</link>
+    <description>Recent content in 源码阅读 on 在桥边</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>en-us</language>
+    <lastBuildDate>Sat, 23 Nov 2019 00:00:00 +0000</lastBuildDate><atom:link href="https://qiaoin.github.io/categories/%E6%BA%90%E7%A0%81%E9%98%85%E8%AF%BB/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>epoll 源码实现</title>
+      <link>https://qiaoin.github.io/2019/11/23/epoll-source-notes/</link>
+      <pubDate>Sat, 23 Nov 2019 00:00:00 +0000</pubDate>
+      
+      <guid>https://qiaoin.github.io/2019/11/23/epoll-source-notes/</guid>
+      <description>Table of contents References 版权声明 epoll 相关的内核代码在 fs/eventpoll.c 文件中，下面分别分析 epoll_create、epoll_ctl 和 epoll_wait 三个函数在内核中的实现，分析所用 linux 内</description>
+    </item>
+    
+    <item>
+      <title>传输层模块的 RDMA 实现</title>
+      <link>https://qiaoin.github.io/2018/06/16/transport-with-ibverbs/</link>
+      <pubDate>Sat, 16 Jun 2018 00:00:00 +0000</pubDate>
+      
+      <guid>https://qiaoin.github.io/2018/06/16/transport-with-ibverbs/</guid>
+      <description>Table of contents 什么是 RDMA ？ RDMA 中的一些基础概念 一个典型的 RDMA 应用的流程 Gloo 的底层传输 RDMA 实现 address.cc / address.h device.cc / device.h pair.cc / pair.h memory_region.cc / memory_region.h buffer.cc / buffer.h References 版权声明 什么是 RDMA ？ DMA（Dire</description>
+    </item>
+    
+  </channel>
+</rss>

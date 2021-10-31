@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>JS on 在桥边</title>
+    <link>https://qiaoin.github.io/tags/js/</link>
+    <description>Recent content in JS on 在桥边</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>en-us</language>
+    <lastBuildDate>Mon, 13 Jul 2020 00:00:00 +0000</lastBuildDate><atom:link href="https://qiaoin.github.io/tags/js/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>《JavaScript DOM 编程艺术》读书笔记</title>
+      <link>https://qiaoin.github.io/2020/07/13/javascript-dom/</link>
+      <pubDate>Mon, 13 Jul 2020 00:00:00 +0000</pubDate>
+      
+      <guid>https://qiaoin.github.io/2020/07/13/javascript-dom/</guid>
+      <description>本书的精华：书中提到的关于 JavaScript 和 DOM 脚本编程工作的基本原则、良好习惯和正确思路 DOM 编程技术的设计思路和原则：平稳退化、渐进增强和以用户为中心，或者</description>
+    </item>
+    
+  </channel>
+</rss>

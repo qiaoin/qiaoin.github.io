@@ -9,11 +9,11 @@
     <lastBuildDate>Sat, 26 Oct 2019 00:00:00 +0000</lastBuildDate><atom:link href="https://qiaoin.github.io/categories/math/index.xml" rel="self" type="application/rss+xml" />
     <item>
       <title>线性代数基础</title>
-      <link>https://qiaoin.github.io/2019/10/26/essense-linear-lgebra/</link>
+      <link>https://qiaoin.github.io/2019/10/26/essence-of-linear-algebra/</link>
       <pubDate>Sat, 26 Oct 2019 00:00:00 +0000</pubDate>
       
-      <guid>https://qiaoin.github.io/2019/10/26/essense-linear-lgebra/</guid>
-      <description>线性代数的本质 - 系列合集 我们学习了线性代数，却无法对下面的问题形成真正的理解： 为什么矩阵乘法要如此定义？（matrix multiplicat</description>
+      <guid>https://qiaoin.github.io/2019/10/26/essence-of-linear-algebra/</guid>
+      <description>序言（Introduction） 向量究竟是什么？（Essence of Linear Algebra） 向量加法 向量数乘 向量的线性组合、张成的空间和基（Line</description>
     </item>
     
   </channel>

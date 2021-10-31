@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en-us">
+  <head>
+    <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="generator" content="Hugo 0.82.0" />
+
+
+<title>C 语言中的字符指针与字符数组 - 在桥边</title>
+<meta property="og:title" content="C 语言中的字符指针与字符数组 - 在桥边">
+
+
+  <link href='https://qiaoin.github.io/favicon.ico' rel='icon' type='image/x-icon'/>
+
+
+
+  
+
+
+
+
+
+
+
+
+<link href='//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/styles/monokai.min.css' rel='stylesheet' type='text/css' />
+
+
+
+<link rel="stylesheet" href="/css/fonts.css" media="all">
+<link rel="stylesheet" href="/css/main.css" media="all">
+
+
+
+  </head>
+  <body>
+    <div class="wrapper">
+      <header class="header">
+        <nav class="nav">
+  <a href="/" class="nav-logo">
+    <img src="/images/logo.png"
+         width="50"
+         height="50"
+         alt="Logo">
+  </a>
+
+  <ul class="nav-links">
+    
+    <li><a href="/re-learning-cs/">重学基础</a></li>
+    
+    <li><a href="/about/">About</a></li>
+    
+    <li><a href="https://github.com/qiaoin">GitHub</a></li>
+    
+  </ul>
+</nav>
+
+      </header>
+
+
+<main class="content" role="main">
+
+  <article class="article">
+    
+    <span class="article-duration">2 min read</span>
+    
+
+    <h1 class="article-title">C 语言中的字符指针与字符数组</h1>
+
+    
+    <span class="article-date">2018-04-13</span>
+    
+
+    <div class="article-content">
+      <p>昨天晚上和今天上午，一直在琢磨《剑指offer》上的<strong>面试题5：替换空格</strong> ，之后还给书的作者提交了一个 <a href="https://github.com/zhedahht/CodingInterviewChinese2/issues/16">issue</a>，这道题目也就告一段落了。耗费了这么长的时间，其实大多时间都卡壳在<strong>字符指针和字符数组</strong>的<strong>差异</strong>上，对这两种 C 语言中字符串的表示没有很深刻的理解，现在明白了点，遂记载如下，以防下次又给忘了。</p>
+<p>以下摘自 <strong>C 程序设计语言（第2版）</strong> 5.5 字符指针与函数，中文版页码 89。</p>
+<p><code>字符串常量</code> 是一个字符数组，例如：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c"><span style="color:#e6db74">&#34;I am a string&#34;</span>;
+</code></pre></div><p>在字符串的内部表示中，字符数组以空字符 <code>'\0'</code> 结尾，所以，程序可以通过检查空字符找到字符数组的结尾。字符串常量占据的存储单元数也因此比双引号内的字符数大 1。</p>
+<p>字符串常量最常用的用法也许是作为函数参数，例如：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c">printf(<span style="color:#e6db74">&#34;hello, world</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">&#34;</span>);
+</code></pre></div><p>当类似于这样的一个字符串出现在程序中时，实际上是通过字符指针访问该字符串的。在上述语句中，<code>printf</code> 接受的是一个指向字符数组第一个字符的指针。也就是说，字符串常量可通过一个指向其第一个元素的指针访问。</p>
+<p>除了作为函数参数外，字符串常量还有其他用法。假定指针 <code>pmessage</code> 的声明如下：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c"><span style="color:#66d9ef">char</span> <span style="color:#f92672">*</span>pmessage;
+</code></pre></div><p>那么，语句</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c"><span style="color:#960050;background-color:#1e0010">`</span>pmessage <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;now is the time&#34;</span>;<span style="color:#960050;background-color:#1e0010">`</span>
+</code></pre></div><p>将把一个指向该字符数组的指针赋值给 <code>pmessage</code>。该过程并没有进行字符串的复制，而知识涉及到指针的操作。C 语言没有提供将整个字符串作为一个整体进行处理的运算符。下面两个定义之间有很大的差别：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c"><span style="color:#66d9ef">char</span> amessage[] <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;now is the time&#34;</span>; <span style="color:#75715e">/* 定义了一个数组 */</span>
+
+<span style="color:#66d9ef">char</span> <span style="color:#f92672">*</span>pmessage <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;now is the tiem&#34;</span>; <span style="color:#75715e">/* 定义了一个指针 */</span>
+</code></pre></div><p>上述声明中， <code>amessage</code> 是一个仅仅保存足以存放初始化字符串以及空字符 <code>'\0'</code> 的一维数组。 <strong>数组中的单个字符可以进行修改</strong> ，但 <code>amessage</code> <strong>始终指向同一存储位置</strong> 。另一方面，<code>pmessage</code> 是一个指针，其初值指向一个字符串常量，之后它<strong>可以被修改以指向其他地址</strong>，但如果试图（通过 <code>pmessage</code> 指针） <strong>修改字符串的内容，结果是没有定义的</strong>（会出现段错误 <code>Segment Fault</code> ）。</p>
+<p>另外，在页码 85 中有描述</p>
+<p>在函数定义中，形式参数 <code>char s[];</code> 和 <code>char *s;</code> 是等价的。我们通常更习惯于使用后一种形式，因为它比前者更直观地表明了这个参数是一个指针。如果将数组名传递给函数，函数可以根据情况判定是按照数组处理还是按照指针处理，随后根据相应的方式操作该参数。为了直观且恰当地描述函数，在函数中甚至可以同时使用数组和指针这两种表示方法。</p>
+<h2 id="版权声明">版权声明</h2>
+<p>本作品采用<a href="http://creativecommons.org/licenses/by/4.0/">知识共享署名 4.0 国际许可协议</a>进行许可，转载时请注明原文链接。</p>
+
+    </div>
+  </article>
+
+  
+<section class="comments">
+<script src="https://utteranc.es/client.js"
+        repo="qiaoin/hugo-blog-comments"
+        issue-term="og:title"
+        theme="github-light"
+        crossorigin="anonymous"
+        async>
+</script>
+</section>
+
+
+
+</main>
+
+      <footer class="footer">
+        <ul class="footer-links">
+          <li>
+            <a href="https://qiaoin.github.io">在桥边</a> © 2016 - 2021
+          </li>
+          <li>
+            <a href="https://gohugo.io/" class="footer-links-kudos">Made with <img src="/images/hugo-logo.png" alt="Img link to Hugo website" width="22" height="22"></a>
+          </li>
+        </ul>
+      </footer>
+
+    </div>
+    
+
+
+
+<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/highlight.min.js"></script>
+
+
+
+<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/languages/awk.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/languages/bash.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/languages/c.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/languages/c&#43;&#43;.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/languages/cmake.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/languages/go.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/languages/html.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/languages/java.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/languages/javascript.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/languages/python.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/languages/rust.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/languages/typescript.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/languages/yaml.min.js"></script>
+<script>hljs.configure({languages: []}); hljs.initHighlightingOnLoad();</script>
+
+
+
+    
+<script src="/js/math-code.js"></script>
+<script async src="//cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+
+
+    
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-EBLEJGMMQV"></script>
+<script>
+var doNotTrack = false;
+if (!doNotTrack) {
+	window.dataLayer = window.dataLayer || [];
+	function gtag(){dataLayer.push(arguments);}
+	gtag('js', new Date());
+	gtag('config', 'G-EBLEJGMMQV', { 'anonymize_ip': false });
+}
+</script>
+
+  </body>
+</html>
+

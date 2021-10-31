@@ -46,6 +46,8 @@
 
   <ul class="nav-links">
     
+    <li><a href="/re-learning-cs/">重学基础</a></li>
+    
     <li><a href="/about/">About</a></li>
     
     <li><a href="https://github.com/qiaoin">GitHub</a></li>
@@ -72,6 +74,35 @@
     <div class="article-content">
       <p>本文为 CMake 官网入门教程 <a href="https://cmake.org/cmake-tutorial/">CMake Tutorial</a> 的翻译，并添加了一些自己的理解，以帮助读者更好地理解文章内容。(对原文中引用过来的代码进行了一些简单的修改，如编程风格、变量命名等)</p>
 <p>下文为一个 step-by-step 的 CMake 使用入门教程，它包含了我们使用 CMake 来构建系统所需要使用的一些常用命令。我们在这个教程中所使用到的所有文件都可以在 <a href="https://gitlab.kitware.com/cmake/cmake/tree/master/Tests/Tutorial/">Tests/Tutorial</a> 文件夹下找到，对应每一步都有一个单独的文件夹。</p>
+<hr>
+<div class="toc">
+    <details>
+        <summary>Table of contents</summary>
+        <nav id="TableOfContents">
+  <ul>
+    <li><a href="#step1-hello-cmake">Step1 Hello, CMake!</a>
+      <ul>
+        <li><a href="#添加版本号和配置文件">添加版本号和配置文件</a></li>
+      </ul>
+    </li>
+    <li><a href="#step2-添加内库">Step2 添加内库</a></li>
+    <li><a href="#step3-安装及测试">Step3 安装及测试</a>
+      <ul>
+        <li><a href="#安装">安装</a></li>
+        <li><a href="#测试">测试</a></li>
+      </ul>
+    </li>
+    <li><a href="#step4-添加系统自省检查">Step4 添加系统自省检查</a></li>
+    <li><a href="#step5-添加生成器">Step5 添加生成器</a></li>
+    <li><a href="#step6-安装器">Step6 安装器</a></li>
+    <li><a href="#step7">Step7</a></li>
+    <li><a href="#增补">增补</a></li>
+    <li><a href="#版权声明">版权声明</a></li>
+  </ul>
+</nav>
+    </details>
+</div>
+<hr>
 <h2 id="step1-hello-cmake">Step1 Hello, CMake!</h2>
 <p>我们从最为简单的一个项目开始着手，其包含一些源代码文件，用来产生最后的可执行文件。那么，在 <code>CMakeLists.txt</code> 文件中仅需包含三条语句就可以了：</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cmake" data-lang="cmake">cmake_minimum_required (<span style="color:#e6db74">VERSION</span> <span style="color:#e6db74">2.6</span>)<span style="color:#960050;background-color:#1e0010">
@@ -559,8 +590,12 @@ cpack --config CPackSourceConfig.cmake <span style="color:#75715e"># To create a
 <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/languages/c&#43;&#43;.min.js"></script>
 <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/languages/cmake.min.js"></script>
 <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/languages/go.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/languages/html.min.js"></script>
 <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/languages/java.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/languages/javascript.min.js"></script>
 <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/languages/python.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/languages/rust.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/languages/typescript.min.js"></script>
 <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/languages/yaml.min.js"></script>
 <script>hljs.configure({languages: []}); hljs.initHighlightingOnLoad();</script>
 

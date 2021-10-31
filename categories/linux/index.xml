@@ -13,7 +13,7 @@
       <pubDate>Mon, 26 Apr 2021 00:00:00 +0000</pubDate>
       
       <guid>https://qiaoin.github.io/2021/04/26/write-a-daemon/</guid>
-      <description>什么是 Daemon？ 守护进程（daemon）是生存期长的一种进程。它们常常在系统引导装入时启动，仅在系统关闭时才终止。因为它们没有控制终端，</description>
+      <description>Table of contents 什么是 Daemon？ 什么时候需要写一个 Daemon Daemon 的特征 会话、进程组、控制终端 nohup &amp;amp; 运行起来的是 Daemon 吗？ Daemon 编程最佳实践 单实例 Daemon 总结 画图工具 版权声明</description>
     </item>
     
   </channel>
