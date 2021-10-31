@@ -6,16 +6,7 @@
     <description>Recent content in UNIX on 在桥边</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
-    <lastBuildDate>Sat, 23 Nov 2019 00:00:00 +0000</lastBuildDate><atom:link href="https://qiaoin.github.io/tags/unix/index.xml" rel="self" type="application/rss+xml" />
-    <item>
-      <title>epoll 源码实现</title>
-      <link>https://qiaoin.github.io/2019/11/23/epoll-source-notes/</link>
-      <pubDate>Sat, 23 Nov 2019 00:00:00 +0000</pubDate>
-      
-      <guid>https://qiaoin.github.io/2019/11/23/epoll-source-notes/</guid>
-      <description>Table of contents References 版权声明 epoll 相关的内核代码在 fs/eventpoll.c 文件中，下面分别分析 epoll_create、epoll_ctl 和 epoll_wait 三个函数在内核中的实现，分析所用 linux 内</description>
-    </item>
-    
+    <lastBuildDate>Mon, 24 Dec 2018 00:00:00 +0000</lastBuildDate><atom:link href="https://qiaoin.github.io/tags/unix/index.xml" rel="self" type="application/rss+xml" />
     <item>
       <title>《UNIX 网络编程》读书笔记</title>
       <link>https://qiaoin.github.io/2018/12/24/unix-network-programming-notes/</link>

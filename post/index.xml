@@ -98,15 +98,6 @@
     </item>
     
     <item>
-      <title>epoll 源码实现</title>
-      <link>https://qiaoin.github.io/2019/11/23/epoll-source-notes/</link>
-      <pubDate>Sat, 23 Nov 2019 00:00:00 +0000</pubDate>
-      
-      <guid>https://qiaoin.github.io/2019/11/23/epoll-source-notes/</guid>
-      <description>Table of contents References 版权声明 epoll 相关的内核代码在 fs/eventpoll.c 文件中，下面分别分析 epoll_create、epoll_ctl 和 epoll_wait 三个函数在内核中的实现，分析所用 linux 内</description>
-    </item>
-    
-    <item>
       <title>MIT 6.828 Lab 2 - Memory Management</title>
       <link>https://qiaoin.github.io/2019/11/03/mit-6-828-lab-2-memory-management/</link>
       <pubDate>Sun, 03 Nov 2019 00:00:00 +0000</pubDate>
