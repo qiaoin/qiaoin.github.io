@@ -4,8 +4,20 @@ title: 重学计算机基础
 ---
 
 > 工作两年，越发觉得基础的重要，以及自己基础的薄弱，因此重学基础
+>
+> 重学课程参考 [Teach Yourself Computer Science](https://teachyourselfcs.com/)
 
-## 操作系统
+## 程序语言 Programming
+
+## 计算机体系结构 Computer Architecture
+
+## 算法与数据结构 Algorithms and Data Structures
+
+## 数学知识 Math for CS
+
+## 计算机网络 Computer Networking
+
+## 操作系统 Operating Systems
 
 学习课程
 
@@ -42,6 +54,12 @@ TODO
 - 同步互斥
 - 文件系统
 - IO 子系统
+
+## 数据库 Databases
+
+## 编译原理 Languages and Compilers
+
+## 分布式系统 Distributed Systems
 
 ## 版权声明
 
