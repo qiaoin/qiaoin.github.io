@@ -1,5 +1,5 @@
 ---
-title: 当我们谈论协程时，我们在谈论什么
+title: 当我们谈论协程时，我们在谈论什么【未完成】
 author: qiaoin
 date: '2021-11-04'
 slug: all-you-should-know-about-coroutines
@@ -68,7 +68,7 @@ fn Q(i: u32) -> u32 {
 
 我们首先来看一下一个程序在运行时的内存布局。一个可执行文件加载到内存进行执行，会对应操作系统中的一个进程。进程拥有独立的虚拟地址空间。图 2 表示一个典型的 Linux 进程虚拟空间的内存布局。
 
-<img src="./images/process-virtual-space.svg" alt="concurrent-and-parallel" style="zoom: 25%;" />
+{{< figure src="images/process-virtual-space.svg" caption="图 2：Linux 进程虚拟空间的内存布局" height="600px">}}
 
 主要包含有四个部分：
 
@@ -90,7 +90,7 @@ fn Q(i: u32) -> u32 {
 
 整个过程可以看看图 3 辅助理解，`main()` 调用 `hello()`，`hello()` 调用 `world()`。更详细的过程可以参看《深入理解计算机系统》（第三版）3.7 Procedures 和《程序员的自我修养——链接、装载与库》10.2 栈与调用惯例。
 
-<img src="./images/call-stack.svg" alt="concurrent-and-parallel" style="zoom: 25%;" />
+{{< figure src="images/call-stack.svg" caption="图 3 - 函数调用栈" height="800px">}}
 
 前面提到的函数调用需要保证的三个条件，通过寄存器和栈进行实现：
 
@@ -110,7 +110,7 @@ fn Q(i: u32) -> u32 {
 
 - 函数：调用关系是非对称的（unsymetric），例如 `main()` 调用 `hello()`，`hello()` 执行完成返回时只能回到 `main()`，称 `main()` 为 `caller`，`hello()` 为 `callee`，二者存在调用和被调用的关系；
 
-<img src="./images/function-caller-callee.svg" alt="concurrent-and-parallel" style="zoom:50%;" />
+{{< figure src="images/function-caller-callee.svg" caption="图 3 - caller 与 callee" height="400px">}}
 
 - 协程：协程之间是完全对等的（complete symmetry），多个协程之间可以任意调用。因此，可以分为，【看一看那篇论文，补充一下内容，尽量不要提到协程的具体实现】
   - 1）**对称协程** —— 实现时不添加任何限制，多个协程之间可以任意跳转
@@ -139,7 +139,7 @@ fn Q(i: u32) -> u32 {
 
 那**真实的并行**是怎么样的呢？需要有多个 CPU 核心，每一个核心负责处理一个任务，这样在同一个时间片下就会同时有多条指令在并行运行着（每个核心对应一条指令），不需要进行任务的切换。图 4 很好地阐释了并发与并行的区别（一个矩形框表示一个 CPU 核心）。
 
-<img src="./images/concurrent-and-parallel.svg" alt="concurrent-and-parallel" style="zoom:50%;" />
+{{< figure src="images/concurrent-and-parallel.svg" caption="图 4 - 并发与并行" height="400px">}}
 
 因此，我们说**并发（concurrency）是一种能力，并行（parallelism）是一种手段**。当我们的系统拥有并发的能力后，代码如果跑在多个 CPU 核上，就可以并行运行。
 

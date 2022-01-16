@@ -1224,4 +1224,5 @@ fn main() {
 - [cheats.rs](https://cheats.rs/)，Iterators、Blanket Implementations、Sized
 - [rust-blog/sizedness-in-rust](https://github.com/pretzelhammer/rust-blog/blob/master/posts/sizedness-in-rust.md)，强烈推荐阅读，关于 `Sized` trait 的所有内容，这篇博客都会给到解答
 - [rust - When is it appropriate to use an associated type versus a generic type? - Stack Overflow](https://stackoverflow.com/questions/32059370/when-is-it-appropriate-to-use-an-associated-type-versus-a-generic-type)
+- [Rust Playground](https://play.rust-lang.org/) 文中的代码示例都给到了 playground 的链接，在阅读的时候可以点击跳转过去 Run 起来看一下运行结果或错误提示
 - 文中的所有图片均使用 [excalidraw](https://excalidraw.com/) 绘制
