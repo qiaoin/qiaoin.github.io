@@ -49,6 +49,7 @@ params:
     - yaml
   highlightjsTheme: monokai
   highlightjsVersion: 10.7.1
+  customCSS: ["css/custom.css"]
   logo:
     alt: Logo
     height: 50
