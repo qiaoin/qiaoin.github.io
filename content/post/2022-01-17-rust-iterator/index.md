@@ -192,9 +192,9 @@ impl<T, A: Allocator> ops::DerefMut for Vec<T, A> {
 
 `std::slice::Iter<'a, T>` 和 `std::slice::IterMut<'a, T>` 实现 `Iterator` trait，均使用宏进行定义（[impl-Iterator-for-Iter](https://doc.rust-lang.org/src/core/slice/iter.rs.html#134-144)、[impl-Iterator-for-IterMut](https://doc.rust-lang.org/src/core/slice/iter.rs.html#316)），关于 Rust 中的宏（macros），本系列会有单独一篇文章进行讲解。
 
-对于 `Vec<T>`、slice 和 `Iterator` trait 之间的转换，可以借助下图进行理解。更深入的 slice 介绍，可以查看 [陈天 · Rust 编程第一课 - 第 16 讲](https://time.geekbang.org/column/article/422975)。
+对于 `Vec<T>`、slice 和 `Iterator` trait 之间的转换，借助图 1 进行理解。更深入的 slice 介绍，可以查看 [陈天 · Rust 编程第一课 - 第 16 讲](https://time.geekbang.org/column/article/422975)。
 
-![vec-deref-slice-impl-iterator](images/vec-deref-slice-impl-iterator.png)
+{{< figure src="images/vec-deref-slice-impl-iterator.png" caption="图 1：`Vec<T>`、slice 和 `Iterator` trait 之间的转换" >}}
 
 ### Deref coercion
 
@@ -271,9 +271,9 @@ impl<T, A: Allocator> Iterator for IntoIter<T, A> {
 }
 ```
 
-需要特别注意的是，`.into_iter(self)` 的签名，伴随有所有权的转移。可以借助下图进行理解。
+需要特别注意的是，`.into_iter(self)` 的签名，伴随有所有权的转移。借助图 2 进行理解。
 
-![vec-into-iter-impl-iterator](images/vec-into-iter-impl-iterator.png)
+{{< figure src="images/vec-into-iter-impl-iterator.png" caption="图 2：`std::vec` module 下的 `Vec<T>` 和 `IntoIter<T>`" >}}
 
 这里会产生一个疑问：为什么 Rust 不直接为 `Vec<T>` 实现 `Iterator` trait 呢，而是另外定义了一个 `IntoIter<T> struct` 来实现 `Iterator` trait 呢？
 
@@ -424,9 +424,9 @@ impl<'a, T, A: Allocator> IntoIterator for &'a mut Vec<T, A> {
 }
 ```
 
-借助下图进行理解。
+借助图 3 进行理解：
 
-![three-forms-for-in-loop](images/three-forms-for-in-loop.png)
+{{< figure src="images/three-forms-for-in-loop.png" caption="图 3：三种类型的 `for-in-loop`" >}}
 
 如果一个集合类型 `C` 提供了 `iter()` 方法，通常会为 `&C` 实现 `IntoIterator` trait（直接调用 `iter()` 方法）；同理，如果 `C` 提供了 `iter_mut()` 方法，通常会为 `&mut C` 实现 `IntoIterator` trait（直接调用 `iter_mut()` 方法）。
 
@@ -512,12 +512,12 @@ fn main() {
 
 ### version #1: set up
 
-`flatten(iter)` 的入参需遵循以下要求：
+`flatten(iter)` 的入参需遵循以下要求（图 4）：
 
 - `iter` 为迭代器（iterator，实现 `Iterator` trait）或者可以被迭代（iterable，实现 `IntoIterator` trait）；
 - `iter::Item` 可以被迭代（iterable，实现 `IntoIterator` trait）；
 
-![flatten-outer-item-bounds](images/flatten-outer-item-bounds.png)
+{{< figure src="images/flatten-outer-item-bounds.png" caption="图 4：`iter` 为迭代器，`iter::Item` 可以被迭代" >}}
 
 第一层 `outer` 调用 `next()` 获取 `Option<Item>`，当存在待处理的值时 —— `Some(inner)` —— 调用 `.into_iter().next()`。这样就实现了 `flatten()` 的第一个版本，[代码 7，version #1: set-up](https://play.rust-lang.org/?version=stable&mode=debug&edition=2021&gist=41717cc3d5ab80bb07b0ba7700ef5b3f)。
 
@@ -797,7 +797,7 @@ mod tests {
 
 分析原因：在外层迭代器上调用 `next()` 后，`inner` 保存的是第一个元素的内层迭代器，`next()` 和 `next_back()` 后续都是基于 `inner` 进行处理，对于 `next()` 返回符合预期，但 `next_back()` 返回的是 `inner` 迭代器最后一个元素，不符合预期（预期返回外层迭代器最后一个元素（其作为内部迭代器）的最后一个元素）。
 
-![flatten-next-next-back-both-end](images/flatten-next-next-back-both-end.png)
+{{< figure src="images/flatten-next-next-back-both-end.png" caption="图 5：`next()` 和 `next_back()` 迭代相同的 `inner`" >}}
 
 ### version #4: save front_iter and back_iter
 
@@ -815,14 +815,14 @@ where
 }
 ```
 
-![flatten-front-iter-and-back-iter](images/flatten-front-iter-and-back-iter.png)
+{{< figure src="images/flatten-front-iter-and-back-iter.png" caption="图 6：`next()` 和 `next_back()` 分别迭代 `front_iter` 和 `back_iter`" >}}
 
 由于 `next()` 和 `next_back()` 处理的是相同 Range，在迭代处理的最后，会出现两种类似的情况：
 
 - 情况 1：`front_iter` 还有元素可以进行处理，`back_iter` 已处理完毕，调用 `next_back()` 时外层迭代器已经处理完毕；
 - 情况 2：`back_iter` 还有元素可以进行处理，`front_iter` 已处理完毕，调用 `next()` 时外层迭代器已经处理完毕；
 
-![flatten-front-iter-back-iter-only-one](images/flatten-front-iter-back-iter-only-one.png)
+{{< figure src="images/flatten-front-iter-back-iter-only-one.png" caption="图 7：两种边界情况均需要继续进行迭代" >}}
 
 这两种情况下，都要继续进行迭代。
 
@@ -993,7 +993,7 @@ impl<T: fmt::Display + ?Sized> ToString for T {
 
 [cheats.rs](https://cheats.rs) 有 blanket implementations 的说明（对应的说明是默认折叠的，入口 Working with Types-Types, Traits, Generics-Generics-Blanket Implementations）。
 
-![cheatsrs-blanket-implementations](images/image-20220108133742577.png)
+{{< figure src="images/cheatsrs-blanket-implementations.png" caption="图 8：[cheats.rs](https://cheats.rs) 关于 blanket implementations 的说明" >}}
 
 ### traits with generic types
 
