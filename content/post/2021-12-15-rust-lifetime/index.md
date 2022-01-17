@@ -124,7 +124,7 @@ fn main() {
 
 图 1 清晰展示了三者的关系：
 
-{{< figure src="images/lifetime.excalidraw.svg" caption="图 1：noodles、poodles 和 oodles" >}}
+{{< figure src="images/noodles-poodles-and-oodles.svg" caption="图 1：noodles、poodles 和 oodles" >}}
 
 - `str` —— `[T]`，表示为一串字符序列（a sequence of characters），编译期无法确定其长度（dynamically sized）；
 - `&str` —— `&[T]`，表示为一个胖指针（fat pointer），`ptr` 指向切片首地址、`length` 表示切片长度，编译期可以确定其长度为 16 字节；
