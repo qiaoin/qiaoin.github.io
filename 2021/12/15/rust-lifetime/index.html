@@ -1,0 +1,1281 @@
+<!DOCTYPE html>
+<html lang="en-us">
+  <head>
+    <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="generator" content="Hugo 0.82.0" />
+
+
+<title>Rust 中的生命周期 - 在桥边</title>
+<meta property="og:title" content="Rust 中的生命周期 - 在桥边">
+
+
+  <link href='https://qiaoin.github.io/favicon.ico' rel='icon' type='image/x-icon'/>
+
+
+
+  
+
+
+
+
+
+
+
+
+<link href='//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/styles/monokai.min.css' rel='stylesheet' type='text/css' />
+
+
+
+<link rel="stylesheet" href="/css/fonts.css" media="all">
+<link rel="stylesheet" href="/css/main.css" media="all">
+
+<link rel="stylesheet" href="/css/custom.css">
+
+
+
+  </head>
+  <body>
+    <div class="wrapper">
+      <header class="header">
+        <nav class="nav">
+  <a href="/" class="nav-logo">
+    <img src="/images/logo.png"
+         width="50"
+         height="50"
+         alt="Logo">
+  </a>
+
+  <ul class="nav-links">
+    
+    <li><a href="/re-learning-cs/">重学基础</a></li>
+    
+    <li><a href="/readings/">Readings</a></li>
+    
+    <li><a href="/about/">About</a></li>
+    
+    <li><a href="https://github.com/qiaoin">GitHub</a></li>
+    
+  </ul>
+</nav>
+
+      </header>
+
+
+<main class="content" role="main">
+
+  <article class="article">
+    
+    
+
+    <h1 class="article-title">Rust 中的生命周期</h1>
+
+    
+    <span class="article-date">2021-12-15</span>
+    
+
+    <div class="article-content">
+      <p>在本文中，我们将围绕着字符串分割的实例，讲解 Rust 中的生命周期。首先剖析为什么需要生命周期、什么是生命周期、以及如何标注生命周期；接下来引入多生命周期标注，阐述什么时候需要标注多个生命周期。在此基础上，向前多迈一步，自定义 trait 取代分隔符的定义，让实现更加通用。最后查看标准库字符串分割的实现，综合理解本文中的所有知识点。</p>
+<hr>
+<div class="toc">
+    <details>
+        <summary>Table of contents</summary>
+        <nav id="TableOfContents">
+  <ul>
+    <li><a href="#前置要求">前置要求</a></li>
+    <li><a href="#快速开始">快速开始</a>
+      <ul>
+        <li><a href="#搭建骨架">搭建骨架</a></li>
+        <li><a href="#为什么使用-str而不是-string">为什么使用 &amp;str，而不是 String？</a></li>
+        <li><a href="#iterator-trait">Iterator trait</a></li>
+        <li><a href="#什么时候用-self什么时候用-self">什么时候用 Self，什么时候用 self？</a></li>
+      </ul>
+    </li>
+    <li><a href="#version-1-hands-on">version #1: hands on</a></li>
+    <li><a href="#version-2-add-lifetime-specifier">version #2: add lifetime specifier</a>
+      <ul>
+        <li><a href="#数据结构的生命周期标注">数据结构的生命周期标注</a></li>
+        <li><a href="#函数签名的生命周期标注">函数签名的生命周期标注</a></li>
+        <li><a href="#static-lifetime">Static lifetime</a></li>
+        <li><a href="#增加一个以分隔符结尾的单元测试">增加一个以分隔符结尾的单元测试</a></li>
+      </ul>
+    </li>
+    <li><a href="#version-3-fix-tail-delimiter">version #3: fix tail delimiter</a>
+      <ul>
+        <li><a href="#ref-mut">ref mut</a></li>
+        <li><a href="#version-31-use--operator">version #3.1 use ? operator</a></li>
+      </ul>
+    </li>
+    <li><a href="#version-4-multiple-lifetimes">version #4: multiple lifetimes</a>
+      <ul>
+        <li><a href="#already-done">already done？</a></li>
+        <li><a href="#add-multiple-lifetime">add multiple lifetime</a></li>
+      </ul>
+    </li>
+    <li><a href="#version-5-generic-delimiter">version #5: generic delimiter</a>
+      <ul>
+        <li><a href="#使用-trait-定义分隔符">使用 trait 定义分隔符</a></li>
+        <li><a href="#为不同的分隔符类型实现-delimiter-trait">为不同的分隔符类型实现 Delimiter trait</a></li>
+        <li><a href="#strfind--optionmap">str::find &amp; Option::map</a></li>
+        <li><a href="#最终代码实现">最终代码实现</a></li>
+      </ul>
+    </li>
+    <li><a href="#标准库-strsplit">标准库 str::split</a>
+      <ul>
+        <li><a href="#pat-为-str-类型时split-完整的调用链路">pat 为 &amp;str 类型时，split() 完整的调用链路</a></li>
+        <li><a href="#split-struct">Split struct</a></li>
+        <li><a href="#pattern-trait">Pattern trait</a></li>
+        <li><a href="#search-trait">Search trait</a></li>
+      </ul>
+    </li>
+    <li><a href="#总结">总结</a></li>
+    <li><a href="#references">References</a></li>
+  </ul>
+</nav>
+    </details>
+</div>
+<hr>
+<h2 id="前置要求">前置要求</h2>
+<p>至少看过 <a href="https://doc.rust-lang.org/stable/book/">Rust The Book</a> 前 8 章的内容。推荐的学习资料：</p>
+<ul>
+<li><a href="https://docs.microsoft.com/en-us/learn/paths/rust-first-steps/">Take your first steps with Rust</a> 微软推出的 Rust 培训课程，可以配合视频一起使用 <a href="https://www.youtube.com/playlist?list=PLlrxD0HtieHjbTjrchBwOVks_sr8EVW1x">Rust for Beginners</a></li>
+<li><a href="https://doc.rust-lang.org/stable/book/">Rust The Book</a> —— 第 4 章和第 10 章的内容与本文密切相关，建议重新阅读一遍</li>
+<li>极客时间专栏 <a href="https://time.geekbang.org/column/intro/100085301">陈天 · Rust 编程第一课</a> —— 第 7 讲 - 第 11 讲</li>
+<li><a href="https://www.youtube.com/channel/UC_iD0xppBwwsrM9DegC5cQQ">Jon Gjengset</a> 的 YouTube 频道，本文就是 Crust of Rust 系列 <a href="https://www.youtube.com/watch?v=rAl-9HwD858&amp;list=PLqbS7AVVErFiWDOAVrPt7aYmnuuOLYvOa&amp;index=1&amp;ab_channel=JonGjengset">Lifetime Annotations</a> 的学习笔记</li>
+</ul>
+<h2 id="快速开始">快速开始</h2>
+<p>确定目标，实现字符串分割：</p>
+<blockquote>
+<p>input: &ldquo;a b c d e&rdquo; &ndash; &amp;str</p>
+<p>output: &ldquo;a&rdquo; &ldquo;b&rdquo; &ldquo;c&rdquo; &ldquo;d&rdquo; &ldquo;e&rdquo; &ndash; 分隔符指定为空字符串，每次 next 得到一个 &amp;str</p>
+</blockquote>
+<p>开始一个 Rust 项目：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash">cargo new --lib strsplit
+</code></pre></div><p>我们也可以使用 <a href="https://play.rust-lang.org/">Rust Playground</a> 进行练习，文中展示的所有代码都提供了 playground 链接，点击跳转过去，Run 起来测试一下试试。</p>
+<h3 id="搭建骨架">搭建骨架</h3>
+<p>定义数据结构和方法，添加单元测试，搭建好骨架：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-rust" data-lang="rust"><span style="color:#66d9ef">pub</span> <span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">StrSplit</span> {
+    remainder: <span style="color:#66d9ef">&amp;</span><span style="color:#66d9ef">str</span>,
+    delimiter: <span style="color:#66d9ef">&amp;</span><span style="color:#66d9ef">str</span>,
+}
+
+<span style="color:#66d9ef">impl</span> StrSplit {
+    <span style="color:#66d9ef">pub</span> <span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">new</span>(haystack: <span style="color:#66d9ef">&amp;</span><span style="color:#66d9ef">str</span>, delimiter: <span style="color:#66d9ef">&amp;</span><span style="color:#66d9ef">str</span>) -&gt; <span style="color:#a6e22e">Self</span> {
+        <span style="color:#75715e">// ....
+</span><span style="color:#75715e"></span>    }
+}
+
+<span style="color:#66d9ef">impl</span> Iterator <span style="color:#66d9ef">for</span> StrSplit {
+    <span style="color:#66d9ef">type</span> <span style="color:#a6e22e">Item</span> <span style="color:#f92672">=</span> <span style="color:#f92672">&amp;</span><span style="color:#66d9ef">str</span>;
+    
+    <span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">next</span>(<span style="color:#f92672">&amp;</span><span style="color:#66d9ef">mut</span> self) -&gt; Option<span style="color:#f92672">&lt;</span>Self::Item<span style="color:#f92672">&gt;</span> {
+        <span style="color:#75715e">// ...
+</span><span style="color:#75715e"></span>    }
+}
+
+<span style="color:#75715e">#[test]</span>
+<span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">it_works</span>() {
+    <span style="color:#66d9ef">let</span> haystack <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;a b c d e&#34;</span>;
+    <span style="color:#66d9ef">let</span> letters: Vec<span style="color:#f92672">&lt;</span>_<span style="color:#f92672">&gt;</span> <span style="color:#f92672">=</span> StrSplit::new(haystack, <span style="color:#e6db74">&#34; &#34;</span>).collect();
+    assert_eq<span style="color:#f92672">!</span>(letters, vec<span style="color:#f92672">!</span>[<span style="color:#e6db74">&#34;a&#34;</span>, <span style="color:#e6db74">&#34;b&#34;</span>, <span style="color:#e6db74">&#34;c&#34;</span>, <span style="color:#e6db74">&#34;d&#34;</span>, <span style="color:#e6db74">&#34;e&#34;</span>]);
+}
+</code></pre></div><p>实现 <code>Iterator</code> trait 后，就可以使用 <code>for</code> 循环遍历对应的 struct。</p>
+<h3 id="为什么使用-str而不是-string">为什么使用 &amp;str，而不是 String？</h3>
+<blockquote>
+<p>当对一个知识点不熟悉时，打开 playground，写一段代码测试一下</p>
+</blockquote>
+<p>为了方便解释，写一段代码测试一下，<a href="https://play.rust-lang.org/?version=stable&amp;mode=debug&amp;edition=2021&amp;gist=d0544480827b3d414aca177e89cfaffc">代码 0，String-str-and-&amp;str</a>：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-rust" data-lang="rust"><span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">main</span>() {
+<span style="display:block;width:100%;background-color:#3c3d38">    <span style="color:#66d9ef">let</span> noodles: <span style="color:#66d9ef">&amp;</span>&#39;static <span style="color:#66d9ef">str</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;noodles&#34;</span>;
+</span>
+    <span style="color:#75715e">// String::from(noodles) 调用链路
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">//  - https://doc.rust-lang.org/src/alloc/string.rs.html#2516
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">//  - https://doc.rust-lang.org/src/alloc/str.rs.html#218
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">//  - https://doc.rust-lang.org/src/core/str/mod.rs.html#238
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">//  - https://doc.rust-lang.org/src/alloc/slice.rs.html#841
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">//  - https://doc.rust-lang.org/src/alloc/slice.rs.html#474
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">//  - https://doc.rust-lang.org/src/alloc/slice.rs.html#493-495
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">//  - https://doc.rust-lang.org/src/alloc/string.rs.html#771
+</span><span style="display:block;width:100%;background-color:#3c3d38"><span style="color:#75715e"></span>    <span style="color:#75715e">// let poodles: String = String::from(noodles);
+</span></span><span style="color:#75715e"></span>    <span style="color:#75715e">// https://doc.rust-lang.org/std/primitive.str.html#method.to_string
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// noodles.to_string() 底层调用的就是 String::from(noodles);
+</span><span style="display:block;width:100%;background-color:#3c3d38"><span style="color:#75715e"></span>    <span style="color:#66d9ef">let</span> poodles: String <span style="color:#f92672">=</span> noodles.to_string();
+</span>
+<span style="display:block;width:100%;background-color:#3c3d38">    <span style="color:#66d9ef">let</span> oodles: <span style="color:#66d9ef">&amp;</span><span style="color:#66d9ef">str</span> <span style="color:#f92672">=</span> <span style="color:#f92672">&amp;</span>poodles[<span style="color:#ae81ff">1</span>..];
+</span>
+    println<span style="color:#f92672">!</span>(<span style="color:#e6db74">&#34;addr of {:?}: {:p}&#34;</span>, <span style="color:#e6db74">&#34;noodles&#34;</span>, <span style="color:#f92672">&amp;</span><span style="color:#e6db74">&#34;noodles&#34;</span>);
+    println<span style="color:#f92672">!</span>(<span style="color:#e6db74">&#34;addr of noodles: {:p}, len: {}, size: {}&#34;</span>, <span style="color:#f92672">&amp;</span>noodles,
+        noodles.len(), std::mem::size_of_val(<span style="color:#f92672">&amp;</span>noodles));
+    println<span style="color:#f92672">!</span>(<span style="color:#e6db74">&#34;addr of poodles: {:p}, len: {}, cap: {}, size: {}&#34;</span>, <span style="color:#f92672">&amp;</span>poodles,
+        poodles.len(), poodles.capacity(), std::mem::size_of_val(<span style="color:#f92672">&amp;</span>poodles));
+    println<span style="color:#f92672">!</span>(<span style="color:#e6db74">&#34;addr of oodles: {:p}, len: {}, size: {}&#34;</span>, <span style="color:#f92672">&amp;</span>oodles,
+        oodles.len(), std::mem::size_of_val(<span style="color:#f92672">&amp;</span>oodles));
+}
+</code></pre></div><p><code>&quot;noodles&quot;</code> 作为字符串常量（string literal），编译时存入可执行文件的 .RODATA 段，程序加载时，获得一个固定的内存地址。作为一个字符串切片赋值给栈上变量 <code>noodles</code>，拥有静态生命周期（static lifetime），在程序运行期间一直有效。</p>
+<p>当执行 <code>noodles.to_string()</code> 时，跟踪标准库实现，最后调用 <code>[u8]::to_vec_in()</code> ，在堆上分配一块新的内存，将 <code>&quot;noodles&quot;</code> 逐字节拷贝过去。</p>
+<p>当把堆上的数据赋值给 <code>poodles</code> 时，<code>poodles</code> 作为栈上的一个变量，其拥有（owns）堆上数据的所有权，使用胖指针（<a href="https://stackoverflow.com/questions/57754901/what-is-a-fat-pointer">fat pointer</a>）进行<a href="https://doc.rust-lang.org/std/string/struct.String.html#representation">表示</a>：<code>ptr</code> 指向字符串堆内存的首地址、<code>length</code> 表示字符串当前长度、<code>capacity</code> 表示分配的堆内存总容量。</p>
+<p><code>oodles</code> 为字符串切片，表示对字符串某一部分（包含全部字符串）的引用（a string slice is a reference to part of a String），包含<a href="https://doc.rust-lang.org/std/primitive.str.html#representation">两部分内容</a>：<code>ptr</code> 指向字符串切片首地址（可以为堆内存和 static 静态内存）、<code>length</code> 表示切片长度。</p>
+<p>图 1 清晰展示了三者的关系：</p>
+<figure>
+    <img src="images/noodles-poodles-and-oodles.svg"
+         alt="图 1：noodles、poodles 和 oodles"/> <figcaption>
+            <p>图 1：noodles、poodles 和 oodles</p>
+        </figcaption>
+</figure>
+
+<ul>
+<li><code>str</code> —— <code>[T]</code>，表示为一串字符序列（a sequence of characters），编译期无法确定其长度（dynamically sized）；</li>
+<li><code>&amp;str</code> —— <code>&amp;[T]</code>，表示为一个胖指针（fat pointer），<code>ptr</code> 指向切片首地址、<code>length</code> 表示切片长度，编译期可以确定其长度为 16 字节；</li>
+<li><code>String</code> —— <code>Vec&lt;T&gt;</code>，表示为一个胖指针（fat pointer），<code>ptr</code> 指向字符串堆内存的首地址、<code>length</code> 表示字符串当前长度、<code>capacity</code> 表示分配的堆内存总容量。堆内存支持动态扩展和收缩。编译期可以确定其长度为 24 字节。</li>
+</ul>
+<p>针对分隔符 <code>delimiter</code>，如果使用 <code>String</code> 类型会存在两个问题：</p>
+<p>1、涉及堆内存分配，开销大；</p>
+<p>2、需进行堆内存分配，而嵌入式系统中是没有堆内存的，存在兼容性问题。</p>
+<p>因此分隔符 <code>delimiter</code> 使用 <code>&amp;str</code> 类型。</p>
+<h3 id="iterator-trait">Iterator trait</h3>
+<p>查看标准文档 <a href="https://doc.rust-lang.org/std/iter/trait.Iterator.html">Iterator trait</a>：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-rust" data-lang="rust"><span style="color:#66d9ef">pub</span> <span style="color:#66d9ef">trait</span> Iterator {
+    <span style="color:#e6db74">/// The type of the elements being iterated over.
+</span><span style="color:#e6db74"></span>    <span style="color:#66d9ef">type</span> <span style="color:#a6e22e">Item</span>;
+
+    <span style="color:#75715e">// 必须实现的关联方法，被其他关联方法的缺省实现所依赖
+</span><span style="color:#75715e"></span>    <span style="color:#e6db74">/// Advances the iterator and returns the next value.
+</span><span style="color:#e6db74"></span>    <span style="color:#e6db74">///
+</span><span style="color:#e6db74"></span>    <span style="color:#e6db74">/// Returns [`None`] when iteration is finished. Individual iterator
+</span><span style="color:#e6db74"></span>    <span style="color:#e6db74">/// implementations may choose to resume iteration, and so calling `next()`
+</span><span style="color:#e6db74"></span>    <span style="color:#e6db74">/// again may or may not eventually start returning [`Some(Item)`] again at some
+</span><span style="color:#e6db74"></span>    <span style="color:#e6db74">/// point.
+</span><span style="display:block;width:100%;background-color:#3c3d38"><span style="color:#e6db74"></span>    <span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">next</span>(<span style="color:#f92672">&amp;</span><span style="color:#66d9ef">mut</span> self) -&gt; Option<span style="color:#f92672">&lt;</span>Self::Item<span style="color:#f92672">&gt;</span>;
+</span>
+    <span style="color:#75715e">// 其他的关联方法，依赖 next 有默认实现
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">collect</span><span style="color:#f92672">&lt;</span>B<span style="color:#f92672">&gt;</span>(self) -&gt; <span style="color:#a6e22e">B</span>
+    <span style="color:#66d9ef">where</span>
+        B: <span style="color:#a6e22e">FromIterator</span><span style="color:#f92672">&lt;</span>Self::Item<span style="color:#f92672">&gt;</span>,
+    { ... }
+    
+    <span style="color:#75715e">// ...
+</span><span style="color:#75715e"></span>}
+</code></pre></div><ul>
+<li>关联类型（associated types）—— <code>type Item;</code> 为迭代遍历的类型，只有实现 <code>Iterator</code> trait 时才能确定遍历的值的类型，延迟绑定；</li>
+<li>方法（methods），也称关联函数（associated functions）—— 对于 <code>Iterator</code> trait，<code>next()</code> 是必须实现的（<strong>Request methods</strong>），存在值时，返回 <code>Some(item)</code>；不存在值时，返回 <code>None</code>。trait 中的其他方法有缺省实现。也就是说，只要实现了 <code>Iterator</code> trait 的 <code>next()</code> 方法，trait 中的其他方法就有了默认实现，可直接使用。</li>
+</ul>
+<h3 id="什么时候用-self什么时候用-self">什么时候用 Self，什么时候用 self？</h3>
+<ul>
+<li><code>Self</code> 表示当前类型，比如 <code>StrSplit</code> 类型实现 <code>Iterator</code> trait，实现时使用的 <code>Self</code> 就指代 <code>StrSplit</code> 类型；</li>
+<li><code>self</code> 在用作方法的第一个参数时，实际上就是 <code>self: Self</code>（参数名: 参数类型）的简写，所以 <code>&amp;self</code> 是 <code>self: &amp;Self</code>，而 <code>&amp;mut self</code> 是 <code>self: &amp;mut Self</code>。</li>
+</ul>
+<p>因此 <code>Iterator</code> trait 的 <code>next()</code> 签名展开为：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-rust" data-lang="rust"><span style="color:#66d9ef">pub</span> <span style="color:#66d9ef">trait</span> Iterator {
+    <span style="color:#66d9ef">type</span> <span style="color:#a6e22e">Item</span>;
+
+<span style="display:block;width:100%;background-color:#3c3d38">    <span style="color:#75715e">// fn next(&amp;mut self) -&gt; Option&lt;Self::Item&gt;;
+</span></span><span style="display:block;width:100%;background-color:#3c3d38"><span style="color:#75715e"></span>    <span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">next</span>(self: <span style="color:#66d9ef">&amp;</span><span style="color:#a6e22e">mut</span> Self) -&gt; Option<span style="color:#f92672">&lt;</span>Self::Item<span style="color:#f92672">&gt;</span>;
+</span>}
+</code></pre></div><h2 id="version-1-hands-on">version #1: hands on</h2>
+<p>让我们直接开始吧，<a href="https://play.rust-lang.org/?version=stable&amp;mode=debug&amp;edition=2021&amp;gist=0ef8d7450128be332ef3861486f1eb0b">代码 1，version #1: hands-on</a>：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-rust" data-lang="rust"><span style="color:#66d9ef">pub</span> <span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">StrSplit</span> {
+    remainder: <span style="color:#66d9ef">&amp;</span><span style="color:#66d9ef">str</span>,
+    delimiter: <span style="color:#66d9ef">&amp;</span><span style="color:#66d9ef">str</span>,
+}
+
+<span style="color:#66d9ef">impl</span> StrSplit {
+    <span style="color:#66d9ef">pub</span> <span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">new</span>(haystack: <span style="color:#66d9ef">&amp;</span><span style="color:#66d9ef">str</span>, delimiter: <span style="color:#66d9ef">&amp;</span><span style="color:#66d9ef">str</span>) -&gt; <span style="color:#a6e22e">Self</span> {
+        Self {
+            remainder: <span style="color:#a6e22e">haystack</span>,
+            delimiter,
+        }
+    }
+}
+
+<span style="color:#66d9ef">impl</span> Iterator <span style="color:#66d9ef">for</span> StrSplit {
+    <span style="color:#66d9ef">type</span> <span style="color:#a6e22e">Item</span> <span style="color:#f92672">=</span> <span style="color:#f92672">&amp;</span><span style="color:#66d9ef">str</span>;
+
+    <span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">next</span>(<span style="color:#f92672">&amp;</span><span style="color:#66d9ef">mut</span> self) -&gt; Option<span style="color:#f92672">&lt;</span>Self::Item<span style="color:#f92672">&gt;</span> {
+<span style="display:block;width:100%;background-color:#3c3d38">        <span style="color:#66d9ef">if</span> <span style="color:#66d9ef">let</span> Some(next_delim) <span style="color:#f92672">=</span> self.remainder.find(self.delimiter) {
+</span><span style="display:block;width:100%;background-color:#3c3d38">            <span style="color:#66d9ef">let</span> until_delimiter <span style="color:#f92672">=</span> <span style="color:#f92672">&amp;</span>self.remainder[..next_delim];
+</span><span style="display:block;width:100%;background-color:#3c3d38">            self.remainder <span style="color:#f92672">=</span> <span style="color:#f92672">&amp;</span>self.remainder[(next_delim <span style="color:#f92672">+</span> self.delimiter.len())..];
+</span><span style="display:block;width:100%;background-color:#3c3d38">            Some(until_delimiter)
+</span>        } <span style="color:#66d9ef">else</span> <span style="color:#66d9ef">if</span> self.remainder.is_empty() {
+            None
+        } <span style="color:#66d9ef">else</span> {
+            <span style="color:#66d9ef">let</span> rest <span style="color:#f92672">=</span> self.remainder;
+            self.remainder <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;&#34;</span>;
+            Some(rest)
+        }
+    }
+}
+
+<span style="color:#75715e">#[test]</span>
+<span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">it_works</span>() {
+    <span style="color:#66d9ef">let</span> haystack <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;a b c d e&#34;</span>;
+    <span style="color:#66d9ef">let</span> letters: Vec<span style="color:#f92672">&lt;</span>_<span style="color:#f92672">&gt;</span> <span style="color:#f92672">=</span> StrSplit::new(haystack, <span style="color:#e6db74">&#34; &#34;</span>).collect();
+    assert_eq<span style="color:#f92672">!</span>(letters, vec<span style="color:#f92672">!</span>[<span style="color:#e6db74">&#34;a&#34;</span>, <span style="color:#e6db74">&#34;b&#34;</span>, <span style="color:#e6db74">&#34;c&#34;</span>, <span style="color:#e6db74">&#34;d&#34;</span>, <span style="color:#e6db74">&#34;e&#34;</span>]);
+}
+</code></pre></div><p><code>next()</code> 的实现很简单：</p>
+<p>1、在字符串中查找分隔符第一次出现的位置，如果找到返回索引值 <code>Some(usize)</code>，未找到返回 <code>None</code>；</p>
+<p>2、根据索引值将字符串分为三个部分，第一部分为 <code>next()</code> 的返回值，第二部分为分隔符，第三部分为剩余待处理的字符串，为下一次调用 <code>next()</code> 的原始字符串。</p>
+<p>编译，报错信息：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash">   Compiling playground v0.0.1 <span style="color:#f92672">(</span>/playground<span style="color:#f92672">)</span>
+error<span style="color:#f92672">[</span>E0106<span style="color:#f92672">]</span>: missing lifetime specifier
+ --&gt; src/lib.rs:2:16
+  |
+<span style="color:#ae81ff">2</span> |     remainder: &amp;str,
+  |                ^ expected named lifetime parameter
+  |
+help: consider introducing a named lifetime parameter
+  |
+<span style="color:#ae81ff">1</span> ~ pub struct StrSplit&lt;<span style="color:#e6db74">&#39;a&gt; {
+</span><span style="color:#e6db74">2 ~     remainder: &amp;&#39;</span>a str,
+  |
+
+error<span style="color:#f92672">[</span>E0106<span style="color:#f92672">]</span>: missing lifetime specifier
+ --&gt; src/lib.rs:3:16
+  |
+<span style="color:#ae81ff">3</span> |     delimiter: &amp;str,
+  |                ^ expected named lifetime parameter
+  |
+help: consider introducing a named lifetime parameter
+  |
+<span style="color:#ae81ff">1</span> ~ pub struct StrSplit&lt;<span style="color:#e6db74">&#39;a&gt; {
+</span><span style="color:#e6db74">2 |     remainder: &amp;str,
+</span><span style="color:#e6db74">3 ~     delimiter: &amp;&#39;</span>a str,
+  |
+
+error<span style="color:#f92672">[</span>E0106<span style="color:#f92672">]</span>: missing lifetime specifier
+  --&gt; src/lib.rs:16:17
+   |
+<span style="color:#ae81ff">16</span> |     type Item <span style="color:#f92672">=</span> &amp;str;
+   |                 ^ expected named lifetime parameter
+   |
+help: consider introducing a named lifetime parameter
+   |
+<span style="color:#ae81ff">16</span> |     type Item&lt;<span style="color:#e6db74">&#39;a&gt; = &amp;&#39;</span>a str;
+   |              ++++    ++
+
+For more information about this error, try <span style="color:#e6db74">`</span>rustc --explain E0106<span style="color:#e6db74">`</span>.
+</code></pre></div><p>三个错误信息都提示缺少生命周期标注（lifetime specifier），编译器建议添加生命周期参数（lifetime parameter），因此在 version #1 上添加生命周期标注。</p>
+<blockquote>
+<p>错误代码 <code>E0106</code> 使用 <code>rustc --explain E0106</code> 探索更详细的信息，可以在浏览器中搜索 <a href="https://doc.rust-lang.org/error-index.html#E0106">Rust E0106</a>，也可以直接在命令行中查看，使用 playground 运行可以直接点击 <code>[E0106]</code> 跳转到错误说明。</p>
+<p>E0106 错误可以分为两大类：</p>
+<ul>
+<li>数据结构缺少生命周期标注（a lifetime is missing from a type）—— 使用数据结构时，数据结构自身的生命周期，需小于等于数据结构内部所有引用类型字段的生命周期；</li>
+<li>函数签名缺少生命周期标注，即使编译器执行生命周期自动标注，也无能为力（If it is an error inside a function signature, the problem may be with failing to adhere to the lifetime elision rules）。</li>
+</ul>
+<p>编译器会通过一些简单的<a href="https://doc.rust-lang.org/book/ch10-03-lifetime-syntax.html#lifetime-elision">规则</a>，自动添加生命周期标注：</p>
+<ol>
+<li>所有引用类型参数都有独立的生命周期 <code>'a</code>、<code>'b</code>（a reference gets its own lifetime parameter）；</li>
+<li>如果入参只有一个引用类型，它的生命周期会赋给所有输出参数（if there is exactly one input lifetime parameter, that lifetime is assigned to all output lifetime parameters）；</li>
+<li>如果入参有多个引用类型参数，其中一个是 <code>self</code>（作为数据结构的方法，第一个参数是 <code>&amp;self</code> / <code>&amp;mut self</code>），那么 <code>self</code> 的生命周期会赋给所有输出参数（if there are multiple input lifetime parameters, but one of them is <code>&amp;self</code> or <code>&amp;mut self</code> because this is a method, the lifetime of <code>self</code> is assigned to all output lifetime parameters）。</li>
+</ol>
+</blockquote>
+<h2 id="version-2-add-lifetime-specifier">version #2: add lifetime specifier</h2>
+<p>在 playground 中多次编译，根据编译器给到的错误信息补充生命周期标注，直至编译成功，<a href="https://play.rust-lang.org/?version=stable&amp;mode=debug&amp;edition=2021&amp;gist=d8a19f669b68a566912160e0e69ca7f4">代码 2，version #2: add-lifetime-specifier</a>：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-rust" data-lang="rust"><span style="display:block;width:100%;background-color:#3c3d38"><span style="color:#66d9ef">pub</span> <span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">StrSplit</span><span style="color:#f92672">&lt;</span><span style="color:#a6e22e">&#39;a</span><span style="color:#f92672">&gt;</span> {
+</span><span style="display:block;width:100%;background-color:#3c3d38">    remainder: <span style="color:#66d9ef">&amp;</span><span style="color:#a6e22e">&#39;a</span> <span style="color:#66d9ef">str</span>,
+</span><span style="display:block;width:100%;background-color:#3c3d38">    delimiter: <span style="color:#66d9ef">&amp;</span><span style="color:#a6e22e">&#39;a</span> <span style="color:#66d9ef">str</span>,
+</span><span style="display:block;width:100%;background-color:#3c3d38">}
+</span>
+<span style="display:block;width:100%;background-color:#3c3d38"><span style="color:#66d9ef">impl</span><span style="color:#f92672">&lt;</span><span style="color:#a6e22e">&#39;a</span><span style="color:#f92672">&gt;</span> StrSplit<span style="color:#f92672">&lt;</span><span style="color:#a6e22e">&#39;a</span><span style="color:#f92672">&gt;</span> {
+</span><span style="display:block;width:100%;background-color:#3c3d38">    <span style="color:#66d9ef">pub</span> <span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">new</span>(haystack: <span style="color:#66d9ef">&amp;</span><span style="color:#a6e22e">&#39;a</span> <span style="color:#66d9ef">str</span>, delimiter: <span style="color:#66d9ef">&amp;</span><span style="color:#a6e22e">&#39;a</span> <span style="color:#66d9ef">str</span>) -&gt; <span style="color:#a6e22e">Self</span> {
+</span>        Self {
+            remainder: <span style="color:#a6e22e">haystack</span>,
+            delimiter,
+        }
+    }
+}
+
+<span style="display:block;width:100%;background-color:#3c3d38"><span style="color:#66d9ef">impl</span><span style="color:#f92672">&lt;</span><span style="color:#a6e22e">&#39;a</span><span style="color:#f92672">&gt;</span> Iterator <span style="color:#66d9ef">for</span> StrSplit<span style="color:#f92672">&lt;</span><span style="color:#a6e22e">&#39;a</span><span style="color:#f92672">&gt;</span> {
+</span><span style="display:block;width:100%;background-color:#3c3d38">    <span style="color:#66d9ef">type</span> <span style="color:#a6e22e">Item</span> <span style="color:#f92672">=</span> <span style="color:#f92672">&amp;</span><span style="color:#a6e22e">&#39;a</span> <span style="color:#66d9ef">str</span>;
+</span>
+    <span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">next</span>(<span style="color:#f92672">&amp;</span><span style="color:#66d9ef">mut</span> self) -&gt; Option<span style="color:#f92672">&lt;</span>Self::Item<span style="color:#f92672">&gt;</span> {
+        <span style="color:#66d9ef">if</span> <span style="color:#66d9ef">let</span> Some(next_delim) <span style="color:#f92672">=</span> self.remainder.find(self.delimiter) {
+            <span style="color:#66d9ef">let</span> until_delimiter <span style="color:#f92672">=</span> <span style="color:#f92672">&amp;</span>self.remainder[..next_delim];
+            self.remainder <span style="color:#f92672">=</span> <span style="color:#f92672">&amp;</span>self.remainder[(next_delim <span style="color:#f92672">+</span> self.delimiter.len())..];
+            Some(until_delimiter)
+        } <span style="color:#66d9ef">else</span> <span style="color:#66d9ef">if</span> self.remainder.is_empty() {
+            None
+        } <span style="color:#66d9ef">else</span> {
+            <span style="color:#66d9ef">let</span> rest <span style="color:#f92672">=</span> self.remainder;
+            self.remainder <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;&#34;</span>; <span style="color:#75715e">// -- caution
+</span><span style="color:#75715e"></span>            <span style="color:#75715e">// &amp;&#39;a str  -----   &amp;&#39;static str
+</span><span style="color:#75715e"></span>            Some(rest)
+        }
+    }
+}
+
+<span style="color:#75715e">#[test]</span>
+<span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">it_works</span>() {
+    <span style="color:#66d9ef">let</span> haystack <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;a b c d e&#34;</span>;
+    <span style="color:#66d9ef">let</span> letters: Vec<span style="color:#f92672">&lt;</span>_<span style="color:#f92672">&gt;</span> <span style="color:#f92672">=</span> StrSplit::new(haystack, <span style="color:#e6db74">&#34; &#34;</span>).collect();
+    assert_eq<span style="color:#f92672">!</span>(letters, vec<span style="color:#f92672">!</span>[<span style="color:#e6db74">&#34;a&#34;</span>, <span style="color:#e6db74">&#34;b&#34;</span>, <span style="color:#e6db74">&#34;c&#34;</span>, <span style="color:#e6db74">&#34;d&#34;</span>, <span style="color:#e6db74">&#34;e&#34;</span>]);
+}
+</code></pre></div><h3 id="数据结构的生命周期标注">数据结构的生命周期标注</h3>
+<p>当 struct 包含引用类型参数时，需在 <a href="https://doc.rust-lang.org/book/ch10-03-lifetime-syntax.html#lifetime-annotations-in-struct-definitions">定义 struct 时添加生命周期标注</a> —— 与声明泛型数据类型（generic data types）的语法一致 —— 在 struct 名称后的尖括号内声明泛型生命周期参数（generic lifetime parameter），这样在 struct 定义中就可以使用这个范型生命周期参数标注生命周期。例如 <code>remainder</code> 和 <code>delimiter</code> 是两个字符串引用，<code>StrSplit</code> 的生命周期不能大于它们，否则会访问失效的内存，因此需进行生命周期标注。</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-rust" data-lang="rust"><span style="display:block;width:100%;background-color:#3c3d38"><span style="color:#66d9ef">pub</span> <span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">StrSplit</span><span style="color:#f92672">&lt;</span><span style="color:#a6e22e">&#39;a</span><span style="color:#f92672">&gt;</span> {
+</span>    remainder: <span style="color:#66d9ef">&amp;</span><span style="color:#a6e22e">&#39;a</span> <span style="color:#66d9ef">str</span>,
+    delimiter: <span style="color:#66d9ef">&amp;</span><span style="color:#a6e22e">&#39;a</span> <span style="color:#66d9ef">str</span>,
+}
+</code></pre></div><p>使用数据结构时，数据结构自身的生命周期，需小于等于数据结构内部所有引用类型字段的生命周期</p>
+<p>实现数据结构时，由于 <code>impl block</code> 和 struct 生命周期参数是分隔开的，需要为 <code>impl block</code> 添加上生命周期参数（<a href="https://doc.rust-lang.org/stable/error-index.html#E0261">E0261</a>），例如：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-rust" data-lang="rust"><span style="color:#66d9ef">pub</span> <span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">StrSplit</span><span style="color:#f92672">&lt;</span><span style="color:#a6e22e">&#39;a</span><span style="color:#f92672">&gt;</span> {
+    remainder: <span style="color:#66d9ef">&amp;</span><span style="color:#a6e22e">&#39;a</span> <span style="color:#66d9ef">str</span>,
+    delimiter: <span style="color:#66d9ef">&amp;</span><span style="color:#a6e22e">&#39;a</span> <span style="color:#66d9ef">str</span>,
+}
+
+<span style="color:#75715e">// error[E0261]: use of undeclared lifetime name `&#39;a`
+</span><span style="display:block;width:100%;background-color:#3c3d38"><span style="color:#75715e"></span><span style="color:#66d9ef">impl</span> StrSplit<span style="color:#f92672">&lt;</span><span style="color:#a6e22e">&#39;a</span><span style="color:#f92672">&gt;</span> {
+</span>    <span style="color:#66d9ef">pub</span> <span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">new</span>(haystack: <span style="color:#66d9ef">&amp;</span><span style="color:#a6e22e">&#39;a</span> <span style="color:#66d9ef">str</span>, delimiter: <span style="color:#66d9ef">&amp;</span><span style="color:#a6e22e">&#39;a</span> <span style="color:#66d9ef">str</span>) -&gt; <span style="color:#a6e22e">Self</span> {
+        Self {
+            remainder: <span style="color:#a6e22e">haystack</span>,
+            delimiter,
+        }
+    }
+}
+</code></pre></div><p>为 <code>impl block</code> 添加上生命周期参数即可修复：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-rust" data-lang="rust"><span style="color:#66d9ef">pub</span> <span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">StrSplit</span><span style="color:#f92672">&lt;</span><span style="color:#a6e22e">&#39;a</span><span style="color:#f92672">&gt;</span> {
+    remainder: <span style="color:#66d9ef">&amp;</span><span style="color:#a6e22e">&#39;a</span> <span style="color:#66d9ef">str</span>,
+    delimiter: <span style="color:#66d9ef">&amp;</span><span style="color:#a6e22e">&#39;a</span> <span style="color:#66d9ef">str</span>,
+}
+
+<span style="color:#75715e">// correct
+</span><span style="display:block;width:100%;background-color:#3c3d38"><span style="color:#75715e"></span><span style="color:#66d9ef">impl</span><span style="color:#f92672">&lt;</span><span style="color:#a6e22e">&#39;a</span><span style="color:#f92672">&gt;</span> StrSplit<span style="color:#f92672">&lt;</span><span style="color:#a6e22e">&#39;a</span><span style="color:#f92672">&gt;</span> {
+</span>    <span style="color:#66d9ef">pub</span> <span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">new</span>(haystack: <span style="color:#66d9ef">&amp;</span><span style="color:#a6e22e">&#39;a</span> <span style="color:#66d9ef">str</span>, delimiter: <span style="color:#66d9ef">&amp;</span><span style="color:#a6e22e">&#39;a</span> <span style="color:#66d9ef">str</span>) -&gt; <span style="color:#a6e22e">Self</span> {
+        Self {
+            remainder: <span style="color:#a6e22e">haystack</span>,
+            delimiter,
+        }
+    }
+}
+</code></pre></div><p>同理，也适用于 <code>impl&lt;'a&gt; Iterator for StrSplit&lt;'a&gt;</code>。</p>
+<h3 id="函数签名的生命周期标注">函数签名的生命周期标注</h3>
+<p>使用 <code>new()</code> 作为例子：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-rust" data-lang="rust"><span style="color:#66d9ef">pub</span> <span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">StrSplit</span><span style="color:#f92672">&lt;</span><span style="color:#a6e22e">&#39;a</span><span style="color:#f92672">&gt;</span> {
+    remainder: <span style="color:#66d9ef">&amp;</span><span style="color:#a6e22e">&#39;a</span> <span style="color:#66d9ef">str</span>,
+    delimiter: <span style="color:#66d9ef">&amp;</span><span style="color:#a6e22e">&#39;a</span> <span style="color:#66d9ef">str</span>,
+}
+
+<span style="color:#66d9ef">impl</span><span style="color:#f92672">&lt;</span><span style="color:#a6e22e">&#39;a</span><span style="color:#f92672">&gt;</span> StrSplit<span style="color:#f92672">&lt;</span><span style="color:#a6e22e">&#39;a</span><span style="color:#f92672">&gt;</span> {
+    <span style="color:#75715e">// 去掉入参的生命周期标注
+</span><span style="display:block;width:100%;background-color:#3c3d38"><span style="color:#75715e"></span>    <span style="color:#66d9ef">pub</span> <span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">new</span>(haystack: <span style="color:#66d9ef">&amp;</span><span style="color:#66d9ef">str</span>, delimiter: <span style="color:#66d9ef">&amp;</span><span style="color:#66d9ef">str</span>) -&gt; <span style="color:#a6e22e">Self</span> {
+</span>        Self {
+            remainder: <span style="color:#a6e22e">haystack</span>,
+            delimiter,
+        }
+    }
+}
+</code></pre></div><p>将 <code>Self</code> 简写展开：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-rust" data-lang="rust"><span style="color:#66d9ef">pub</span> <span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">StrSplit</span><span style="color:#f92672">&lt;</span><span style="color:#a6e22e">&#39;a</span><span style="color:#f92672">&gt;</span> {
+    remainder: <span style="color:#66d9ef">&amp;</span><span style="color:#a6e22e">&#39;a</span> <span style="color:#66d9ef">str</span>,
+    delimiter: <span style="color:#66d9ef">&amp;</span><span style="color:#a6e22e">&#39;a</span> <span style="color:#66d9ef">str</span>,
+}
+
+<span style="color:#66d9ef">impl</span><span style="color:#f92672">&lt;</span><span style="color:#a6e22e">&#39;a</span><span style="color:#f92672">&gt;</span> StrSplit<span style="color:#f92672">&lt;</span><span style="color:#a6e22e">&#39;a</span><span style="color:#f92672">&gt;</span> {
+<span style="display:block;width:100%;background-color:#3c3d38">    <span style="color:#66d9ef">pub</span> <span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">new</span>(haystack: <span style="color:#66d9ef">&amp;</span><span style="color:#66d9ef">str</span>, delimiter: <span style="color:#66d9ef">&amp;</span><span style="color:#66d9ef">str</span>) -&gt; <span style="color:#a6e22e">StrSplit</span><span style="color:#f92672">&lt;</span><span style="color:#a6e22e">&#39;a</span><span style="color:#f92672">&gt;</span> {
+</span>        StrSplit {
+            remainder: <span style="color:#a6e22e">haystack</span>,
+            delimiter,
+        }
+    }
+}
+</code></pre></div><p>函数返回值的生命周期为 <code>'a</code>，而两个入参的生命周期与 <code>'a</code> 的关系却未可知，可能在后续使用 <code>StrSplit struct</code> 时包含的两个字段 <code>remainder</code> 和 <code>delimiter</code>已经被释放，出现 use after free。因此需使用生命周期参数约束入参与入参之间、入参与返回值之间的关系。</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-rust" data-lang="rust"><span style="color:#66d9ef">impl</span><span style="color:#f92672">&lt;</span><span style="color:#a6e22e">&#39;a</span><span style="color:#f92672">&gt;</span> StrSplit<span style="color:#f92672">&lt;</span><span style="color:#a6e22e">&#39;a</span><span style="color:#f92672">&gt;</span> {
+<span style="display:block;width:100%;background-color:#3c3d38">    <span style="color:#66d9ef">pub</span> <span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">new</span>(haystack: <span style="color:#66d9ef">&amp;</span><span style="color:#a6e22e">&#39;a</span> <span style="color:#66d9ef">str</span>, delimiter: <span style="color:#66d9ef">&amp;</span><span style="color:#a6e22e">&#39;a</span> <span style="color:#66d9ef">str</span>) -&gt; <span style="color:#a6e22e">StrSplit</span><span style="color:#f92672">&lt;</span><span style="color:#a6e22e">&#39;a</span><span style="color:#f92672">&gt;</span> {
+</span>        StrSplit {
+            remainder: <span style="color:#a6e22e">haystack</span>,
+            delimiter,
+        }
+    }
+}
+</code></pre></div><h3 id="static-lifetime">Static lifetime</h3>
+<p><code>next()</code> 实现中的 <code>else block</code> 执行了一个赋值操作：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-rust" data-lang="rust"><span style="display:block;width:100%;background-color:#3c3d38">    self.remainder <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;&#34;</span>;
+</span></code></pre></div><p>等号左侧为 <code>&amp;'a str</code>，等号右侧 <code>&quot;&quot;</code> 为字符串字面量 —— 上文讲到，字符串字面量拥有静态生命周期（static lifetime），用 <code>&amp;'static str</code> 表示。将 <code>&amp;'static str</code> 赋值给 <code>&amp;'a str</code>，长生命周期的值赋值给短的生命周期（subtyping system）。</p>
+<h3 id="增加一个以分隔符结尾的单元测试">增加一个以分隔符结尾的单元测试</h3>
+<p>增加一个单元测试，以分隔符结尾，测试报错，<a href="https://play.rust-lang.org/?version=stable&amp;mode=debug&amp;edition=2021&amp;gist=c0d8920958af15ccb571d6d562ef59c8">代码 3，tail-test-error</a>。</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-rust" data-lang="rust"><span style="color:#75715e">#[test]</span>
+<span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">tail_test</span>() {
+<span style="display:block;width:100%;background-color:#3c3d38">    <span style="color:#66d9ef">let</span> haystack <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;a b c d &#34;</span>;
+</span>    <span style="color:#66d9ef">let</span> letters: Vec<span style="color:#f92672">&lt;</span>_<span style="color:#f92672">&gt;</span> <span style="color:#f92672">=</span> StrSplit::new(haystack, <span style="color:#e6db74">&#34; &#34;</span>).collect();
+    assert_eq<span style="color:#f92672">!</span>(letters, vec<span style="color:#f92672">!</span>[<span style="color:#e6db74">&#34;a&#34;</span>, <span style="color:#e6db74">&#34;b&#34;</span>, <span style="color:#e6db74">&#34;c&#34;</span>, <span style="color:#e6db74">&#34;d&#34;</span>, <span style="color:#e6db74">&#34;&#34;</span>]);
+}
+</code></pre></div><p>为什么会报错呢？</p>
+<p><a href="https://play.rust-lang.org/?version=stable&amp;mode=debug&amp;edition=2021&amp;gist=c0d8920958af15ccb571d6d562ef59c8">代码 3，tail-test-error</a> 中，增加 3 处 print 打印，同时修改第一个测试使之报错。</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash">---- it_works stdout ----
+1-remainder <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;a b c d e f&#34;</span>
+1-remainder <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;b c d e f&#34;</span>
+1-remainder <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;c d e f&#34;</span>
+1-remainder <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;d e f&#34;</span>
+1-remainder <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;e f&#34;</span>
+3-remainder <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;f&#34;</span>
+<span style="display:block;width:100%;background-color:#3c3d38">2-remainder <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;&#34;</span>
+</span>
+---- tail_test stdout ----
+1-remainder <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;a b c d &#34;</span>
+1-remainder <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;b c d &#34;</span>
+1-remainder <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;c d &#34;</span>
+1-remainder <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;d &#34;</span>
+<span style="display:block;width:100%;background-color:#3c3d38">2-remainder <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;&#34;</span>
+</span></code></pre></div><p>观察 print 输出的信息，两个测试用例都在 <code>self.remainder.is_empty()</code> 分支结束执行：</p>
+<ol>
+<li>正常测试用例 <code>&quot;a b c d e f&quot;</code>，在处理到 <code>&quot;f&quot;</code> 时，调用 <code>next()</code> 返回 <code>&quot;f&quot;</code>，没有剩余待处理的字符串，按照目前的实现，将剩余字符串设置为空字符串（<a href="https://play.rust-lang.org/?version=stable&amp;mode=debug&amp;edition=2021&amp;gist=c0d8920958af15ccb571d6d562ef59c8">代码 3，tail-test-error</a>，line 30）；</li>
+<li>分隔符结尾的测试用例 <code>&quot;a b c d &quot;</code>，在处理到 <code>&quot;d &quot;</code> 时，调用 <code>next()</code> 返回 <code>&quot;d&quot;</code>，剩余待处理字符串为空字符串，需要下一次调用 <code>next()</code> 时进行处理。</li>
+</ol>
+<p>测试用例 1 和测试用例 2 都进入到 <code>self.remainder.is_empty()</code> 分支，目前的实现是直接返回 <code>None</code>，满足测试用例 1，不满足测试用例 2（二者不能同时满足）。</p>
+<p>应该如何处理空字符串呢？</p>
+<ul>
+<li>测试用例 1，处理完 <code>&quot;f&quot;</code> 后，没有剩余待处理的字符串 —— 使用 <code>None</code> 表示；</li>
+<li>测试用例 2，处理完 <code>&quot;d&quot;</code> 后，还有一个空字符串待处理 —— 使用 <code>Some(&quot;&quot;)</code> 表示。</li>
+</ul>
+<h2 id="version-3-fix-tail-delimiter">version #3: fix tail delimiter</h2>
+<p>将 <code>reminder</code> 定义为 <code>Option&lt;&amp;'a str&gt;</code> 类型，<a href="https://play.rust-lang.org/?version=stable&amp;mode=debug&amp;edition=2021&amp;gist=24b70fb2b35be8dc0896373dd70983d1">代码 4，define-remainder-with-Option</a>：</p>
+<ul>
+<li><code>Some(&quot;xxx&quot;)</code> —— 仍有待处理的字符串，包括空字符串；</li>
+<li><code>None</code> —— 没有剩余待处理的字符串。</li>
+</ul>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-rust" data-lang="rust"><span style="color:#66d9ef">pub</span> <span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">StrSplit</span><span style="color:#f92672">&lt;</span><span style="color:#a6e22e">&#39;a</span><span style="color:#f92672">&gt;</span> {
+<span style="display:block;width:100%;background-color:#3c3d38">    remainder: Option<span style="color:#f92672">&lt;&amp;</span><span style="color:#a6e22e">&#39;a</span> <span style="color:#66d9ef">str</span><span style="color:#f92672">&gt;</span>,
+</span>    delimiter: <span style="color:#66d9ef">&amp;</span><span style="color:#a6e22e">&#39;a</span> <span style="color:#66d9ef">str</span>,
+}
+
+<span style="color:#66d9ef">impl</span><span style="color:#f92672">&lt;</span><span style="color:#a6e22e">&#39;a</span><span style="color:#f92672">&gt;</span> StrSplit<span style="color:#f92672">&lt;</span><span style="color:#a6e22e">&#39;a</span><span style="color:#f92672">&gt;</span> {
+    <span style="color:#66d9ef">pub</span> <span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">new</span>(haystack: <span style="color:#66d9ef">&amp;</span><span style="color:#a6e22e">&#39;a</span> <span style="color:#66d9ef">str</span>, delimiter: <span style="color:#66d9ef">&amp;</span><span style="color:#a6e22e">&#39;a</span> <span style="color:#66d9ef">str</span>) -&gt; <span style="color:#a6e22e">Self</span> {
+        Self {
+            remainder: Some(haystack),
+            delimiter,
+        }
+    }
+}
+
+<span style="color:#66d9ef">impl</span><span style="color:#f92672">&lt;</span><span style="color:#a6e22e">&#39;a</span><span style="color:#f92672">&gt;</span> Iterator <span style="color:#66d9ef">for</span> StrSplit<span style="color:#f92672">&lt;</span><span style="color:#a6e22e">&#39;a</span><span style="color:#f92672">&gt;</span> {
+    <span style="color:#66d9ef">type</span> <span style="color:#a6e22e">Item</span> <span style="color:#f92672">=</span> <span style="color:#f92672">&amp;</span><span style="color:#a6e22e">&#39;a</span> <span style="color:#66d9ef">str</span>;
+
+    <span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">next</span>(<span style="color:#f92672">&amp;</span><span style="color:#66d9ef">mut</span> self) -&gt; Option<span style="color:#f92672">&lt;</span>Self::Item<span style="color:#f92672">&gt;</span> {
+        <span style="color:#75715e">// &amp;mut &amp;&#39;a str ----------- Option&lt;&amp;&#39;a str&gt;
+</span><span style="color:#75715e"></span>        <span style="color:#75715e">// 匹配 self.remainder == Some(&#34;xxx&#34;)，同时获取 val 的可变借用
+</span><span style="display:block;width:100%;background-color:#3c3d38"><span style="color:#75715e"></span>        <span style="color:#66d9ef">if</span> <span style="color:#66d9ef">let</span> Some(<span style="color:#66d9ef">ref</span> <span style="color:#66d9ef">mut</span> remainder) <span style="color:#f92672">=</span> self.remainder {
+</span><span style="display:block;width:100%;background-color:#3c3d38">            <span style="color:#66d9ef">if</span> <span style="color:#66d9ef">let</span> Some(next_delim) <span style="color:#f92672">=</span> remainder.find(self.delimiter) {
+</span><span style="display:block;width:100%;background-color:#3c3d38">                <span style="color:#66d9ef">let</span> until_delimiter <span style="color:#f92672">=</span> <span style="color:#f92672">&amp;</span>remainder[..next_delim];
+</span><span style="display:block;width:100%;background-color:#3c3d38">                <span style="color:#75715e">// left without *  - &amp;mut &amp;&#39;a str
+</span></span><span style="display:block;width:100%;background-color:#3c3d38"><span style="color:#75715e"></span>                <span style="color:#75715e">// right - &amp;&#39;a str
+</span></span><span style="display:block;width:100%;background-color:#3c3d38"><span style="color:#75715e"></span>                <span style="color:#f92672">*</span>remainder <span style="color:#f92672">=</span> <span style="color:#f92672">&amp;</span>remainder[(next_delim <span style="color:#f92672">+</span> self.delimiter.len())..];
+</span><span style="display:block;width:100%;background-color:#3c3d38">                Some(until_delimiter)
+</span>            } <span style="color:#66d9ef">else</span> {
+                <span style="color:#75715e">// https://doc.rust-lang.org/std/option/enum.Option.html#method.take
+</span><span style="color:#75715e"></span>                <span style="color:#75715e">// impl&lt;T&gt; Option&lt;T&gt; { fn take(&amp;mut self) -&gt; Option&lt;T&gt; }
+</span><span style="color:#75715e"></span>                <span style="color:#75715e">// Takes the value out of the option, leaving a None in its place.
+</span><span style="display:block;width:100%;background-color:#3c3d38"><span style="color:#75715e"></span>                self.remainder.take()
+</span>            }
+        } <span style="color:#66d9ef">else</span> {
+<span style="display:block;width:100%;background-color:#3c3d38">            None
+</span>        }
+    }
+}
+
+<span style="color:#75715e">#[test]</span>
+<span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">it_works</span>() {
+    <span style="color:#66d9ef">let</span> haystack <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;a b c d e&#34;</span>;
+    <span style="color:#66d9ef">let</span> letters: Vec<span style="color:#f92672">&lt;</span>_<span style="color:#f92672">&gt;</span> <span style="color:#f92672">=</span> StrSplit::new(haystack, <span style="color:#e6db74">&#34; &#34;</span>).collect();
+    assert_eq<span style="color:#f92672">!</span>(letters, vec<span style="color:#f92672">!</span>[<span style="color:#e6db74">&#34;a&#34;</span>, <span style="color:#e6db74">&#34;b&#34;</span>, <span style="color:#e6db74">&#34;c&#34;</span>, <span style="color:#e6db74">&#34;d&#34;</span>, <span style="color:#e6db74">&#34;e&#34;</span>]);
+}
+
+<span style="color:#75715e">#[test]</span>
+<span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">tail_test</span>() {
+    <span style="color:#66d9ef">let</span> haystack <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;a b c d &#34;</span>;
+    <span style="color:#66d9ef">let</span> letters: Vec<span style="color:#f92672">&lt;</span>_<span style="color:#f92672">&gt;</span> <span style="color:#f92672">=</span> StrSplit::new(haystack, <span style="color:#e6db74">&#34; &#34;</span>).collect();
+    assert_eq<span style="color:#f92672">!</span>(letters, vec<span style="color:#f92672">!</span>[<span style="color:#e6db74">&#34;a&#34;</span>, <span style="color:#e6db74">&#34;b&#34;</span>, <span style="color:#e6db74">&#34;c&#34;</span>, <span style="color:#e6db74">&#34;d&#34;</span>, <span style="color:#e6db74">&#34;&#34;</span>]);
+}
+</code></pre></div><p>修改后的 <code>next()</code> 实现逻辑如下：</p>
+<p>1、首先执行模式匹配，如果仍有待处理的字符串，即 <code>Some(&quot;xxx&quot;)</code>，匹配待处理的字符串，记为 <code>remainder</code>；</p>
+<p>2、在待处理的字符串中查找分隔符，</p>
+<ul>
+<li>存在分隔符，获取分隔符第一次出现的索引，按照索引将字符串分为三个部分，第一部分为此次 <code>next()</code> 调用的返回值，第二部分为分隔符，第三部分为下一次调用 <code>next()</code> 时待处理的字符串（即此次调用需要更新待处理的字符串）；</li>
+<li>不存在分隔符，直接返回待处理的字符串；并设置剩余待处理字符串为 <code>None</code>（表示没有剩余待处理的字符串），下一次调用 <code>next()</code> 时直接返回 <code>None</code>；</li>
+</ul>
+<p>3、如果没有待处理的字符串，直接返回 <code>None</code>。</p>
+<h3 id="ref-mut">ref mut</h3>
+<p><code>ref</code> 和 <code>mut</code> 为 <a href="https://doc.rust-lang.org/reference/patterns.html#identifier-patterns">Identifier patterns</a> 的关键字：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-rust" data-lang="rust">IdentifierPattern :
+      <span style="color:#a6e22e">ref</span><span style="color:#f92672">?</span> <span style="color:#66d9ef">mut</span><span style="color:#f92672">?</span> IDENTIFIER (<span style="color:#f92672">@</span> Pattern ) <span style="color:#f92672">?</span>
+</code></pre></div><p>写一段代码测试一下 <code>ref mut</code> 的使用，<a href="https://play.rust-lang.org/?version=stable&amp;mode=debug&amp;edition=2021&amp;gist=acefdddc07fe240e215816c10ab7c797">代码 5，ref-mut</a>：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-rust" data-lang="rust"><span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">main</span>() {
+    <span style="color:#66d9ef">let</span> name <span style="color:#f92672">=</span> String::from(<span style="color:#e6db74">&#34;qiaoin&#34;</span>);
+    <span style="color:#66d9ef">let</span> gender <span style="color:#f92672">=</span> String::from(<span style="color:#e6db74">&#34;Male&#34;</span>);
+    <span style="color:#66d9ef">let</span> <span style="color:#66d9ef">mut</span> age <span style="color:#f92672">=</span> <span style="color:#ae81ff">27</span>;
+    
+    age <span style="color:#f92672">=</span> <span style="color:#ae81ff">28</span>;
+    println<span style="color:#f92672">!</span>(<span style="color:#e6db74">&#34;name = {:?}, gender = {:?}, age = {:?}&#34;</span>, name, gender, age);
+    
+    <span style="color:#75715e">// String doesn&#39;t impl Copy trait, ownship moved here
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">let</span> <span style="color:#66d9ef">mut</span> own_name <span style="color:#f92672">=</span> name;
+    println<span style="color:#f92672">!</span>(<span style="color:#e6db74">&#34;own_name = {:?}, gender = {:?}, age = {:?}&#34;</span>, own_name, gender, age);
+    <span style="color:#75715e">// 可以将注释删除，编译看一下具体的错误信息
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// error, borrowed after move
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// println!(&#34;name = {:?}, gender = {:?}, age = {:?}&#34;, name, gender, age);
+</span><span style="color:#75715e"></span>    
+    <span style="color:#75715e">// A `ref` borrow on the left side of an assignment is equivalent to
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// an `&amp;` borrow on the right side.
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">let</span> <span style="color:#66d9ef">ref</span> ref_g1 <span style="color:#f92672">=</span> gender;
+    <span style="color:#66d9ef">let</span> ref_g2 <span style="color:#f92672">=</span> <span style="color:#f92672">&amp;</span>gender;
+    println<span style="color:#f92672">!</span>(<span style="color:#e6db74">&#34;own_name = {:?}, ref_g1 = {:?}, age = {:?}&#34;</span>, own_name, ref_g1, age);
+    println<span style="color:#f92672">!</span>(<span style="color:#e6db74">&#34;own_name = {:?}, ref_g2 = {:?}, age = {:?}&#34;</span>, own_name, ref_g2, age);
+    println<span style="color:#f92672">!</span>(<span style="color:#e6db74">&#34;ref_g1 equal ref_g2 = {}&#34;</span>, <span style="color:#f92672">*</span>ref_g1 <span style="color:#f92672">==</span> <span style="color:#f92672">*</span>ref_g2);
+    println<span style="color:#f92672">!</span>(<span style="color:#e6db74">&#34;own_name = {:?}, gender = {:?}, age = {:?}&#34;</span>, own_name, gender, age);
+    
+    <span style="color:#75715e">// borrowed as mutable
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">let</span> <span style="color:#66d9ef">ref</span> <span style="color:#66d9ef">mut</span> mut_ref_n <span style="color:#f92672">=</span> own_name;
+    println<span style="color:#f92672">!</span>(<span style="color:#e6db74">&#34;own_name = {:?}, gender = {:?}, age = {:?}&#34;</span>, mut_ref_n, gender, age);
+    <span style="color:#f92672">*</span>mut_ref_n <span style="color:#f92672">=</span> String::from(<span style="color:#e6db74">&#34;桥&#34;</span>);
+    println<span style="color:#f92672">!</span>(<span style="color:#e6db74">&#34;own_name = {:?}, gender = {:?}, age = {:?}&#34;</span>, mut_ref_n, gender, age);
+    <span style="color:#75715e">// 其后，mut_ref_n 就不是活跃的 mutable borrowed
+</span><span style="color:#75715e"></span>    
+    <span style="color:#75715e">// 因此可以在这里访问 immutable borrowed
+</span><span style="color:#75715e"></span>    println<span style="color:#f92672">!</span>(<span style="color:#e6db74">&#34;own_name = {:?}, gender = {:?}, age = {:?}&#34;</span>, own_name, gender, age);
+
+    <span style="color:#75715e">// borrowed as mutable
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">let</span> mut_ref_n2 <span style="color:#f92672">=</span> <span style="color:#f92672">&amp;</span><span style="color:#66d9ef">mut</span> own_name;
+    <span style="color:#f92672">*</span>mut_ref_n2 <span style="color:#f92672">=</span> String::from(<span style="color:#e6db74">&#34;qiaoin&#34;</span>);
+    println<span style="color:#f92672">!</span>(<span style="color:#e6db74">&#34;own_name = {:?}, gender = {:?}, age = {:?}&#34;</span>, mut_ref_n2, gender, age);
+}
+</code></pre></div><ul>
+<li>在等号左侧使用 <code>ref</code> 不可变借用 === 在等号右侧使用 <code>&amp;</code> 不可变借用</li>
+<li>在等号左侧使用 <code>ref mut</code> 可变借用 === 在等号右侧使用 <code>&amp;mut</code> 可变借用</li>
+</ul>
+<p>既然两者直接等价，为什么还需要 <code>ref</code> 关键字呢？</p>
+<p><code>ref</code> 主要使用在模式匹配（pattern matching）中（<code>let</code> / <code>match</code>），对匹配到的值执行借用（borrow），而不是 <code>copy</code> 或者 <code>move</code> 匹配到的值（根据匹配值的类型是否实现了 <code>Copy</code> trait）。</p>
+<p>应用于模式匹配语句时，<code>ref</code>  与 <code>&amp;</code> 的比较如下（<a href="https://doc.rust-lang.org/std/keyword.ref.html">ref keyword</a>）：</p>
+<ul>
+<li><code>ref</code> 不作为模式的一部分，不影响值是否匹配，只影响匹配到的值作为借用在 scope 中使用，因此 <code>Foo(ref foo)</code> 和 <code>Foo(foo)</code> 两个模式匹配相同的对象；</li>
+<li><code>&amp;</code> 作为模式的一部分，表示待匹配的模式要求为一个对象的引用，因此 <code>&amp;Foo</code> 和 <code>Foo</code> 两个模式匹配不同的对象。</li>
+</ul>
+<p>假设去掉 <code>ref mut</code>，则后续不能修改。</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-rust" data-lang="rust"><span style="color:#66d9ef">if</span> <span style="color:#66d9ef">let</span> Some(remainder) <span style="color:#f92672">=</span> self.remainder {
+    <span style="color:#75715e">// can&#39;t mutable ... 
+</span><span style="color:#75715e"></span>}
+</code></pre></div><p>假设使用 <code>&amp;mut</code> 进行模式匹配，则右侧类型需要为 <code>Option&lt;&amp;mut T&gt;</code>，匹配后 <code>remainder</code> 的类型为 <code>T</code>，依然不能修改。</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-rust" data-lang="rust"><span style="color:#66d9ef">if</span> <span style="color:#66d9ef">let</span> Some(<span style="color:#f92672">&amp;</span><span style="color:#66d9ef">mut</span> remainder) <span style="color:#f92672">=</span> self.remainder {
+    <span style="color:#75715e">// can&#39;t mutable ...
+</span><span style="color:#75715e"></span>}
+</code></pre></div><h3 id="version-31-use--operator">version #3.1 use ? operator</h3>
+<p><code>next()</code> 实现中有以下的一段代码：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-rust" data-lang="rust"><span style="color:#66d9ef">impl</span><span style="color:#f92672">&lt;</span><span style="color:#a6e22e">&#39;a</span><span style="color:#f92672">&gt;</span> Iterator <span style="color:#66d9ef">for</span> StrSplit<span style="color:#f92672">&lt;</span><span style="color:#a6e22e">&#39;a</span><span style="color:#f92672">&gt;</span> {
+    <span style="color:#66d9ef">type</span> <span style="color:#a6e22e">Item</span> <span style="color:#f92672">=</span> <span style="color:#f92672">&amp;</span><span style="color:#a6e22e">&#39;a</span> <span style="color:#66d9ef">str</span>;
+
+    <span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">next</span>(<span style="color:#f92672">&amp;</span><span style="color:#66d9ef">mut</span> self) -&gt; Option<span style="color:#f92672">&lt;</span>Self::Item<span style="color:#f92672">&gt;</span> {
+<span style="display:block;width:100%;background-color:#3c3d38">        <span style="color:#66d9ef">if</span> <span style="color:#66d9ef">let</span> Some(<span style="color:#66d9ef">ref</span> <span style="color:#66d9ef">mut</span> remainder) <span style="color:#f92672">=</span> self.remainder {
+</span><span style="display:block;width:100%;background-color:#3c3d38">            <span style="color:#75715e">// do something
+</span></span><span style="display:block;width:100%;background-color:#3c3d38"><span style="color:#75715e"></span>        } <span style="color:#66d9ef">else</span> {
+</span><span style="display:block;width:100%;background-color:#3c3d38">            None
+</span><span style="display:block;width:100%;background-color:#3c3d38">        }
+</span>    }
+}
+</code></pre></div><ul>
+<li><code>self.remainder</code> 为 <code>Some(val)</code> 时，匹配 <code>val</code>，得到其可变引用，继续后续操作；</li>
+<li><code>self.remainder</code> 为 <code>None</code> 时，直接返回 <code>None</code>。</li>
+</ul>
+<p>可以使用 <code>?</code> 操作符实现相同逻辑。写一段代码测试 <code>?</code> 操作符，<a href="https://play.rust-lang.org/?version=stable&amp;mode=debug&amp;edition=2021&amp;gist=9cab033571d766a16164c7b27d7d5c4c">代码 6，?-operator</a>：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-rust" data-lang="rust"><span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">main</span>() {
+    <span style="color:#66d9ef">if</span> complex_function().is_none() {
+        println<span style="color:#f92672">!</span>(<span style="color:#e6db74">&#34;X not exists!&#34;</span>);
+    }
+}
+
+<span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">complex_function</span>() -&gt; Option<span style="color:#f92672">&lt;&amp;</span>&#39;static <span style="color:#66d9ef">str</span><span style="color:#f92672">&gt;</span> {
+    <span style="color:#75715e">// 末尾使用 ? operator
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// 如果是 None, 直接返回；如果是 Some(&#34;abc&#34;), set x to &#34;abc&#34;
+</span><span style="display:block;width:100%;background-color:#3c3d38"><span style="color:#75715e"></span>    <span style="color:#66d9ef">let</span> x <span style="color:#f92672">=</span> get_an_optional_value()<span style="color:#f92672">?</span>;
+</span>
+    println<span style="color:#f92672">!</span>(<span style="color:#e6db74">&#34;{}&#34;</span>, x); <span style="color:#75715e">// &#34;abc&#34; ; if you change line 19 `false` to `true`
+</span><span style="color:#75715e"></span>
+    Some(<span style="color:#e6db74">&#34;&#34;</span>)
+}
+
+<span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">get_an_optional_value</span>() -&gt; Option<span style="color:#f92672">&lt;&amp;</span>&#39;static <span style="color:#66d9ef">str</span><span style="color:#f92672">&gt;</span> {
+    <span style="color:#75715e">// if the optional value is not empty
+</span><span style="display:block;width:100%;background-color:#3c3d38"><span style="color:#75715e"></span>    <span style="color:#66d9ef">if</span> <span style="color:#66d9ef">false</span> {
+</span>        <span style="color:#66d9ef">return</span> Some(<span style="color:#e6db74">&#34;abc&#34;</span>);
+    }
+
+    <span style="color:#75715e">// else
+</span><span style="color:#75715e"></span>    None
+}
+</code></pre></div><p>如何替换 <code>ref mut</code> 的模式匹配呢？本质问题为如何做类型的转换，将类型 <code>&amp;mut Option&lt;&amp;'a str&gt;</code> 转换为类型 <code>Option&lt;&amp;mut &amp;'a str&gt;</code> —— <code>Option::as_mut()</code> 可以完成这个类型转换。因此，修改后得到如下实现，<a href="https://play.rust-lang.org/?version=stable&amp;mode=debug&amp;edition=2021&amp;gist=083328cfac596d53749413246fa3db2b">代码 7，version #3.1 use-?-operator</a>：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-rust" data-lang="rust"><span style="color:#66d9ef">impl</span><span style="color:#f92672">&lt;</span><span style="color:#a6e22e">&#39;a</span><span style="color:#f92672">&gt;</span> Iterator <span style="color:#66d9ef">for</span> StrSplit<span style="color:#f92672">&lt;</span><span style="color:#a6e22e">&#39;a</span><span style="color:#f92672">&gt;</span> {
+    <span style="color:#66d9ef">type</span> <span style="color:#a6e22e">Item</span> <span style="color:#f92672">=</span> <span style="color:#f92672">&amp;</span><span style="color:#a6e22e">&#39;a</span> <span style="color:#66d9ef">str</span>;
+
+    <span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">next</span>(<span style="color:#f92672">&amp;</span><span style="color:#66d9ef">mut</span> self) -&gt; Option<span style="color:#f92672">&lt;</span>Self::Item<span style="color:#f92672">&gt;</span> {
+        <span style="color:#75715e">// https://doc.rust-lang.org/std/option/enum.Option.html#method.as_mut
+</span><span style="color:#75715e"></span>        <span style="color:#75715e">// impl&lt;T&gt; Option&lt;T&gt; { fn as_mut(&amp;mut self) -&gt; Option&lt;&amp;mut T&gt; }
+</span><span style="color:#75715e"></span>        <span style="color:#75715e">// self.remainder --- &amp;mut Option&lt;&amp;&#39;a str&gt;
+</span><span style="color:#75715e"></span>        <span style="color:#75715e">// self.remainder.as_mut() --- Option&lt;&amp;mut &amp;&#39;a str&gt;
+</span><span style="color:#75715e"></span>        <span style="color:#75715e">// self.remainder.as_mut()? --- if Some(&#34;xxx&#34;), type is &amp;mut &amp;&#39;a str
+</span><span style="display:block;width:100%;background-color:#3c3d38"><span style="color:#75715e"></span>        <span style="color:#66d9ef">let</span> remainder <span style="color:#f92672">=</span> self.remainder.as_mut()<span style="color:#f92672">?</span>;
+</span>        <span style="color:#66d9ef">if</span> <span style="color:#66d9ef">let</span> Some(next_delim) <span style="color:#f92672">=</span> remainder.find(self.delimiter) {
+            <span style="color:#66d9ef">let</span> until_delimiter <span style="color:#f92672">=</span> <span style="color:#f92672">&amp;</span>remainder[..next_delim];
+            <span style="color:#75715e">// left without *  - &amp;mut &amp;&#39;a str
+</span><span style="color:#75715e"></span>            <span style="color:#75715e">// right - &amp;&#39;a str
+</span><span style="color:#75715e"></span>            <span style="color:#f92672">*</span>remainder <span style="color:#f92672">=</span> <span style="color:#f92672">&amp;</span>remainder[(next_delim <span style="color:#f92672">+</span> self.delimiter.len())..];
+            Some(until_delimiter)
+        } <span style="color:#66d9ef">else</span> {
+            <span style="color:#75715e">// https://doc.rust-lang.org/std/option/enum.Option.html#method.take
+</span><span style="color:#75715e"></span>            <span style="color:#75715e">// impl&lt;T&gt; Option&lt;T&gt; { fn take(&amp;mut self) -&gt; Option&lt;T&gt; }
+</span><span style="color:#75715e"></span>            self.remainder.take()
+        }
+    }
+}
+</code></pre></div><h2 id="version-4-multiple-lifetimes">version #4: multiple lifetimes</h2>
+<h3 id="already-done">already done？</h3>
+<p>思考一个问题，<code>remainder</code> 和 <code>delimiter</code> 需要为相同的生命周期吗？</p>
+<p>看下面一个例子，现在有一个函数使用 <code>StrSplit</code> 提供的字符串分割能力，其对外 API 使用 <code>char</code> 作为分隔符，因此在调用 <code>StrSplit</code> 前需转换 <code>char</code> 类型到 <code>&amp;str</code> 类型，<a href="https://play.rust-lang.org/?version=stable&amp;mode=debug&amp;edition=2021&amp;gist=5b529c238e753c03465a6ef7982068ed">代码 8，char-delimiter-test-error</a>）：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-rust" data-lang="rust"><span style="color:#66d9ef">pub</span> <span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">until_char</span>(s: <span style="color:#66d9ef">&amp;</span><span style="color:#66d9ef">str</span>, c: <span style="color:#a6e22e">char</span>) -&gt; <span style="color:#66d9ef">&amp;</span><span style="color:#66d9ef">str</span> {
+<span style="display:block;width:100%;background-color:#3c3d38">    <span style="color:#66d9ef">let</span> delim <span style="color:#f92672">=</span> format<span style="color:#f92672">!</span>(<span style="color:#e6db74">&#34;{}&#34;</span>, c);
+</span><span style="display:block;width:100%;background-color:#3c3d38">    StrSplit::new(s, <span style="color:#f92672">&amp;</span>delim)
+</span>        .next()
+        .expect(<span style="color:#e6db74">&#34;StrSplit should have at least one result&#34;</span>)
+}
+
+<span style="color:#75715e">#[test]</span>
+<span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">test_until_char</span>() {
+    assert_eq<span style="color:#f92672">!</span>(until_char(<span style="color:#e6db74">&#34;hello, world&#34;</span>, <span style="color:#e6db74">&#39;r&#39;</span>), <span style="color:#e6db74">&#34;hello, wo&#34;</span>);
+}
+</code></pre></div><p>编译，报错信息：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash">   Compiling playground v0.0.1 <span style="color:#f92672">(</span>/playground<span style="color:#f92672">)</span>
+error<span style="color:#f92672">[</span>E0515<span style="color:#f92672">]</span>: cannot <span style="color:#66d9ef">return</span> value referencing local variable <span style="color:#e6db74">`</span>delim<span style="color:#e6db74">`</span>
+  --&gt; src/lib.rs:41:5
+   |
+<span style="color:#ae81ff">41</span> |       StrSplit::new<span style="color:#f92672">(</span>s, &amp;delim<span style="color:#f92672">)</span>
+   |       ^                ------ <span style="color:#e6db74">`</span>delim<span style="color:#e6db74">`</span> is borrowed here
+   |  _____|
+   | |
+<span style="color:#ae81ff">42</span> | |         .next<span style="color:#f92672">()</span>
+<span style="color:#ae81ff">43</span> | |         .expect<span style="color:#f92672">(</span><span style="color:#e6db74">&#34;StrSplit should have at least one result&#34;</span><span style="color:#f92672">)</span>
+   | |___________________________________________________________^ returns 
+      a value referencing data owned by the current <span style="color:#66d9ef">function</span>
+
+For more information about this error, try <span style="color:#e6db74">`</span>rustc --explain E0515<span style="color:#e6db74">`</span>.
+</code></pre></div><p>同样，查看 <a href="https://doc.rust-lang.org/stable/error-index.html#E0515">E0515</a> 获取更多信息，但这里的解决方案需要从根本上去分析。</p>
+<p>回到本小节开头的问题 —— <code>remainder</code> 和 <code>delimiter</code> 需要为相同的生命周期吗？<code>StrSplit</code> 执行字符串分割得到的返回值应该与待处理字符串 <code>remainder</code> 的生命周期保持一致，与分隔符 <code>delimiter</code> 的生命周期没有直接关系。</p>
+<p>在目前的实现中，<code>struct StrSplit</code> 仅声明了一个生命周期参数 <code>'a</code>，<code>remainder</code> 和 <code>delimiter</code> 拥有相同的生命周期约束。同时，在实现 <code>Iterator</code> trait 时，返回值的生命周期与 <code>remainder</code> 的生命周期保持一致，也是 <code>'a</code>。</p>
+<p><code>until_char()</code> 中，传递给 <code>StrSplit::new(s, &amp;delim)</code> 的两个参数拥有不同的生命周期：</p>
+<ul>
+<li><code>delim</code> 的生命周期为当前函数体；执行完函数后，会 Drop 掉；</li>
+<li><code>s</code> 的生命周期 &gt;= <code>delim</code> 的生命周期。</li>
+</ul>
+<p>由于 <code>struct StrSplit</code> 定义时将两个成员标注为相同的生命周期，此时，编译器认为 <code>s</code> 和临时变量 <code>delim</code> 应该拥有相同的生命周期，会将长的生命周期（longer lifetime）转化为短的生命周期（shorter lifetime）。在 <code>until_char()</code> 返回时，返回的引用的生命周期与 <code>delim</code> 临时变量的生命周期相绑定（也即与函数 <code>until_char()</code> 的生命周期相绑定），而临时变量的生命周期会在函数执行完后被 Drop 掉，因此编译器给到报错。</p>
+<p>基于以上分析，<code>until_char()</code> 函数返回的引用的生命周期应该与待处理的字符串引用的生命周期相绑定，期望的签名如下：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-rust" data-lang="rust"><span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">until_char</span><span style="color:#f92672">&lt;</span><span style="color:#a6e22e">&#39;s</span><span style="color:#f92672">&gt;</span>(s: <span style="color:#66d9ef">&amp;</span><span style="color:#a6e22e">&#39;s</span> <span style="color:#66d9ef">str</span>, c: <span style="color:#a6e22e">char</span>) -&gt; <span style="color:#66d9ef">&amp;</span><span style="color:#a6e22e">&#39;s</span> <span style="color:#66d9ef">str</span> {}
+<span style="color:#75715e">//                     ^                    ^
+</span><span style="color:#75715e">//                     |                    |
+</span><span style="color:#75715e">//          待处理的字符串引用的生命周期    返回的引用的生命周期
+</span></code></pre></div><h3 id="add-multiple-lifetime">add multiple lifetime</h3>
+<p><code>struct StrSplit</code> 定义的两个成员，使用不同的生命周期参数进行标注，<a href="https://play.rust-lang.org/?version=stable&amp;mode=debug&amp;edition=2021&amp;gist=646edaa857f6298a7c4b38dc507a5be3">代码 9，add-multiple-lifetime</a>：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-rust" data-lang="rust"><span style="display:block;width:100%;background-color:#3c3d38"><span style="color:#66d9ef">pub</span> <span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">StrSplit</span><span style="color:#f92672">&lt;</span><span style="color:#a6e22e">&#39;haystack</span>, <span style="color:#a6e22e">&#39;delimiter</span><span style="color:#f92672">&gt;</span> {
+</span><span style="display:block;width:100%;background-color:#3c3d38">    remainder: Option<span style="color:#f92672">&lt;&amp;</span><span style="color:#a6e22e">&#39;haystack</span> <span style="color:#66d9ef">str</span><span style="color:#f92672">&gt;</span>,
+</span><span style="display:block;width:100%;background-color:#3c3d38">    delimiter: <span style="color:#66d9ef">&amp;</span><span style="color:#a6e22e">&#39;delimiter</span> <span style="color:#66d9ef">str</span>,
+</span><span style="display:block;width:100%;background-color:#3c3d38">}
+</span>
+<span style="display:block;width:100%;background-color:#3c3d38"><span style="color:#66d9ef">impl</span><span style="color:#f92672">&lt;</span><span style="color:#a6e22e">&#39;haystack</span>, <span style="color:#a6e22e">&#39;delimiter</span><span style="color:#f92672">&gt;</span> StrSplit<span style="color:#f92672">&lt;</span><span style="color:#a6e22e">&#39;haystack</span>, <span style="color:#a6e22e">&#39;delimiter</span><span style="color:#f92672">&gt;</span> {
+</span><span style="display:block;width:100%;background-color:#3c3d38">    <span style="color:#66d9ef">pub</span> <span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">new</span>(haystack: <span style="color:#66d9ef">&amp;</span><span style="color:#a6e22e">&#39;haystack</span> <span style="color:#66d9ef">str</span>, delimiter: <span style="color:#66d9ef">&amp;</span><span style="color:#a6e22e">&#39;delimiter</span> <span style="color:#66d9ef">str</span>) -&gt; <span style="color:#a6e22e">Self</span> {
+</span>        Self {
+            remainder: Some(haystack),
+            delimiter,
+        }
+    }
+}
+
+<span style="display:block;width:100%;background-color:#3c3d38"><span style="color:#66d9ef">impl</span><span style="color:#f92672">&lt;</span><span style="color:#a6e22e">&#39;haystack</span>, <span style="color:#a6e22e">&#39;delimiter</span><span style="color:#f92672">&gt;</span> Iterator <span style="color:#66d9ef">for</span> StrSplit<span style="color:#f92672">&lt;</span><span style="color:#a6e22e">&#39;haystack</span>, <span style="color:#a6e22e">&#39;delimiter</span><span style="color:#f92672">&gt;</span> {
+</span><span style="display:block;width:100%;background-color:#3c3d38">    <span style="color:#66d9ef">type</span> <span style="color:#a6e22e">Item</span> <span style="color:#f92672">=</span> <span style="color:#f92672">&amp;</span><span style="color:#a6e22e">&#39;haystack</span> <span style="color:#66d9ef">str</span>;
+</span>
+    <span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">next</span>(<span style="color:#f92672">&amp;</span><span style="color:#66d9ef">mut</span> self) -&gt; Option<span style="color:#f92672">&lt;</span>Self::Item<span style="color:#f92672">&gt;</span> {
+        <span style="color:#66d9ef">let</span> remainder <span style="color:#f92672">=</span> self.remainder.as_mut()<span style="color:#f92672">?</span>;
+        <span style="color:#66d9ef">if</span> <span style="color:#66d9ef">let</span> Some(next_delim) <span style="color:#f92672">=</span> remainder.find(self.delimiter) {
+            <span style="color:#66d9ef">let</span> until_delimiter <span style="color:#f92672">=</span> <span style="color:#f92672">&amp;</span>remainder[..next_delim];
+            <span style="color:#f92672">*</span>remainder <span style="color:#f92672">=</span> <span style="color:#f92672">&amp;</span>remainder[(next_delim <span style="color:#f92672">+</span> self.delimiter.len())..];
+            Some(until_delimiter)
+        } <span style="color:#66d9ef">else</span> {
+            self.remainder.take()
+        }
+    }
+}
+
+<span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">until_char</span>(s: <span style="color:#66d9ef">&amp;</span><span style="color:#66d9ef">str</span>, c: <span style="color:#a6e22e">char</span>) -&gt; <span style="color:#66d9ef">&amp;</span><span style="color:#66d9ef">str</span> {
+    <span style="color:#66d9ef">let</span> delim <span style="color:#f92672">=</span> format<span style="color:#f92672">!</span>(<span style="color:#e6db74">&#34;{}&#34;</span>, c);  <span style="color:#75715e">// 每次构造 delimiter 都需要进行一次堆上的内存分配
+</span><span style="color:#75715e"></span>    StrSplit::new(s, <span style="color:#f92672">&amp;</span>delim)
+        .next()
+        .expect(<span style="color:#e6db74">&#34;StrSplit should have at least one result&#34;</span>)
+}
+
+<span style="color:#75715e">#[test]</span>
+<span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">test_until_char</span>() {
+    assert_eq<span style="color:#f92672">!</span>(until_char(<span style="color:#e6db74">&#34;hello, world&#34;</span>, <span style="color:#e6db74">&#39;r&#39;</span>), <span style="color:#e6db74">&#34;hello, wo&#34;</span>);
+}
+</code></pre></div><p>至此，我们就正确实现了字符串分割的功能。目前的实现中，<code>delimiter</code> 是一个 <code>&amp;str</code> 类型的分隔符；我们希望更通用一些（anything can find itself in a str）。</p>
+<h2 id="version-5-generic-delimiter">version #5: generic delimiter</h2>
+<p>明确目标：按照分隔符对目标字符串进行分割</p>
+<ul>
+<li>操作的对象 —— 字符串；</li>
+<li>分割字符串 —— 根据分隔符将目标字符串分割为三个部分；</li>
+</ul>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash">     xxxxxxxxxxxxxxx1xxxxxxx3xxx4xxxxx6xxxx8x
+     first part     ^     third part
+                    |
+                second part
+</code></pre></div><ul>
+<li>索引值 —— 至少需要两个索引值将目标字符串分割为三个部分，1）分隔符的开始索引，2）分隔符的结束索引+1（为了方便处理，类似编程语言中的 <code>end()</code> 指向最后一个元素的下一个位置）；如果分隔符长度固定，可以只需要一个索引值，但考虑分隔符可能为正则表达式，可以匹配不同长度的分隔符，因此确定为两个索引值。</li>
+</ul>
+<h3 id="使用-trait-定义分隔符">使用 trait 定义分隔符</h3>
+<blockquote>
+<p>how to use <em>traits</em> to define behavior in a generic way</p>
+</blockquote>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-rust" data-lang="rust"><span style="color:#66d9ef">pub</span> <span style="color:#66d9ef">trait</span> Delimiter {
+    <span style="color:#75715e">// 在字符串中查找分隔符 self
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// 1）找到，返回 (分隔符的开始索引, 分隔符的结束索引+1)
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// 2）未找到，返回 None
+</span><span style="display:block;width:100%;background-color:#3c3d38"><span style="color:#75715e"></span>    <span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">find_next</span>(<span style="color:#f92672">&amp;</span>self, s: <span style="color:#66d9ef">&amp;</span><span style="color:#66d9ef">str</span>) -&gt; Option<span style="color:#f92672">&lt;</span>(<span style="color:#66d9ef">usize</span>, <span style="color:#66d9ef">usize</span>)<span style="color:#f92672">&gt;</span>;
+</span>}
+</code></pre></div><p><code>StrSplit</code> 的 <code>delimiter</code> 成员，实现 <code>Delimiter</code> trait：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-rust" data-lang="rust"><span style="color:#66d9ef">pub</span> <span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">StrSplit</span><span style="color:#f92672">&lt;</span><span style="color:#a6e22e">&#39;haystack</span>, D<span style="color:#f92672">&gt;</span> {
+    remainder: Option<span style="color:#f92672">&lt;&amp;</span><span style="color:#a6e22e">&#39;haystack</span> <span style="color:#66d9ef">str</span><span style="color:#f92672">&gt;</span>,
+<span style="display:block;width:100%;background-color:#3c3d38">    delimiter: <span style="color:#a6e22e">D</span>,
+</span>}
+
+<span style="color:#66d9ef">impl</span><span style="color:#f92672">&lt;</span><span style="color:#a6e22e">&#39;haystack</span>, D<span style="color:#f92672">&gt;</span> StrSplit<span style="color:#f92672">&lt;</span><span style="color:#a6e22e">&#39;haystack</span>, D<span style="color:#f92672">&gt;</span> {
+    <span style="color:#66d9ef">pub</span> <span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">new</span>(haystack: <span style="color:#66d9ef">&amp;</span><span style="color:#a6e22e">&#39;haystack</span> <span style="color:#66d9ef">str</span>, delimiter: <span style="color:#a6e22e">D</span>) -&gt; <span style="color:#a6e22e">Self</span> {
+        Self {
+            remainder: Some(haystack),
+            delimiter,
+        }
+    }
+}
+</code></pre></div><h3 id="为不同的分隔符类型实现-delimiter-trait">为不同的分隔符类型实现 Delimiter trait</h3>
+<ul>
+<li><code>&amp;str</code> 实现 <code>Delimiter</code> trait</li>
+</ul>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-rust" data-lang="rust"><span style="color:#66d9ef">impl</span> Delimiter <span style="color:#66d9ef">for</span> <span style="color:#f92672">&amp;</span><span style="color:#66d9ef">str</span> {
+<span style="display:block;width:100%;background-color:#3c3d38">    <span style="color:#75715e">// self: &amp;Self 
+</span></span><span style="color:#75715e"></span>    <span style="color:#75715e">// self: &amp;&amp;str
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">find_next</span>(<span style="color:#f92672">&amp;</span>self, s: <span style="color:#66d9ef">&amp;</span><span style="color:#66d9ef">str</span>) -&gt; Option<span style="color:#f92672">&lt;</span>(<span style="color:#66d9ef">usize</span>, <span style="color:#66d9ef">usize</span>)<span style="color:#f92672">&gt;</span> {
+        s.find(self).map(<span style="color:#f92672">|</span>start<span style="color:#f92672">|</span> (start, start <span style="color:#f92672">+</span> self.len()))
+    }
+    <span style="color:#75715e">// &amp;str.find(&amp;&amp;str)
+</span><span style="color:#75715e"></span>}
+</code></pre></div><ul>
+<li><code>char</code> 实现 <code>Delimiter</code> trait</li>
+</ul>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-rust" data-lang="rust"><span style="color:#66d9ef">impl</span> Delimiter <span style="color:#66d9ef">for</span> char {
+<span style="display:block;width:100%;background-color:#3c3d38">    <span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">find_next</span>(<span style="color:#f92672">&amp;</span>self, s: <span style="color:#66d9ef">&amp;</span><span style="color:#66d9ef">str</span>) -&gt; Option<span style="color:#f92672">&lt;</span>(<span style="color:#66d9ef">usize</span>, <span style="color:#66d9ef">usize</span>)<span style="color:#f92672">&gt;</span> {
+</span>        s.char_indices()
+            .find(<span style="color:#f92672">|</span>(_, c)<span style="color:#f92672">|</span> c <span style="color:#f92672">==</span> self)
+            .map(<span style="color:#f92672">|</span>(start, _)<span style="color:#f92672">|</span> (start, start <span style="color:#f92672">+</span> self.len_utf8()))
+    }
+}
+</code></pre></div><p>更多其他类型均可以按需实现。</p>
+<h3 id="strfind--optionmap">str::find &amp; Option::map</h3>
+<p><code>&amp;str</code> 实现 <code>Delimiter</code> trait 时，<code>s.find(self)</code> 传入的是一个字符串；而 <code>char</code> 实现 <code>Delimiter</code> trait 时，<code>s.char_indices().find(|(_, c)| c == self)</code> 传入的是一个闭包（closure）。看一下 <code>str::find()</code> 的函数签名：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-rust" data-lang="rust"><span style="color:#66d9ef">pub</span> <span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">find</span><span style="color:#f92672">&lt;</span><span style="color:#a6e22e">&#39;a</span>, P<span style="color:#f92672">&gt;</span>(<span style="color:#f92672">&amp;</span><span style="color:#a6e22e">&#39;a</span> self, pat: <span style="color:#a6e22e">P</span>) -&gt; Option<span style="color:#f92672">&lt;</span><span style="color:#66d9ef">usize</span><span style="color:#f92672">&gt;</span>
+<span style="color:#66d9ef">where</span>
+    P: <span style="color:#a6e22e">Pattern</span><span style="color:#f92672">&lt;</span><span style="color:#a6e22e">&#39;a</span><span style="color:#f92672">&gt;</span>, 
+</code></pre></div><p>实现功能为：在字符串中搜索匹配的 <code>Pattern</code>，返回匹配到的字符串的开始索引 <code>Some(usize)</code>；未找到，返回 <code>None</code>。<code>Pattern</code> trait 的讨论在本文的最后一节。</p>
+<p>结合 <code>Option::map</code> 对匹配的结果进行转换：</p>
+<ul>
+<li><code>Some(usize)</code> —— 匹配分隔符的开始索引，apply 闭包，得到 <code>Some(分隔符开始索引, 分隔符结束索引+1)</code>；</li>
+<li><code>None</code> —— 返回 <code>None</code>。</li>
+</ul>
+<h3 id="最终代码实现">最终代码实现</h3>
+<p>完整的代码如下，<a href="https://play.rust-lang.org/?version=stable&amp;mode=debug&amp;edition=2021&amp;gist=6dbcb7c0a283387d922d189b683b4a1d">代码 10，StrSplit-final-implementation</a>：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-rust" data-lang="rust"><span style="color:#66d9ef">pub</span> <span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">StrSplit</span><span style="color:#f92672">&lt;</span><span style="color:#a6e22e">&#39;haystack</span>, D<span style="color:#f92672">&gt;</span> {
+    remainder: Option<span style="color:#f92672">&lt;&amp;</span><span style="color:#a6e22e">&#39;haystack</span> <span style="color:#66d9ef">str</span><span style="color:#f92672">&gt;</span>,
+    delimiter: <span style="color:#a6e22e">D</span>,
+}
+
+<span style="color:#66d9ef">impl</span><span style="color:#f92672">&lt;</span><span style="color:#a6e22e">&#39;haystack</span>, D<span style="color:#f92672">&gt;</span> StrSplit<span style="color:#f92672">&lt;</span><span style="color:#a6e22e">&#39;haystack</span>, D<span style="color:#f92672">&gt;</span> {
+    <span style="color:#66d9ef">pub</span> <span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">new</span>(haystack: <span style="color:#66d9ef">&amp;</span><span style="color:#a6e22e">&#39;haystack</span> <span style="color:#66d9ef">str</span>, delimiter: <span style="color:#a6e22e">D</span>) -&gt; <span style="color:#a6e22e">Self</span> {
+        Self {
+            remainder: Some(haystack),
+            delimiter,
+        }
+    }
+}
+
+<span style="color:#66d9ef">pub</span> <span style="color:#66d9ef">trait</span> Delimiter {
+    <span style="color:#75715e">// 在字符串中查找分隔符 self
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// 1）找到，返回 (分隔符的开始索引, 分隔符的结束索引+1)
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// 2）未找到，返回 None
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">find_next</span>(<span style="color:#f92672">&amp;</span>self, s: <span style="color:#66d9ef">&amp;</span><span style="color:#66d9ef">str</span>) -&gt; Option<span style="color:#f92672">&lt;</span>(<span style="color:#66d9ef">usize</span>, <span style="color:#66d9ef">usize</span>)<span style="color:#f92672">&gt;</span>;
+}
+
+<span style="color:#66d9ef">impl</span> Delimiter <span style="color:#66d9ef">for</span> <span style="color:#f92672">&amp;</span><span style="color:#66d9ef">str</span> {
+    <span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">find_next</span>(<span style="color:#f92672">&amp;</span>self, s: <span style="color:#66d9ef">&amp;</span><span style="color:#66d9ef">str</span>) -&gt; Option<span style="color:#f92672">&lt;</span>(<span style="color:#66d9ef">usize</span>, <span style="color:#66d9ef">usize</span>)<span style="color:#f92672">&gt;</span> {
+        s.find(self).map(<span style="color:#f92672">|</span>start<span style="color:#f92672">|</span> (start, start <span style="color:#f92672">+</span> self.len()))
+    }
+}
+
+<span style="color:#66d9ef">impl</span> Delimiter <span style="color:#66d9ef">for</span> char {
+    <span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">find_next</span>(<span style="color:#f92672">&amp;</span>self, s: <span style="color:#66d9ef">&amp;</span><span style="color:#66d9ef">str</span>) -&gt; Option<span style="color:#f92672">&lt;</span>(<span style="color:#66d9ef">usize</span>, <span style="color:#66d9ef">usize</span>)<span style="color:#f92672">&gt;</span> {
+        s.char_indices()
+            .find(<span style="color:#f92672">|</span>(_, c)<span style="color:#f92672">|</span> c <span style="color:#f92672">==</span> self)
+            .map(<span style="color:#f92672">|</span>(start, _)<span style="color:#f92672">|</span> (start, start <span style="color:#f92672">+</span> self.len_utf8()))
+    }
+}
+
+<span style="color:#66d9ef">impl</span><span style="color:#f92672">&lt;</span><span style="color:#a6e22e">&#39;haystack</span>, D<span style="color:#f92672">&gt;</span> Iterator <span style="color:#66d9ef">for</span> StrSplit<span style="color:#f92672">&lt;</span><span style="color:#a6e22e">&#39;haystack</span>, D<span style="color:#f92672">&gt;</span>
+<span style="color:#66d9ef">where</span>
+    D: <span style="color:#a6e22e">Delimiter</span>,
+{
+    <span style="color:#66d9ef">type</span> <span style="color:#a6e22e">Item</span> <span style="color:#f92672">=</span> <span style="color:#f92672">&amp;</span><span style="color:#a6e22e">&#39;haystack</span> <span style="color:#66d9ef">str</span>;
+
+    <span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">next</span>(<span style="color:#f92672">&amp;</span><span style="color:#66d9ef">mut</span> self) -&gt; Option<span style="color:#f92672">&lt;</span>Self::Item<span style="color:#f92672">&gt;</span> {
+        <span style="color:#75715e">// https://doc.rust-lang.org/std/option/enum.Option.html#method.as_mut
+</span><span style="color:#75715e"></span>        <span style="color:#75715e">// impl&lt;T&gt; Option&lt;T&gt; { fn as_mut(&amp;mut self) -&gt; Option&lt;&amp;mut T&gt; }
+</span><span style="color:#75715e"></span>        <span style="color:#75715e">// self.remainder --- &amp;mut Option&lt;&amp;&#39;a str&gt;
+</span><span style="color:#75715e"></span>        <span style="color:#75715e">// self.remainder.as_mut() --- Option&lt;&amp;mut &amp;&#39;a str&gt;
+</span><span style="color:#75715e"></span>        <span style="color:#75715e">// self.remainder.as_mut()? --- if Some(&#34;xxx&#34;), type is &amp;mut &amp;&#39;a str
+</span><span style="color:#75715e"></span>        <span style="color:#66d9ef">let</span> remainder <span style="color:#f92672">=</span> self.remainder.as_mut()<span style="color:#f92672">?</span>;
+        <span style="color:#66d9ef">if</span> <span style="color:#66d9ef">let</span> Some((delim_start,delim_end)) <span style="color:#f92672">=</span> self.delimiter.find_next(remainder){
+            <span style="color:#66d9ef">let</span> until_delimiter <span style="color:#f92672">=</span> <span style="color:#f92672">&amp;</span>remainder[..delim_start];
+            <span style="color:#75715e">// left without *  - &amp;mut &amp;&#39;a str
+</span><span style="color:#75715e"></span>            <span style="color:#75715e">// right - &amp;&#39;a str
+</span><span style="color:#75715e"></span>            <span style="color:#f92672">*</span>remainder <span style="color:#f92672">=</span> <span style="color:#f92672">&amp;</span>remainder[delim_end..];
+            Some(until_delimiter)
+        } <span style="color:#66d9ef">else</span> {
+            <span style="color:#75715e">// https://doc.rust-lang.org/std/option/enum.Option.html#method.take
+</span><span style="color:#75715e"></span>            <span style="color:#75715e">// impl&lt;T&gt; Option&lt;T&gt; { fn take(&amp;mut self) -&gt; Option&lt;T&gt; }
+</span><span style="color:#75715e"></span>            self.remainder.take()
+        }
+    }
+}
+
+<span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">until_char</span>(s: <span style="color:#66d9ef">&amp;</span><span style="color:#66d9ef">str</span>, c: <span style="color:#a6e22e">char</span>) -&gt; <span style="color:#66d9ef">&amp;</span><span style="color:#66d9ef">str</span> {
+    StrSplit::new(s, c)
+        .next()
+        .expect(<span style="color:#e6db74">&#34;StrSplit should have at least one result&#34;</span>)
+}
+
+<span style="color:#75715e">#[test]</span>
+<span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">test_until_char</span>() {
+    assert_eq<span style="color:#f92672">!</span>(until_char(<span style="color:#e6db74">&#34;hello, world&#34;</span>, <span style="color:#e6db74">&#39;r&#39;</span>), <span style="color:#e6db74">&#34;hello, wo&#34;</span>);
+}
+
+<span style="color:#75715e">#[test]</span>
+<span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">it_works</span>() {
+    <span style="color:#66d9ef">let</span> haystack <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;a b c d e&#34;</span>;
+    <span style="color:#66d9ef">let</span> letters: Vec<span style="color:#f92672">&lt;</span>_<span style="color:#f92672">&gt;</span> <span style="color:#f92672">=</span> StrSplit::new(haystack, <span style="color:#e6db74">&#34; &#34;</span>).collect();
+    assert_eq<span style="color:#f92672">!</span>(letters, vec<span style="color:#f92672">!</span>[<span style="color:#e6db74">&#34;a&#34;</span>, <span style="color:#e6db74">&#34;b&#34;</span>, <span style="color:#e6db74">&#34;c&#34;</span>, <span style="color:#e6db74">&#34;d&#34;</span>, <span style="color:#e6db74">&#34;e&#34;</span>]);
+}
+
+<span style="color:#75715e">#[test]</span>
+<span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">tail_test</span>() {
+    <span style="color:#66d9ef">let</span> haystack <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;a b c d &#34;</span>;
+    <span style="color:#66d9ef">let</span> letters: Vec<span style="color:#f92672">&lt;</span>_<span style="color:#f92672">&gt;</span> <span style="color:#f92672">=</span> StrSplit::new(haystack, <span style="color:#e6db74">&#34; &#34;</span>).collect();
+    assert_eq<span style="color:#f92672">!</span>(letters, vec<span style="color:#f92672">!</span>[<span style="color:#e6db74">&#34;a&#34;</span>, <span style="color:#e6db74">&#34;b&#34;</span>, <span style="color:#e6db74">&#34;c&#34;</span>, <span style="color:#e6db74">&#34;d&#34;</span>, <span style="color:#e6db74">&#34;&#34;</span>]);
+}
+</code></pre></div><p>至此，我们实现了 <code>StrSplit</code>，支持自定义 <code>Delimiter</code>（为分隔符类型实现 <code>Delimiter</code> trait）🎉🎉🎉。</p>
+<h2 id="标准库-strsplit">标准库 str::split</h2>
+<p>标准库 <code>str::split</code> 实现，<a href="https://doc.rust-lang.org/std/primitive.str.html#method.split">str - split</a></p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-rust" data-lang="rust"><span style="color:#66d9ef">pub</span> <span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">split</span><span style="color:#f92672">&lt;</span><span style="color:#a6e22e">&#39;a</span>, P<span style="color:#f92672">&gt;</span>(<span style="color:#f92672">&amp;</span><span style="color:#a6e22e">&#39;a</span> self, pat: <span style="color:#a6e22e">P</span>) -&gt; <span style="color:#a6e22e">Split</span><span style="color:#f92672">&lt;</span><span style="color:#a6e22e">&#39;a</span>, P<span style="color:#f92672">&gt;</span>
+<span style="color:#66d9ef">where</span>
+    P: <span style="color:#a6e22e">Pattern</span><span style="color:#f92672">&lt;</span><span style="color:#a6e22e">&#39;a</span><span style="color:#f92672">&gt;</span>, 
+</code></pre></div><h3 id="pat-为-str-类型时split-完整的调用链路">pat 为 &amp;str 类型时，split() 完整的调用链路</h3>
+<p>测试代码：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-rust" data-lang="rust"><span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">main</span>() {
+    <span style="color:#66d9ef">let</span> <span style="color:#66d9ef">mut</span> a <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;hello world&#34;</span>.split(<span style="color:#e6db74">&#34; &#34;</span>);
+    <span style="color:#66d9ef">let</span> b <span style="color:#f92672">=</span> a.next();
+    println<span style="color:#f92672">!</span>(<span style="color:#e6db74">&#34;{:?}&#34;</span>, b);  <span style="color:#75715e">// Some(&#34;hello&#34;)
+</span><span style="color:#75715e"></span>}
+</code></pre></div><p>1、<code>&quot;hello world&quot;.split(&quot; &quot;)</code> 调用 <code>str::split()</code> 返回 <code>Split struct</code></p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-rust" data-lang="rust"><span style="color:#75715e">// https://doc.rust-lang.org/src/core/str/mod.rs.html#1217
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">pub</span> <span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">split</span><span style="color:#f92672">&lt;</span><span style="color:#a6e22e">&#39;a</span>, P: <span style="color:#a6e22e">Pattern</span><span style="color:#f92672">&lt;</span><span style="color:#a6e22e">&#39;a</span><span style="color:#f92672">&gt;&gt;</span>(<span style="color:#f92672">&amp;</span><span style="color:#a6e22e">&#39;a</span> self, pat: <span style="color:#a6e22e">P</span>) -&gt; <span style="color:#a6e22e">Split</span><span style="color:#f92672">&lt;</span><span style="color:#a6e22e">&#39;a</span>, P<span style="color:#f92672">&gt;</span> {
+<span style="display:block;width:100%;background-color:#3c3d38">    Split(SplitInternal {
+</span>        start: <span style="color:#ae81ff">0</span>,
+        end: <span style="color:#a6e22e">self</span>.len(),
+        matcher: <span style="color:#a6e22e">pat</span>.into_searcher(self),  <span style="color:#75715e">// StrSearcher
+</span><span style="color:#75715e"></span>        allow_trailing_empty: <span style="color:#a6e22e">true</span>,
+        finished: <span style="color:#a6e22e">false</span>,
+    })
+}
+</code></pre></div><p>2、<code>a.next()</code> 返回匹配的字符串，查看 <code>impl&lt;'a, P&gt; Iterator for Split&lt;'a, P&gt;</code> 的 <code>next()</code> 实现</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-rust" data-lang="rust"><span style="color:#75715e">// 宏定义 https://doc.rust-lang.org/src/core/str/iter.rs.html#450
+</span><span style="color:#75715e">// Split struct 定义 https://doc.rust-lang.org/src/core/str/iter.rs.html#733
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">impl</span><span style="color:#f92672">&lt;</span><span style="color:#a6e22e">&#39;a</span>, P<span style="color:#f92672">&gt;</span> Iterator <span style="color:#66d9ef">for</span> Split<span style="color:#f92672">&lt;</span><span style="color:#a6e22e">&#39;a</span>, P<span style="color:#f92672">&gt;</span>
+<span style="color:#66d9ef">where</span>
+    P: <span style="color:#a6e22e">Pattern</span><span style="color:#f92672">&lt;</span><span style="color:#a6e22e">&#39;a</span><span style="color:#f92672">&gt;</span>,
+{
+    <span style="color:#66d9ef">type</span> <span style="color:#a6e22e">Item</span> <span style="color:#f92672">=</span> <span style="color:#f92672">&amp;</span><span style="color:#a6e22e">&#39;a</span> <span style="color:#66d9ef">str</span>;
+
+<span style="display:block;width:100%;background-color:#3c3d38">    <span style="color:#66d9ef">pub</span> <span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">next</span>(<span style="color:#f92672">&amp;</span><span style="color:#66d9ef">mut</span> self) -&gt; Option<span style="color:#f92672">&lt;&amp;</span><span style="color:#a6e22e">&#39;a</span> <span style="color:#66d9ef">str</span><span style="color:#f92672">&gt;</span> {
+</span><span style="display:block;width:100%;background-color:#3c3d38">        <span style="color:#75715e">// self.0 ---- core::str::iter::SplitInternal&lt;&#39;_, &amp;str&gt;
+</span></span><span style="display:block;width:100%;background-color:#3c3d38"><span style="color:#75715e"></span>        self.<span style="color:#ae81ff">0.</span>next()
+</span><span style="display:block;width:100%;background-color:#3c3d38">    }
+</span>}
+</code></pre></div><p>3、调用 <code>SplitInternal::next()</code></p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-rust" data-lang="rust"><span style="color:#75715e">// https://doc.rust-lang.org/src/core/str/iter.rs.html#599
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">impl</span><span style="color:#f92672">&lt;</span><span style="color:#a6e22e">&#39;a</span>, P: <span style="color:#a6e22e">Pattern</span><span style="color:#f92672">&lt;</span><span style="color:#a6e22e">&#39;a</span><span style="color:#f92672">&gt;&gt;</span> SplitInternal<span style="color:#f92672">&lt;</span><span style="color:#a6e22e">&#39;a</span>, P<span style="color:#f92672">&gt;</span> {
+<span style="display:block;width:100%;background-color:#3c3d38">    <span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">next</span>(<span style="color:#f92672">&amp;</span><span style="color:#66d9ef">mut</span> self) -&gt; Option<span style="color:#f92672">&lt;&amp;</span><span style="color:#a6e22e">&#39;a</span> <span style="color:#66d9ef">str</span><span style="color:#f92672">&gt;</span> {
+</span>        <span style="color:#66d9ef">if</span> self.finished {
+            <span style="color:#66d9ef">return</span> None;
+        }
+
+        <span style="color:#66d9ef">let</span> haystack <span style="color:#f92672">=</span> self.matcher.haystack();
+        <span style="color:#66d9ef">match</span> self.matcher.next_match() {
+            <span style="color:#75715e">// SAFETY: `Searcher` guarantees that `a` and `b` lie on unicode
+</span><span style="color:#75715e"></span>            <span style="color:#75715e">// boundaries.
+</span><span style="color:#75715e"></span>            Some((a, b)) <span style="color:#f92672">=&gt;</span> <span style="color:#66d9ef">unsafe</span> {
+                <span style="color:#66d9ef">let</span> elt <span style="color:#f92672">=</span> haystack.get_unchecked(self.start..a);
+                self.start <span style="color:#f92672">=</span> b;
+                Some(elt)
+            },
+            None <span style="color:#f92672">=&gt;</span> self.get_end(),  <span style="color:#75715e">// 将 self.finished 设置为 true，下一次调用返回 None
+</span><span style="color:#75715e"></span>        }
+    }
+}
+</code></pre></div><ul>
+<li>测试代码 <code>&quot;hello world&quot;.split(&quot; &quot;)</code> 返回 <code>Split struct</code>，其中 <code>matcher: pat.into_searcher(self)</code>，通过 <code>Pattern::into_searcher</code> 作为构造器去构造出一个 <code>StrSearcher</code></li>
+</ul>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-rust" data-lang="rust"><span style="color:#75715e">// https://doc.rust-lang.org/src/core/str/pattern.rs.html#91-155
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">pub</span> <span style="color:#66d9ef">trait</span> Pattern<span style="color:#f92672">&lt;</span><span style="color:#a6e22e">&#39;a</span><span style="color:#f92672">&gt;</span> {
+    <span style="color:#66d9ef">type</span> <span style="color:#a6e22e">Searcher</span>: <span style="color:#a6e22e">Searcher</span><span style="color:#f92672">&lt;</span><span style="color:#a6e22e">&#39;a</span><span style="color:#f92672">&gt;</span>;
+<span style="display:block;width:100%;background-color:#3c3d38">    <span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">into_searcher</span>(self, haystack: <span style="color:#66d9ef">&amp;</span><span style="color:#a6e22e">&#39;a</span> <span style="color:#66d9ef">str</span>) -&gt; <span style="color:#a6e22e">Self</span>::Searcher;
+</span>}
+
+<span style="color:#75715e">// https://doc.rust-lang.org/src/core/str/pattern.rs.html#862-904
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">impl</span><span style="color:#f92672">&lt;</span><span style="color:#a6e22e">&#39;a</span>, <span style="color:#a6e22e">&#39;b</span><span style="color:#f92672">&gt;</span> Pattern<span style="color:#f92672">&lt;</span><span style="color:#a6e22e">&#39;a</span><span style="color:#f92672">&gt;</span> <span style="color:#66d9ef">for</span> <span style="color:#f92672">&amp;</span><span style="color:#a6e22e">&#39;b</span> <span style="color:#66d9ef">str</span> {
+    <span style="color:#66d9ef">type</span> <span style="color:#a6e22e">Searcher</span> <span style="color:#f92672">=</span> StrSearcher<span style="color:#f92672">&lt;</span><span style="color:#a6e22e">&#39;a</span>, <span style="color:#a6e22e">&#39;b</span><span style="color:#f92672">&gt;</span>;
+
+<span style="display:block;width:100%;background-color:#3c3d38">    <span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">into_searcher</span>(self, haystack: <span style="color:#66d9ef">&amp;</span><span style="color:#a6e22e">&#39;a</span> <span style="color:#66d9ef">str</span>) -&gt; <span style="color:#a6e22e">StrSearcher</span><span style="color:#f92672">&lt;</span><span style="color:#a6e22e">&#39;a</span>, <span style="color:#a6e22e">&#39;b</span><span style="color:#f92672">&gt;</span> {
+</span><span style="display:block;width:100%;background-color:#3c3d38">        StrSearcher::new(haystack, self)  <span style="color:#75715e">// haystack --- &#34;hello world&#34;; self -- &#34; &#34;
+</span></span><span style="display:block;width:100%;background-color:#3c3d38"><span style="color:#75715e"></span>    }
+</span>}
+</code></pre></div><ul>
+<li><code>self.matcher.haystack()</code> 获取待处理的字符串；</li>
+<li><code>self.matcher.next_match()</code> 获取匹配到 <code>&quot;&quot;</code>  的起始索引 <code>(start_match, end_match)</code> ——（详细实现就不贴了，有兴趣的同学可以查看 <a href="https://doc.rust-lang.org/std/str/pattern/trait.Searcher.html#method.next_match">Search trait 的文档说明</a>）—— 其中 <code>start_match</code> 表示 Pattern 的开始索引，<code>end_match</code> 表示 Pattern 的结束索引+1；</li>
+<li><code>Some((a, b))</code> 匹配后，将匹配到的字符串返回，同时修改待处理字符串的 <code>start</code> 索引；</li>
+</ul>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-rust" data-lang="rust"><span style="color:#66d9ef">pub</span> <span style="color:#66d9ef">unsafe</span> <span style="color:#66d9ef">trait</span> Searcher<span style="color:#f92672">&lt;</span><span style="color:#a6e22e">&#39;a</span><span style="color:#f92672">&gt;</span> {
+    <span style="color:#75715e">// Required methods
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">haystack</span>(<span style="color:#f92672">&amp;</span>self) -&gt; <span style="color:#66d9ef">&amp;</span><span style="color:#a6e22e">&#39;a</span> <span style="color:#66d9ef">str</span>;
+    <span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">next</span>(<span style="color:#f92672">&amp;</span><span style="color:#66d9ef">mut</span> self) -&gt; <span style="color:#a6e22e">SearchStep</span>;
+
+    <span style="color:#75715e">// Provided methods
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">next_match</span>(<span style="color:#f92672">&amp;</span><span style="color:#66d9ef">mut</span> self) -&gt; Option<span style="color:#f92672">&lt;</span>(<span style="color:#66d9ef">usize</span>, <span style="color:#66d9ef">usize</span>)<span style="color:#f92672">&gt;</span> { ... }
+    <span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">next_reject</span>(<span style="color:#f92672">&amp;</span><span style="color:#66d9ef">mut</span> self) -&gt; Option<span style="color:#f92672">&lt;</span>(<span style="color:#66d9ef">usize</span>, <span style="color:#66d9ef">usize</span>)<span style="color:#f92672">&gt;</span> { ... }
+}
+
+<span style="color:#75715e">// https://doc.rust-lang.org/src/core/str/pattern.rs.html#962-1050
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">unsafe</span> <span style="color:#66d9ef">impl</span><span style="color:#f92672">&lt;</span><span style="color:#a6e22e">&#39;a</span>, <span style="color:#a6e22e">&#39;b</span><span style="color:#f92672">&gt;</span> Searcher<span style="color:#f92672">&lt;</span><span style="color:#a6e22e">&#39;a</span><span style="color:#f92672">&gt;</span> <span style="color:#66d9ef">for</span> StrSearcher<span style="color:#f92672">&lt;</span><span style="color:#a6e22e">&#39;a</span>, <span style="color:#a6e22e">&#39;b</span><span style="color:#f92672">&gt;</span> {
+    <span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">haystack</span>(<span style="color:#f92672">&amp;</span>self) -&gt; <span style="color:#66d9ef">&amp;</span><span style="color:#a6e22e">&#39;a</span> <span style="color:#66d9ef">str</span> {
+        self.haystack  <span style="color:#75715e">// first call, return &#34;hello world&#34;
+</span><span style="color:#75715e"></span>    }
+    
+    <span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">next</span>(<span style="color:#f92672">&amp;</span><span style="color:#66d9ef">mut</span> self) -&gt; <span style="color:#a6e22e">SearchStep</span> { ... }
+
+    <span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">next_match</span>(<span style="color:#f92672">&amp;</span><span style="color:#66d9ef">mut</span> self) -&gt; Option<span style="color:#f92672">&lt;</span>(<span style="color:#66d9ef">usize</span>, <span style="color:#66d9ef">usize</span>)<span style="color:#f92672">&gt;</span> { ... }
+}
+</code></pre></div><p>实现逻辑都是围绕一个 struct（<code>Split struct</code>）和两个 traits（<code>Pattern</code> trait 和 <code>Search</code> trait）。</p>
+<h3 id="split-struct">Split struct</h3>
+<p><code>Split struct</code> 使用 <a href="https://doc.rust-lang.org/src/core/str/iter.rs.html#728-744">宏进行实现</a>，<a href="https://doc.rust-lang.org/src/core/str/iter.rs.html#450">宏定义</a> 中实现了 <code>Iterator</code> trait（还实现了 <code>DoubleEndedIterator</code> trait 和 <code>FusedIterator</code> trait，暂不讨论），因此测试代码中可以 <code>a.next()</code> 进行调用。</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-rust" data-lang="rust"><span style="color:#66d9ef">pub</span> <span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">Split</span><span style="color:#f92672">&lt;</span><span style="color:#a6e22e">&#39;a</span>, P<span style="color:#f92672">&gt;</span>(_)
+ <span style="color:#66d9ef">where</span>
+    P: <span style="color:#a6e22e">Pattern</span><span style="color:#f92672">&lt;</span><span style="color:#a6e22e">&#39;a</span><span style="color:#f92672">&gt;</span>;
+
+<span style="color:#66d9ef">impl</span><span style="color:#f92672">&lt;</span><span style="color:#a6e22e">&#39;a</span>, P: <span style="color:#a6e22e">Pattern</span><span style="color:#f92672">&lt;</span><span style="color:#a6e22e">&#39;a</span><span style="color:#f92672">&gt;&gt;</span> Split<span style="color:#f92672">&lt;</span><span style="color:#a6e22e">&#39;a</span>, P<span style="color:#f92672">&gt;</span> {
+    <span style="color:#e6db74">/// Returns remainder of the splitted string 返回剩余待处理的字符串
+</span><span style="color:#e6db74"></span>    <span style="color:#66d9ef">pub</span> <span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">as_str</span>(<span style="color:#f92672">&amp;</span>self) -&gt; <span style="color:#66d9ef">&amp;</span><span style="color:#a6e22e">&#39;a</span> <span style="color:#66d9ef">str</span> {
+        self.<span style="color:#ae81ff">0.</span>as_str()
+    }
+}
+
+<span style="color:#66d9ef">impl</span><span style="color:#f92672">&lt;</span><span style="color:#a6e22e">&#39;a</span>, P<span style="color:#f92672">&gt;</span> Iterator <span style="color:#66d9ef">for</span> Split<span style="color:#f92672">&lt;</span><span style="color:#a6e22e">&#39;a</span>, P<span style="color:#f92672">&gt;</span>
+<span style="color:#66d9ef">where</span>
+    P: <span style="color:#a6e22e">Pattern</span><span style="color:#f92672">&lt;</span><span style="color:#a6e22e">&#39;a</span><span style="color:#f92672">&gt;</span>,
+{
+    <span style="color:#66d9ef">type</span> <span style="color:#a6e22e">Item</span> <span style="color:#f92672">=</span> <span style="color:#f92672">&amp;</span><span style="color:#a6e22e">&#39;a</span> <span style="color:#66d9ef">str</span>;
+    
+    <span style="color:#66d9ef">pub</span> <span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">next</span>(<span style="color:#f92672">&amp;</span><span style="color:#66d9ef">mut</span> self) -&gt; Option<span style="color:#f92672">&lt;&amp;</span><span style="color:#a6e22e">&#39;a</span> <span style="color:#66d9ef">str</span><span style="color:#f92672">&gt;</span> {
+        self.<span style="color:#ae81ff">0.</span>next()
+    }
+}
+</code></pre></div><h3 id="pattern-trait">Pattern trait</h3>
+<p><a href="https://doc.rust-lang.org/std/str/pattern/trait.Pattern.html">Pattern trait</a>（类似我们定义的 <code>Delimiter</code> trait，但 <code>Pattern</code> trait 实现更复杂一些）包含一个关联类型 <code>type Searcher</code>，<code>into_searcher</code> 作为构造器去构造出特定类型的 <code>Searcher</code>（作为真实的执行者，进行字符串匹配操作）。</p>
+<p>实现了 <code>Pattern</code> trait 的六种类型都可以作为 <code>split()</code> 的入参，在 <code>haystack: &amp;'a str</code> 中搜索匹配的字符串，<a href="https://doc.rust-lang.org/std/str/pattern/trait.Pattern.html">表格 1</a> 展示了对应的类型和搜索匹配之间的关系。</p>
+<table>
+<thead>
+<tr>
+<th style="text-align:left">Pattern type</th>
+<th style="text-align:left">Match condition</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left"><code>&amp;str</code></td>
+<td style="text-align:left">is substring</td>
+</tr>
+<tr>
+<td style="text-align:left"><code>char</code></td>
+<td style="text-align:left">is contained in string</td>
+</tr>
+<tr>
+<td style="text-align:left"><code>&amp;[char]</code></td>
+<td style="text-align:left">any char in slice is contained in string</td>
+</tr>
+<tr>
+<td style="text-align:left"><code>F: FnMut(char) -&gt; bool</code></td>
+<td style="text-align:left"><code>F</code> returns <code>true</code> for a char in string</td>
+</tr>
+<tr>
+<td style="text-align:left"><code>&amp;&amp;str</code></td>
+<td style="text-align:left">is substring</td>
+</tr>
+<tr>
+<td style="text-align:left"><code>&amp;String</code></td>
+<td style="text-align:left">is substring</td>
+</tr>
+</tbody>
+</table>
+<p>表格 1：实现 <code>Pattern</code> trait 的六种类型与搜索匹配的对应关系</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-rust" data-lang="rust"><span style="color:#66d9ef">pub</span> <span style="color:#66d9ef">trait</span> Pattern<span style="color:#f92672">&lt;</span><span style="color:#a6e22e">&#39;a</span><span style="color:#f92672">&gt;</span> {
+    <span style="color:#66d9ef">type</span> <span style="color:#a6e22e">Searcher</span>: <span style="color:#a6e22e">Searcher</span><span style="color:#f92672">&lt;</span><span style="color:#a6e22e">&#39;a</span><span style="color:#f92672">&gt;</span>;
+    <span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">into_searcher</span>(self, haystack: <span style="color:#66d9ef">&amp;</span><span style="color:#a6e22e">&#39;a</span> <span style="color:#66d9ef">str</span>) -&gt; <span style="color:#a6e22e">Self</span>::Searcher;
+}
+
+<span style="color:#75715e">// 以下六个 structs 实现了 Pattern trait
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">impl</span><span style="color:#f92672">&lt;</span><span style="color:#a6e22e">&#39;a</span><span style="color:#f92672">&gt;</span> Pattern<span style="color:#f92672">&lt;</span><span style="color:#a6e22e">&#39;a</span><span style="color:#f92672">&gt;</span> <span style="color:#66d9ef">for</span> char { ... }
+
+<span style="color:#66d9ef">impl</span><span style="color:#f92672">&lt;</span><span style="color:#a6e22e">&#39;a</span>, <span style="color:#a6e22e">&#39;b</span><span style="color:#f92672">&gt;</span> Pattern<span style="color:#f92672">&lt;</span><span style="color:#a6e22e">&#39;a</span><span style="color:#f92672">&gt;</span> <span style="color:#66d9ef">for</span> <span style="color:#f92672">&amp;</span><span style="color:#a6e22e">&#39;b</span> <span style="color:#66d9ef">str</span> {
+    <span style="color:#66d9ef">type</span> <span style="color:#a6e22e">Searcher</span> <span style="color:#f92672">=</span> StrSearcher<span style="color:#f92672">&lt;</span><span style="color:#a6e22e">&#39;a</span>, <span style="color:#a6e22e">&#39;b</span><span style="color:#f92672">&gt;</span>;
+}
+
+<span style="color:#66d9ef">impl</span><span style="color:#f92672">&lt;</span><span style="color:#a6e22e">&#39;a</span>, <span style="color:#a6e22e">&#39;b</span><span style="color:#f92672">&gt;</span> Pattern<span style="color:#f92672">&lt;</span><span style="color:#a6e22e">&#39;a</span><span style="color:#f92672">&gt;</span> <span style="color:#66d9ef">for</span> <span style="color:#f92672">&amp;</span><span style="color:#a6e22e">&#39;b</span> String { ... }
+
+<span style="color:#66d9ef">impl</span><span style="color:#f92672">&lt;</span><span style="color:#a6e22e">&#39;a</span>, <span style="color:#a6e22e">&#39;b</span><span style="color:#f92672">&gt;</span> Pattern<span style="color:#f92672">&lt;</span><span style="color:#a6e22e">&#39;a</span><span style="color:#f92672">&gt;</span> <span style="color:#66d9ef">for</span> <span style="color:#f92672">&amp;</span><span style="color:#a6e22e">&#39;b</span> [char] { ... }
+
+<span style="color:#66d9ef">impl</span><span style="color:#f92672">&lt;</span><span style="color:#a6e22e">&#39;a</span>, <span style="color:#a6e22e">&#39;b</span>, <span style="color:#a6e22e">&#39;c</span><span style="color:#f92672">&gt;</span> Pattern<span style="color:#f92672">&lt;</span><span style="color:#a6e22e">&#39;a</span><span style="color:#f92672">&gt;</span> <span style="color:#66d9ef">for</span> <span style="color:#f92672">&amp;</span><span style="color:#a6e22e">&#39;c</span> <span style="color:#f92672">&amp;</span><span style="color:#a6e22e">&#39;b</span> <span style="color:#66d9ef">str</span> { ... }
+
+<span style="color:#66d9ef">impl</span><span style="color:#f92672">&lt;</span><span style="color:#a6e22e">&#39;a</span>, F<span style="color:#f92672">&gt;</span> Pattern<span style="color:#f92672">&lt;</span><span style="color:#a6e22e">&#39;a</span><span style="color:#f92672">&gt;</span> <span style="color:#66d9ef">for</span> F
+<span style="color:#66d9ef">where</span>
+    F: FnMut(char) -&gt; <span style="color:#66d9ef">bool</span>, 
+{ ... }
+</code></pre></div><h3 id="search-trait">Search trait</h3>
+<p>真实地进行字符串匹配的执行者，从给定字符串的起点位置（字符串最左侧）开始匹配对应的 Pattern。需要注意的是，<code>Search</code> trait 被标记为 <code>unsafe</code>，原因是 <code>next()</code> 返回的索引值需要保证正好落在有效的 UTF-8 边界上（lie on valid utf8 boundaries in the haystack），详细说明可以查看<a href="https://doc.rust-lang.org/std/str/pattern/trait.Searcher.html">文档</a>。</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-rust" data-lang="rust"><span style="color:#66d9ef">pub</span> <span style="color:#66d9ef">unsafe</span> <span style="color:#66d9ef">trait</span> Searcher<span style="color:#f92672">&lt;</span><span style="color:#a6e22e">&#39;a</span><span style="color:#f92672">&gt;</span> {
+    <span style="color:#75715e">// Required methods
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">haystack</span>(<span style="color:#f92672">&amp;</span>self) -&gt; <span style="color:#66d9ef">&amp;</span><span style="color:#a6e22e">&#39;a</span> <span style="color:#66d9ef">str</span>;
+    <span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">next</span>(<span style="color:#f92672">&amp;</span><span style="color:#66d9ef">mut</span> self) -&gt; <span style="color:#a6e22e">SearchStep</span>;
+
+    <span style="color:#75715e">// Provided methods
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">next_match</span>(<span style="color:#f92672">&amp;</span><span style="color:#66d9ef">mut</span> self) -&gt; Option<span style="color:#f92672">&lt;</span>(<span style="color:#66d9ef">usize</span>, <span style="color:#66d9ef">usize</span>)<span style="color:#f92672">&gt;</span> { ... }
+    <span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">next_reject</span>(<span style="color:#f92672">&amp;</span><span style="color:#66d9ef">mut</span> self) -&gt; Option<span style="color:#f92672">&lt;</span>(<span style="color:#66d9ef">usize</span>, <span style="color:#66d9ef">usize</span>)<span style="color:#f92672">&gt;</span> { ... }
+}
+
+<span style="color:#75715e">// 以下四个 structs 实现了 Search trait
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">unsafe</span> <span style="color:#66d9ef">impl</span><span style="color:#f92672">&lt;</span><span style="color:#a6e22e">&#39;a</span><span style="color:#f92672">&gt;</span> Searcher<span style="color:#f92672">&lt;</span><span style="color:#a6e22e">&#39;a</span><span style="color:#f92672">&gt;</span> <span style="color:#66d9ef">for</span> CharSearcher<span style="color:#f92672">&lt;</span><span style="color:#a6e22e">&#39;a</span><span style="color:#f92672">&gt;</span> { ... }
+
+<span style="color:#66d9ef">unsafe</span> <span style="color:#66d9ef">impl</span><span style="color:#f92672">&lt;</span><span style="color:#a6e22e">&#39;a</span>, <span style="color:#a6e22e">&#39;b</span><span style="color:#f92672">&gt;</span> Searcher<span style="color:#f92672">&lt;</span><span style="color:#a6e22e">&#39;a</span><span style="color:#f92672">&gt;</span> <span style="color:#66d9ef">for</span> CharSliceSearcher<span style="color:#f92672">&lt;</span><span style="color:#a6e22e">&#39;a</span>, <span style="color:#a6e22e">&#39;b</span><span style="color:#f92672">&gt;</span> { ... }
+
+<span style="color:#66d9ef">unsafe</span> <span style="color:#66d9ef">impl</span><span style="color:#f92672">&lt;</span><span style="color:#a6e22e">&#39;a</span>, <span style="color:#a6e22e">&#39;b</span><span style="color:#f92672">&gt;</span> Searcher<span style="color:#f92672">&lt;</span><span style="color:#a6e22e">&#39;a</span><span style="color:#f92672">&gt;</span> <span style="color:#66d9ef">for</span> StrSearcher<span style="color:#f92672">&lt;</span><span style="color:#a6e22e">&#39;a</span>, <span style="color:#a6e22e">&#39;b</span><span style="color:#f92672">&gt;</span> { ... }
+
+<span style="color:#66d9ef">unsafe</span> <span style="color:#66d9ef">impl</span><span style="color:#f92672">&lt;</span><span style="color:#a6e22e">&#39;a</span>, F<span style="color:#f92672">&gt;</span> Searcher<span style="color:#f92672">&lt;</span><span style="color:#a6e22e">&#39;a</span><span style="color:#f92672">&gt;</span> <span style="color:#66d9ef">for</span> CharPredicateSearcher<span style="color:#f92672">&lt;</span><span style="color:#a6e22e">&#39;a</span>, F<span style="color:#f92672">&gt;</span>
+<span style="color:#66d9ef">where</span>
+    F: FnMut(char) -&gt; <span style="color:#66d9ef">bool</span>,
+{ ... }
+</code></pre></div><h2 id="总结">总结</h2>
+<p>在本文中，我们围绕着字符串分割的实例，详细讲解了 Rust 中的生命周期，包括为什么需要生命周期、什么是生命周期、以及如何标注生命周期。同时，由于字符串分割仅与待处理字符串的生命周期相关联，引入多生命周期标注。最后，使用 trait 来定义分割行为，让实现更加通用。</p>
+<p>通过 5 个版本的修改，一步步完成我们自己的 <code>StrSplit</code>，最后查看标准库的字符串分割实现，加深理解。</p>
+<p>除了对生命周期相关概念的讲解外，本文还对实现中的一些细节做了讲解：</p>
+<ul>
+<li><code>&amp;str</code> 与 <code>String</code> 的区别与联系</li>
+<li><code>Iterator trait</code></li>
+<li><code>Self</code> 和 <code>self</code></li>
+<li><code>ref mut</code> 进行模式匹配</li>
+<li><code>?</code> operator</li>
+<li>etc &hellip;</li>
+</ul>
+<p>本文为作者学习 Rust 的一篇学习笔记，肯定存在遗漏或错误，欢迎大家在评论区讨论指出。</p>
+<p>系列文章：</p>
+<p>1、<a href="https://qiaoin.github.io/2021/12/15/rust-lifetime/">Rust 中的生命周期</a></p>
+<p>2、<a href="https://qiaoin.github.io/2022/01/17/rust-iterator/">Rust 中的迭代器</a></p>
+<p>3、还有更多 Rust 相关的文章，敬请期待</p>
+<h2 id="references">References</h2>
+<ul>
+<li>Crust of Rust 系列 <a href="https://www.youtube.com/watch?v=rAl-9HwD858&amp;list=PLqbS7AVVErFiWDOAVrPt7aYmnuuOLYvOa&amp;index=1&amp;ab_channel=JonGjengset">Lifetime Annotations</a> 本文为学习此视频后的笔记</li>
+<li><a href="https://doc.rust-lang.org/stable/book/">Rust The Book</a> 第 4 章和第 10 章</li>
+<li>极客时间专栏 <a href="https://time.geekbang.org/column/intro/100085301">陈天 · Rust 编程第一课</a>，第 7 讲 - 第 11 讲</li>
+<li><a href="https://doc.rust-lang.org/stable/std/">Rust 标准库文档</a>，对于 Rust 的源码直接从 docs.rs 点击过去看一下</li>
+<li><a href="https://cheats.rs/">Rust 语言的备忘清单</a></li>
+<li><a href="https://stackoverflow.com/questions/57754901/what-is-a-fat-pointer">rust - What is a &ldquo;fat pointer&rdquo;? - Stack Overflow</a></li>
+<li><a href="https://www.reddit.com/r/rust/comments/kcou9c/authors_of_programming_rust_2nd_edition_have_a/">Authors of &ldquo;Programming Rust 2nd Edition&rdquo; have a sense of humor : rust</a> 文中 <code>noodles</code> 的代码示例和图示受这个帖子启发，有删改</li>
+<li><a href="https://play.rust-lang.org/">Rust Playground</a> 文中的代码示例都给到了 playground 的链接，在阅读的时候可以点击跳转过去 Run 起来看一下运行结果或错误提示</li>
+<li><a href="https://doc.rust-lang.org/stable/error-index.html">Rust Compiler Error Index</a> Rust 错误列表，在 playground 中运行报错时可以直接点击跳转过来查看，作为字典查询即可</li>
+<li>文中的所有图片均使用 <a href="https://excalidraw.com/">excalidraw</a> 绘制</li>
+</ul>
+
+    </div>
+  </article>
+
+  
+<section class="comments">
+<script src="https://utteranc.es/client.js"
+        repo="qiaoin/hugo-blog-comments"
+        issue-term="og:title"
+        theme="github-light"
+        crossorigin="anonymous"
+        async>
+</script>
+</section>
+
+
+
+</main>
+
+      <footer class="footer">
+        <ul class="footer-links">
+          <li>
+            <a href="https://qiaoin.github.io">在桥边</a> © 2016 - 2021
+          </li>
+          <li>
+            <a href="https://gohugo.io/" class="footer-links-kudos">Made with <img src="/images/hugo-logo.png" alt="Img link to Hugo website" width="22" height="22"></a>
+          </li>
+        </ul>
+      </footer>
+
+    </div>
+    
+
+
+
+<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/highlight.min.js"></script>
+
+
+
+<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/languages/awk.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/languages/bash.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/languages/c.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/languages/c&#43;&#43;.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/languages/cmake.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/languages/go.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/languages/html.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/languages/java.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/languages/javascript.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/languages/python.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/languages/rust.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/languages/typescript.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/languages/yaml.min.js"></script>
+<script>hljs.configure({languages: []}); hljs.initHighlightingOnLoad();</script>
+
+
+
+    
+
+    
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-EBLEJGMMQV"></script>
+<script>
+var doNotTrack = false;
+if (!doNotTrack) {
+	window.dataLayer = window.dataLayer || [];
+	function gtag(){dataLayer.push(arguments);}
+	gtag('js', new Date());
+	gtag('config', 'G-EBLEJGMMQV', { 'anonymize_ip': false });
+}
+</script>
+
+  </body>
+</html>
+

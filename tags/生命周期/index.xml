@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>生命周期 on 在桥边</title>
+    <link>https://qiaoin.github.io/tags/%E7%94%9F%E5%91%BD%E5%91%A8%E6%9C%9F/</link>
+    <description>Recent content in 生命周期 on 在桥边</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>en-us</language>
+    <lastBuildDate>Wed, 15 Dec 2021 00:00:00 +0000</lastBuildDate><atom:link href="https://qiaoin.github.io/tags/%E7%94%9F%E5%91%BD%E5%91%A8%E6%9C%9F/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>Rust 中的生命周期</title>
+      <link>https://qiaoin.github.io/2021/12/15/rust-lifetime/</link>
+      <pubDate>Wed, 15 Dec 2021 00:00:00 +0000</pubDate>
+      
+      <guid>https://qiaoin.github.io/2021/12/15/rust-lifetime/</guid>
+      <description>在本文中，我们将围绕着字符串分割的实例，讲解 Rust 中的生命周期。首先剖析为什么需要生命周期、什么是生命周期、以及如何标注生命周期；接下来引入多生</description>
+    </item>
+    
+  </channel>
+</rss>

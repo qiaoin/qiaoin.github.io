@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Coroutine on 在桥边</title>
+    <link>https://qiaoin.github.io/tags/coroutine/</link>
+    <description>Recent content in Coroutine on 在桥边</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>en-us</language>
+    <lastBuildDate>Thu, 04 Nov 2021 00:00:00 +0000</lastBuildDate><atom:link href="https://qiaoin.github.io/tags/coroutine/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>当我们谈论协程时，我们在谈论什么【未完成】</title>
+      <link>https://qiaoin.github.io/2021/11/04/all-you-should-know-about-coroutines/</link>
+      <pubDate>Thu, 04 Nov 2021 00:00:00 +0000</pubDate>
+      
+      <guid>https://qiaoin.github.io/2021/11/04/all-you-should-know-about-coroutines/</guid>
+      <description>「什么是协程？」几乎是现在面试的必考题。一方面，Donald E. Knuth 说「子过程是协程的一种特殊表现形式」&amp;ldquo;Subroutines are special</description>
+    </item>
+    
+  </channel>
+</rss>

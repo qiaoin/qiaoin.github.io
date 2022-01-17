@@ -2,28 +2,67 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
   xmlns:xhtml="http://www.w3.org/1999/xhtml">
   <url>
+    <loc>https://qiaoin.github.io/categories/</loc>
+    <lastmod>2022-01-17T00:00:00+00:00</lastmod>
+  </url><url>
+    <loc>https://qiaoin.github.io/tags/learning-by-doing/</loc>
+    <lastmod>2022-01-17T00:00:00+00:00</lastmod>
+  </url><url>
+    <loc>https://qiaoin.github.io/post/</loc>
+    <lastmod>2022-01-17T00:00:00+00:00</lastmod>
+  </url><url>
+    <loc>https://qiaoin.github.io/tags/rust/</loc>
+    <lastmod>2022-01-17T00:00:00+00:00</lastmod>
+  </url><url>
+    <loc>https://qiaoin.github.io/categories/rust/</loc>
+    <lastmod>2022-01-17T00:00:00+00:00</lastmod>
+  </url><url>
+    <loc>https://qiaoin.github.io/2022/01/17/rust-iterator/</loc>
+    <lastmod>2022-01-17T00:00:00+00:00</lastmod>
+  </url><url>
+    <loc>https://qiaoin.github.io/tags/</loc>
+    <lastmod>2022-01-17T00:00:00+00:00</lastmod>
+  </url><url>
+    <loc>https://qiaoin.github.io/</loc>
+    <lastmod>2022-01-17T00:00:00+00:00</lastmod>
+  </url><url>
+    <loc>https://qiaoin.github.io/categories/%E7%BC%96%E7%A8%8B%E8%AF%AD%E8%A8%80/</loc>
+    <lastmod>2022-01-17T00:00:00+00:00</lastmod>
+  </url><url>
+    <loc>https://qiaoin.github.io/tags/%E8%BF%AD%E4%BB%A3%E5%99%A8/</loc>
+    <lastmod>2022-01-17T00:00:00+00:00</lastmod>
+  </url><url>
+    <loc>https://qiaoin.github.io/2021/12/15/rust-lifetime/</loc>
+    <lastmod>2021-12-15T00:00:00+00:00</lastmod>
+  </url><url>
+    <loc>https://qiaoin.github.io/tags/%E7%94%9F%E5%91%BD%E5%91%A8%E6%9C%9F/</loc>
+    <lastmod>2021-12-15T00:00:00+00:00</lastmod>
+  </url><url>
+    <loc>https://qiaoin.github.io/tags/coroutine/</loc>
+    <lastmod>2021-11-04T00:00:00+00:00</lastmod>
+  </url><url>
+    <loc>https://qiaoin.github.io/tags/go/</loc>
+    <lastmod>2021-11-04T00:00:00+00:00</lastmod>
+  </url><url>
+    <loc>https://qiaoin.github.io/2021/11/04/all-you-should-know-about-coroutines/</loc>
+    <lastmod>2021-11-04T00:00:00+00:00</lastmod>
+  </url><url>
+    <loc>https://qiaoin.github.io/categories/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/</loc>
+    <lastmod>2021-11-04T00:00:00+00:00</lastmod>
+  </url><url>
+    <loc>https://qiaoin.github.io/categories/%E6%BA%90%E7%A0%81%E9%98%85%E8%AF%BB/</loc>
+    <lastmod>2021-11-04T00:00:00+00:00</lastmod>
+  </url><url>
     <loc>https://qiaoin.github.io/readings/</loc>
     <lastmod>2021-10-31T00:00:00+00:00</lastmod>
   </url><url>
     <loc>https://qiaoin.github.io/re-learning-cs/</loc>
     <lastmod>2021-10-31T00:00:00+00:00</lastmod>
   </url><url>
-    <loc>https://qiaoin.github.io/categories/</loc>
-    <lastmod>2021-04-26T00:00:00+00:00</lastmod>
-  </url><url>
     <loc>https://qiaoin.github.io/tags/daemon/</loc>
     <lastmod>2021-04-26T00:00:00+00:00</lastmod>
   </url><url>
     <loc>https://qiaoin.github.io/categories/linux/</loc>
-    <lastmod>2021-04-26T00:00:00+00:00</lastmod>
-  </url><url>
-    <loc>https://qiaoin.github.io/post/</loc>
-    <lastmod>2021-04-26T00:00:00+00:00</lastmod>
-  </url><url>
-    <loc>https://qiaoin.github.io/tags/</loc>
-    <lastmod>2021-04-26T00:00:00+00:00</lastmod>
-  </url><url>
-    <loc>https://qiaoin.github.io/</loc>
     <lastmod>2021-04-26T00:00:00+00:00</lastmod>
   </url><url>
     <loc>https://qiaoin.github.io/2021/04/26/write-a-daemon/</loc>
@@ -41,9 +80,6 @@
     <loc>https://qiaoin.github.io/tags/stl/</loc>
     <lastmod>2020-10-31T00:00:00+00:00</lastmod>
   </url><url>
-    <loc>https://qiaoin.github.io/categories/%E7%BC%96%E7%A8%8B%E8%AF%AD%E8%A8%80/</loc>
-    <lastmod>2020-10-31T00:00:00+00:00</lastmod>
-  </url><url>
     <loc>https://qiaoin.github.io/tags/js/</loc>
     <lastmod>2020-07-13T00:00:00+00:00</lastmod>
   </url><url>
@@ -51,9 +87,6 @@
     <lastmod>2020-07-13T00:00:00+00:00</lastmod>
   </url><url>
     <loc>https://qiaoin.github.io/categories/algorithm/</loc>
-    <lastmod>2020-06-09T00:00:00+00:00</lastmod>
-  </url><url>
-    <loc>https://qiaoin.github.io/tags/go/</loc>
     <lastmod>2020-06-09T00:00:00+00:00</lastmod>
   </url><url>
     <loc>https://qiaoin.github.io/2020/06/09/go-basis/</loc>
@@ -73,9 +106,6 @@
   </url><url>
     <loc>https://qiaoin.github.io/tags/%E5%BE%AE%E6%9C%8D%E5%8A%A1/</loc>
     <lastmod>2020-03-08T00:00:00+00:00</lastmod>
-  </url><url>
-    <loc>https://qiaoin.github.io/categories/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/</loc>
-    <lastmod>2020-02-21T00:00:00+00:00</lastmod>
   </url><url>
     <loc>https://qiaoin.github.io/2020/02/21/3-page-replacement-algorithms/</loc>
     <lastmod>2020-02-21T00:00:00+00:00</lastmod>
@@ -165,9 +195,6 @@
     <lastmod>2018-06-16T00:00:00+00:00</lastmod>
   </url><url>
     <loc>https://qiaoin.github.io/2018/06/16/transport-with-ibverbs/</loc>
-    <lastmod>2018-06-16T00:00:00+00:00</lastmod>
-  </url><url>
-    <loc>https://qiaoin.github.io/categories/%E6%BA%90%E7%A0%81%E9%98%85%E8%AF%BB/</loc>
     <lastmod>2018-06-16T00:00:00+00:00</lastmod>
   </url><url>
     <loc>https://qiaoin.github.io/2018/04/19/programming-pearls-notes/</loc>

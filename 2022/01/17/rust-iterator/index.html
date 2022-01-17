@@ -1,0 +1,1224 @@
+<!DOCTYPE html>
+<html lang="en-us">
+  <head>
+    <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="generator" content="Hugo 0.82.0" />
+
+
+<title>Rust 中的迭代器 - 在桥边</title>
+<meta property="og:title" content="Rust 中的迭代器 - 在桥边">
+
+
+  <link href='https://qiaoin.github.io/favicon.ico' rel='icon' type='image/x-icon'/>
+
+
+
+  
+
+
+
+
+
+
+
+
+<link href='//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/styles/monokai.min.css' rel='stylesheet' type='text/css' />
+
+
+
+<link rel="stylesheet" href="/css/fonts.css" media="all">
+<link rel="stylesheet" href="/css/main.css" media="all">
+
+<link rel="stylesheet" href="/css/custom.css">
+
+
+
+  </head>
+  <body>
+    <div class="wrapper">
+      <header class="header">
+        <nav class="nav">
+  <a href="/" class="nav-logo">
+    <img src="/images/logo.png"
+         width="50"
+         height="50"
+         alt="Logo">
+  </a>
+
+  <ul class="nav-links">
+    
+    <li><a href="/re-learning-cs/">重学基础</a></li>
+    
+    <li><a href="/readings/">Readings</a></li>
+    
+    <li><a href="/about/">About</a></li>
+    
+    <li><a href="https://github.com/qiaoin">GitHub</a></li>
+    
+  </ul>
+</nav>
+
+      </header>
+
+
+<main class="content" role="main">
+
+  <article class="article">
+    
+    
+
+    <h1 class="article-title">Rust 中的迭代器</h1>
+
+    
+    <span class="article-date">2022-01-17</span>
+    
+
+    <div class="article-content">
+      <p>迭代器作为 GoF 23 种设计模式之一，在编程语言中广泛使用。本文，我们一起来探索 Rust 对迭代器的支持。首先明确 Rust 中的迭代器类型，接下来讲解从集合获取迭代器的三种方式，然后实现一个我们自己的迭代器（以实现 <code>our_flatten()</code> 为例）。在此基础上，为 <code>Iterator</code> trait 引入 extension traits，让所有迭代器都可以直接使用 <code>our_flatten()</code>，方便扩展。</p>
+<hr>
+<div class="toc">
+    <details>
+        <summary>Table of contents</summary>
+        <nav id="TableOfContents">
+  <ul>
+    <li><a href="#the-basis-of-iterator">The basis of Iterator</a>
+      <ul>
+        <li><a href="#external-iteration">external iteration</a></li>
+        <li><a href="#iterator-trait">Iterator trait</a></li>
+      </ul>
+    </li>
+    <li><a href="#three-forms-of-iteration">Three forms of iteration</a>
+      <ul>
+        <li><a href="#iter--iter_mut">iter() / iter_mut()</a></li>
+        <li><a href="#deref--derefmut-trait">Deref / DerefMut trait</a></li>
+        <li><a href="#deref-coercion">Deref coercion</a></li>
+        <li><a href="#into_iter">into_iter()</a></li>
+        <li><a href="#for-in-loops--iterator-loops">for-in-loops / Iterator loops</a></li>
+        <li><a href="#five-types-of-for-in-loops">five types of for-in-loops</a></li>
+      </ul>
+    </li>
+    <li><a href="#implementing-our_flatten">Implementing our_flatten()</a>
+      <ul>
+        <li><a href="#version-1-set-up">version #1: set up</a></li>
+        <li><a href="#version-2-save-inner_iter">version #2: save inner_iter</a></li>
+        <li><a href="#version-3-impl-doubleendediterator-trait">version #3: impl DoubleEndedIterator trait</a></li>
+        <li><a href="#version-4-save-front_iter-and-back_iter">version #4: save front_iter and back_iter</a></li>
+      </ul>
+    </li>
+    <li><a href="#extension-traits">Extension traits</a>
+      <ul>
+        <li><a href="#two-examples-of-using-extension-traits">two examples of using extension traits</a></li>
+        <li><a href="#blanket-implementations">blanket implementations</a></li>
+        <li><a href="#traits-with-generic-types">traits with generic types</a></li>
+        <li><a href="#why-use-associated-types-in-iterator-trait">why use associated types in Iterator trait?</a></li>
+        <li><a href="#version-5-define-iteratorext-trait">version #5: define IteratorExt trait</a></li>
+      </ul>
+    </li>
+    <li><a href="#summary">Summary</a></li>
+    <li><a href="#references">References</a></li>
+  </ul>
+</nav>
+    </details>
+</div>
+<hr>
+<h2 id="the-basis-of-iterator">The basis of Iterator</h2>
+<p>Rust 标准库实现的迭代器依托于 <code>Iterator</code> trait，它定义了一组抽象接口（abstraction），让使用者无需关心集合的底层实现细节，直接调用 <code>next()</code> 将集合作为迭代器进行访问，每次访问一个元素。</p>
+<blockquote>
+<p>Provide a way to access the elements of an aggregate object sequentially without exposing its underlying representation.</p>
+<p>提供一种方法，使之能够依序访问某个聚合物（集合）所含的各个元素，而又无需暴露该聚合物的内部实现细节。</p>
+<p>—— Design Pattern, GoF, Chapter 5.4 Iterator, Page 257</p>
+</blockquote>
+<h3 id="external-iteration">external iteration</h3>
+<p>查看 iter module 的<a href="https://doc.rust-lang.org/std/iter/index.html">文档介绍</a>，第一句为：</p>
+<blockquote>
+<p>Composable external iteration.</p>
+</blockquote>
+<p><code>external</code>，外部迭代器，同样 GoF 给到介绍：</p>
+<blockquote>
+<p><em>Who controls the iteration?</em> A fundamental issue is deciding which party controls the iteration, the iterator or the client that uses the iterator. When the client controls the iteration, the iterator is called an <strong>external iterator</strong> (C++ and Java), and when the iterator controls it, the iterator is an <strong>internal iterator</strong> (Lisp and functional languages). Clients that use an external iterator must advance the traversal and request the next element explicitly from the iterator. In contrast, the client hands an internal iterator an operation to perform, and the iterator applies that operation to every element in the aggregate.</p>
+<p>External iterators are more flexible than internal iterators. It&rsquo;s easy to compare two collections for equality with an external iterator, for example, but it&rsquo;s practically impossible with internal iterators. Internal iterators are especially weak in a language like C++ that does not provide anonymous functions, closures, or continuations like Smalltalk and CLOS. But on the other hand, internal iterators are easier to use, because they define the iteration logic for you.</p>
+<p>—— Design Pattern, GoF, Chapter 5.4 Iterator, Page 260</p>
+</blockquote>
+<ul>
+<li>外部迭代器（external iterators），使用 <code>struct</code> 保存当前迭代的状态信息，由调用方来控制迭代行为（调用 <code>next()</code> 从迭代器中获取元素）。例如 <code>for-in-loops</code>，语法糖在后面会详细讲解；</li>
+<li>内部迭代器（internal iterators），传递一个闭包（closures）给迭代器，迭代器在每个元素上调用这个闭包操作，无需保存当前迭代的状态信息，完全由迭代器来控制迭代行为。例如 <code>Iterator::for_each(self, f: F) where F: FnMut(Self::Item)</code>。</li>
+</ul>
+<p>Rust 同时提供了内部迭代器和外部迭代器的语义，本文主要聚焦外部迭代器。</p>
+<p>对于 Rust 中的内部迭代器，会与 <code>composable</code> 一起，搭配闭包（closures）和适配器（adapters）在下一篇文章中进行介绍。</p>
+<h3 id="iterator-trait">Iterator trait</h3>
+<p>所有迭代器（Iterator）都实现了 <code>Iterator</code> trait（查看目前标准库中实现了 <code>Iterator</code> trait 的 <a href="https://doc.rust-lang.org/std/iter/trait.Iterator.html#implementors">Implementors</a>），定义如下：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-rust" data-lang="rust"><span style="color:#75715e">// https://doc.rust-lang.org/src/core/iter/traits/iterator.rs.html#55
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">pub</span> <span style="color:#66d9ef">trait</span> Iterator {
+<span style="display:block;width:100%;background-color:#3c3d38">    <span style="color:#66d9ef">type</span> <span style="color:#a6e22e">Item</span>;
+</span>
+<span style="display:block;width:100%;background-color:#3c3d38">    <span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">next</span>(<span style="color:#f92672">&amp;</span><span style="color:#66d9ef">mut</span> self) -&gt; Option<span style="color:#f92672">&lt;</span>Self::Item<span style="color:#f92672">&gt;</span>;
+</span>
+    <span style="color:#75715e">// 在实现了 next() 后，其他的方法都有缺省实现，这里直接省略    
+</span><span style="color:#75715e"></span>}
+</code></pre></div><p>包含两个部分：</p>
+<ul>
+<li>关联类型（associated types）。<code>Item</code> 定义了迭代器每次返回的数据类型；</li>
+<li>方法（methods），也称关联函数（associated functions）。实现 <code>Iterator</code> trait 必须实现 <code>next()</code>，定义了从迭代器中取下一个值的方法。当一个迭代器的 <code>next()</code> 方法返回 <code>None</code> 时，表明迭代器中已经没有值了。实现 <code>next()</code> 后，<code>Iterator</code> trait 中的其他方法就都有了缺省实现（其他方法的缺省实现使用了 <code>next()</code>，性能可能比较差；可以提供自定义实现）。</li>
+</ul>
+<h2 id="three-forms-of-iteration">Three forms of iteration</h2>
+<p>从一个集合得到迭代器（create iterators from a collection），有三种方式：</p>
+<ul>
+<li><code>iter()</code>, which iterates over <code>&amp;T</code>.</li>
+<li><code>iter_mut()</code>, which iterates over <code>&amp;mut T</code>.</li>
+<li><code>into_iter()</code>, which iterates over <code>T</code>.</li>
+</ul>
+<p>注意，这里只是一个笼统的描述，实际情况需要根据标准库中具体类型来确认。例如，<a href="https://doc.rust-lang.org/std/collections/struct.HashSet.html">HashSet</a> / <a href="https://doc.rust-lang.org/std/collections/struct.HashMap.html">HashMap</a> 就不提供 <code>iter_mut()</code> 方法；<code>&amp;str</code> 则根据返回的迭代器类型，提供 <a href="https://doc.rust-lang.org/std/primitive.str.html#method.chars">chars()</a> 和 <a href="https://doc.rust-lang.org/std/primitive.str.html#method.bytes">bytes()</a> 方法。</p>
+<p>以 <code>Vec&lt;T&gt;</code> 类型为例，写一段代码进行理解，<a href="https://play.rust-lang.org/?version=stable&amp;mode=debug&amp;edition=2021&amp;gist=83404e09bc12f1d203e43c20ca6bcfb3">代码 1，three-forms-of-iteration</a>：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-rust" data-lang="rust"><span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">main</span>() {
+    <span style="color:#66d9ef">let</span> v1 <span style="color:#f92672">=</span> vec<span style="color:#f92672">!</span>[<span style="color:#ae81ff">1</span>, <span style="color:#ae81ff">2</span>, <span style="color:#ae81ff">3</span>];
+    <span style="color:#75715e">// 由于 next(&amp;mut self)，因此 v1_iter 需要使用 mut 修饰
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// calling next() changes the state of iter, it must be mutable.
+</span><span style="display:block;width:100%;background-color:#3c3d38"><span style="color:#75715e"></span>    <span style="color:#66d9ef">let</span> <span style="color:#66d9ef">mut</span> v1_iter <span style="color:#f92672">=</span> v1.iter();  <span style="color:#75715e">// std::slice::Iter&lt;&#39;_, {integer}&gt;
+</span></span><span style="color:#75715e"></span>    <span style="color:#75715e">// iter() -- borrow as immutable, 不能进行修改
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// if let Some(first) = v1_iter.next() {
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">//     *first += 4;
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// }
+</span><span style="color:#75715e"></span>    assert_eq<span style="color:#f92672">!</span>(v1_iter.next(), Some(<span style="color:#f92672">&amp;</span><span style="color:#ae81ff">1</span>));
+    assert_eq<span style="color:#f92672">!</span>(v1_iter.next(), Some(<span style="color:#f92672">&amp;</span><span style="color:#ae81ff">2</span>));
+    assert_eq<span style="color:#f92672">!</span>(v1_iter.next(), Some(<span style="color:#f92672">&amp;</span><span style="color:#ae81ff">3</span>));
+    assert_eq<span style="color:#f92672">!</span>(v1_iter.next(), None);
+    assert_eq<span style="color:#f92672">!</span>(v1, vec<span style="color:#f92672">!</span>[<span style="color:#ae81ff">1</span>, <span style="color:#ae81ff">2</span>, <span style="color:#ae81ff">3</span>]);  <span style="color:#75715e">// v1_iter borrows, so v1 can still access
+</span><span style="color:#75715e"></span>    println<span style="color:#f92672">!</span>(<span style="color:#e6db74">&#34;v1 = {:?}&#34;</span>, v1);
+    
+    <span style="color:#75715e">// iter_mut() -- borrow as mutable，可以进行修改
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">let</span> <span style="color:#66d9ef">mut</span> v2 <span style="color:#f92672">=</span> vec<span style="color:#f92672">!</span>[<span style="color:#ae81ff">1</span>, <span style="color:#ae81ff">2</span>, <span style="color:#ae81ff">3</span>];
+<span style="display:block;width:100%;background-color:#3c3d38">    <span style="color:#66d9ef">let</span> <span style="color:#66d9ef">mut</span> v2_iter <span style="color:#f92672">=</span> v2.iter_mut();  <span style="color:#75715e">// std::slice::IterMut&lt;&#39;_, {integer}&gt;
+</span></span><span style="color:#75715e"></span>    <span style="color:#75715e">// v2_iter.next() --- Option&lt;&amp;mut {integer}&gt;
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">if</span> <span style="color:#66d9ef">let</span> Some(first) <span style="color:#f92672">=</span> v2_iter.next() {
+        <span style="color:#f92672">*</span>first <span style="color:#f92672">+=</span> <span style="color:#ae81ff">4</span>;
+    }
+    assert_eq<span style="color:#f92672">!</span>(v2, vec<span style="color:#f92672">!</span>[<span style="color:#ae81ff">5</span>, <span style="color:#ae81ff">2</span>, <span style="color:#ae81ff">3</span>]);  <span style="color:#75715e">// v2_iter borrows, so v2 can still access
+</span><span style="color:#75715e"></span>    println<span style="color:#f92672">!</span>(<span style="color:#e6db74">&#34;v2 = {:?}&#34;</span>, v2);
+    
+    <span style="color:#66d9ef">let</span> v3 <span style="color:#f92672">=</span> vec<span style="color:#f92672">!</span>[<span style="color:#ae81ff">1</span>, <span style="color:#ae81ff">2</span>, <span style="color:#ae81ff">3</span>];
+<span style="display:block;width:100%;background-color:#3c3d38">    <span style="color:#66d9ef">let</span> <span style="color:#66d9ef">mut</span> v3_iter <span style="color:#f92672">=</span> v3.into_iter();  <span style="color:#75715e">// std::vec::IntoIter&lt;{integer}&gt;
+</span></span><span style="color:#75715e"></span>    <span style="color:#75715e">//                   ----------- `v3` moved due to this method call
+</span><span style="color:#75715e"></span>    assert_eq<span style="color:#f92672">!</span>(Some(<span style="color:#ae81ff">1</span>), v3_iter.next());
+    assert_eq<span style="color:#f92672">!</span>(Some(<span style="color:#ae81ff">2</span>), v3_iter.next());
+    assert_eq<span style="color:#f92672">!</span>(Some(<span style="color:#ae81ff">3</span>), v3_iter.next());
+    assert_eq<span style="color:#f92672">!</span>(None, v3_iter.next());
+    <span style="color:#75715e">// println!(&#34;v3 = {:?}&#34;, v3);  // error[E0382]: borrow of moved value: `v3`
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">//                       ^^ value borrowed here after move
+</span><span style="color:#75715e"></span>}
+</code></pre></div><h3 id="iter--iter_mut">iter() / iter_mut()</h3>
+<p>1、<code>v.iter()</code> 返回切片类型的不可变迭代器，<a href="https://doc.rust-lang.org/std/primitive.slice.html#method.iter">slice-method-iter</a></p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-rust" data-lang="rust"><span style="color:#75715e">// https://doc.rust-lang.org/src/core/slice/mod.rs.html#736
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">pub</span> <span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">iter</span>(<span style="color:#f92672">&amp;</span>self) -&gt; <span style="color:#a6e22e">Iter</span><span style="color:#f92672">&lt;</span><span style="color:#a6e22e">&#39;_</span>, T<span style="color:#f92672">&gt;</span> {}
+</code></pre></div><p>2、<code>v.iter_mut()</code> 返回切片类型的可变迭代器，<a href="https://doc.rust-lang.org/std/primitive.slice.html#method.iter_mut">slice-method-iter_mut</a></p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-rust" data-lang="rust"><span style="color:#75715e">// https://doc.rust-lang.org/src/core/slice/mod.rs.html#753
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">pub</span> <span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">iter_mut</span>(<span style="color:#f92672">&amp;</span><span style="color:#66d9ef">mut</span> self) -&gt; <span style="color:#a6e22e">IterMut</span><span style="color:#f92672">&lt;</span><span style="color:#a6e22e">&#39;_</span>, T<span style="color:#f92672">&gt;</span> {}
+</code></pre></div><p><code>iter()</code> 和 <code>iter_mut()</code> 均为切片类型提供的方法，返回切片的迭代器（<code>std::slice::Iter struct</code> 和 <code>std::slice::IterMut struct</code>）。</p>
+<h3 id="deref--derefmut-trait">Deref / DerefMut trait</h3>
+<p><code>v</code> 的类型为 <code>Vec&lt;T&gt;</code>，为什么 <code>v.iter()</code> / <code>v.iter_mut()</code> 可以调用切片类型的方法呢？是由于 <a href="https://doc.rust-lang.org/std/ops/trait.Deref.html">Deref</a> / <a href="https://doc.rust-lang.org/std/ops/trait.DerefMut.html">DerefMut</a> trait —— 为一个类型（Type）实现 <code>Deref</code> / <code>DerefMut</code> trait，就可以像使用引用一样进行解引用（dereferencing）。</p>
+<p><code>Deref</code> 和 <code>DerefMut</code> trait 定义：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-rust" data-lang="rust"><span style="color:#75715e">// https://doc.rust-lang.org/src/core/ops/deref.rs.html#64-76
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">pub</span> <span style="color:#66d9ef">trait</span> Deref {
+    <span style="color:#e6db74">/// The resulting type after dereferencing.
+</span><span style="color:#e6db74"></span>    <span style="color:#66d9ef">type</span> <span style="color:#a6e22e">Target</span>: <span style="color:#f92672">?</span>Sized;
+
+    <span style="color:#e6db74">/// Dereferences the value.
+</span><span style="display:block;width:100%;background-color:#3c3d38"><span style="color:#e6db74"></span>    <span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">deref</span>(<span style="color:#f92672">&amp;</span>self) -&gt; <span style="color:#66d9ef">&amp;</span><span style="color:#a6e22e">Self</span>::Target;
+</span>}
+
+<span style="color:#75715e">// https://doc.rust-lang.org/src/core/ops/deref.rs.html#172-176
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">pub</span> <span style="color:#66d9ef">trait</span> DerefMut: <span style="color:#a6e22e">Deref</span> {
+    <span style="color:#e6db74">/// Mutably dereferences the value.
+</span><span style="display:block;width:100%;background-color:#3c3d38"><span style="color:#e6db74"></span>    <span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">deref_mut</span>(<span style="color:#f92672">&amp;</span><span style="color:#66d9ef">mut</span> self) -&gt; <span style="color:#66d9ef">&amp;</span><span style="color:#a6e22e">mut</span> Self::Target;
+</span>}
+</code></pre></div><p>默认情况下（without  <code>Deref</code> / <code>DerefMut</code> trait），编译器只能对 <code>&amp;</code> 执行解引用。有了  <code>Deref</code> / <code>DerefMut</code> trait ，<code>deref()</code> / <code>deref_mut()</code> 返回引用类型，此时编译器就能够知道如何在一个类型（Type）上执行解引用（调用 <code>deref()</code> / <code>deref_mut()</code>  得到引用，再执行解引用得到对应的 <code>Self::Target</code> / <code>mut Self::Target</code> 类型）。</p>
+<p><code>Vec&lt;T&gt;</code> 实现了这两个 trait，<a href="https://doc.rust-lang.org/std/vec/struct.Vec.html#impl-Deref">Vec-impl-Deref-trait</a>：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-rust" data-lang="rust"><span style="color:#75715e">// https://doc.rust-lang.org/src/alloc/vec/mod.rs.html#2398-2404
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">impl</span><span style="color:#f92672">&lt;</span>T, A: <span style="color:#a6e22e">Allocator</span><span style="color:#f92672">&gt;</span> ops::Deref <span style="color:#66d9ef">for</span> Vec<span style="color:#f92672">&lt;</span>T, A<span style="color:#f92672">&gt;</span> {
+    <span style="color:#66d9ef">type</span> <span style="color:#a6e22e">Target</span> <span style="color:#f92672">=</span> [T];
+
+<span style="display:block;width:100%;background-color:#3c3d38">    <span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">deref</span>(<span style="color:#f92672">&amp;</span>self) -&gt; <span style="color:#66d9ef">&amp;</span>[T] {
+</span>        <span style="color:#66d9ef">unsafe</span> { slice::from_raw_parts(self.as_ptr(), self.len) }
+    }
+}
+
+<span style="color:#75715e">// https://doc.rust-lang.org/src/alloc/vec/mod.rs.html#2407-2411
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">impl</span><span style="color:#f92672">&lt;</span>T, A: <span style="color:#a6e22e">Allocator</span><span style="color:#f92672">&gt;</span> ops::DerefMut <span style="color:#66d9ef">for</span> Vec<span style="color:#f92672">&lt;</span>T, A<span style="color:#f92672">&gt;</span> {
+<span style="display:block;width:100%;background-color:#3c3d38">    <span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">deref_mut</span>(<span style="color:#f92672">&amp;</span><span style="color:#66d9ef">mut</span> self) -&gt; <span style="color:#66d9ef">&amp;</span><span style="color:#a6e22e">mut</span> [T] {
+</span>        <span style="color:#66d9ef">unsafe</span> { slice::from_raw_parts_mut(self.as_mut_ptr(), self.len) }
+    }
+}
+</code></pre></div><p>因此，<code>Vec&lt;T&gt;</code> 执行解引用得到切片，对应 <code>v.iter()</code> / <code>v.iter_mut()</code> 详细解释为：</p>
+<ul>
+<li><code>v.iter()</code> —— 对 <code>v</code> 执行 <code>deref(&amp;v)</code> 得到 <code>&amp;[T]</code>，然后 <code>*</code> 解引用得到 <code>[T]</code>；再调用切片类型的 <code>iter(&amp;[T])</code> 方法，返回迭代器 <code>std::slice::Iter&lt;'a, T&gt;</code>，其实现了 <code>Iterator</code> trait（关联类型为 <code>type Item = &amp;'a T</code>），因此 <code>v1_iter</code> 可以调用 <code>next()</code> 访问存储的数据（<code>next()</code> 返回类型为 <code>Option&lt;&amp;'a T&gt;</code>），不可变借用；</li>
+<li><code>v.iter_mut()</code> —— 对 <code>v</code> 执行 <code>deref_mut(&amp;mut v)</code> 得到 <code>&amp;mut [T]</code>，然后 <code>*</code> 解引用得到 <code>mut [T]</code>；再调用切片类型的 <code>iter_mut(&amp;mut [T])</code> 方法，返回迭代器 <code>std::slice::IterMut&lt;'a, T&gt;</code>，其实现了 <code>Iterator</code> trait（关联类型为 <code>type Item = &amp;'a mut T</code>），因此 <code>v2_iter</code> 可以调用 <code>next()</code> 访问存储的数据（<code>next()</code> 返回类型为 <code>Option&lt;&amp;'a mut T&gt;</code>），可变借用。</li>
+</ul>
+<p><code>std::slice::Iter&lt;'a, T&gt;</code> 和 <code>std::slice::IterMut&lt;'a, T&gt;</code> 实现 <code>Iterator</code> trait，均使用宏进行定义（<a href="https://doc.rust-lang.org/src/core/slice/iter.rs.html#134-144">impl-Iterator-for-Iter</a>、<a href="https://doc.rust-lang.org/src/core/slice/iter.rs.html#316">impl-Iterator-for-IterMut</a>），关于 Rust 中的宏（macros），本系列会有单独一篇文章进行讲解。</p>
+<p>对于 <code>Vec&lt;T&gt;</code>、slice 和 <code>Iterator</code> trait 之间的转换，借助图 1 进行理解。更深入的 slice 介绍，可以查看 <a href="https://time.geekbang.org/column/article/422975">陈天 · Rust 编程第一课 - 第 16 讲</a>。</p>
+<figure>
+    <img src="images/vec-deref-slice-impl-iterator.png"
+         alt="图 1：Vec&amp;lt;T&amp;gt;、slice 和 Iterator trait 之间的转换"/> <figcaption>
+            <p>图 1：<code>Vec&lt;T&gt;</code>、slice 和 <code>Iterator</code> trait 之间的转换</p>
+        </figcaption>
+</figure>
+
+<h3 id="deref-coercion">Deref coercion</h3>
+<p>一个类型（Type）实现 <code>Deref</code> / <code>DerefMut</code> trait，编译器会在三种情况下执行解引用：</p>
+<p>1、<code>*x</code> —— <strong>显式</strong>解引用，根据 <code>x</code> 所在的上下文（<a href="https://doc.rust-lang.org/reference/expressions.html#mutability">mutable contexts</a> / immutable contexts），等价于执行 <code>*(std::ops::Deref::deref(&amp;x))</code> / <code>*(std::ops::DerefMut::deref_mut(&amp;mut x))</code>，<a href="https://doc.rust-lang.org/reference/expressions/operator-expr.html#the-dereference-operator">* 解引用操作符</a>；</p>
+<p>2、<code>x.method(call-params)</code> —— <a href="https://doc.rust-lang.org/reference/expressions/method-call-expr.html">方法调用</a>时执行<strong>隐式</strong>解引用，可能调用的候选方法包括：</p>
+<ul>
+<li>associated <a href="https://doc.rust-lang.org/reference/items/associated-items.html#methods">methods</a> on specific traits</li>
+<li>statically dispatching to a method if the exact <code>self</code>-type of the left-hand-side is known</li>
+<li>dynamically dispatching if the left-hand-side expression is an indirect <a href="https://doc.rust-lang.org/reference/types/trait-object.html">trait object</a></li>
+</ul>
+<p>因此，查找方法名时需获取得到所有的候选类型（a list of candidate receiver types） —— 通过对 <code>x</code> 执行多次解引用获取得到所有的候选类型。</p>
+<p>3、类型转换（Type coercions），一个简单的例子，<a href="https://play.rust-lang.org/?version=stable&amp;mode=debug&amp;edition=2021&amp;gist=89ad52d4371f3d88ccac1994936713e0">代码 2，type-coercions</a>，列举了两个场景下的类型转换，更多场景可以查看文档，<a href="https://doc.rust-lang.org/reference/type-coercions.html">Type coercions</a>。</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-rust" data-lang="rust"><span style="display:block;width:100%;background-color:#3c3d38"><span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">hello</span>(name: <span style="color:#66d9ef">&amp;</span><span style="color:#66d9ef">str</span>) {
+</span>    println<span style="color:#f92672">!</span>(<span style="color:#e6db74">&#34;Hello, {}!&#34;</span>, name);
+}
+
+<span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">main</span>() {
+    <span style="color:#66d9ef">let</span> m <span style="color:#f92672">=</span> String::from(<span style="color:#e6db74">&#34;Rust&#34;</span>);  <span style="color:#75715e">// String
+</span><span style="display:block;width:100%;background-color:#3c3d38"><span style="color:#75715e"></span>    hello(<span style="color:#f92672">&amp;</span>m);  <span style="color:#75715e">// 场景 1：函数参数，&amp;m type is &amp;String -- auto dereferenece --&gt; &amp;str
+</span></span><span style="color:#75715e"></span>
+    hello(<span style="color:#f92672">&amp;</span>m[..]);  <span style="color:#75715e">// 如果不支持 Deref coercion, 就需要显式传递 &amp;str
+</span><span style="color:#75715e"></span>
+<span style="display:block;width:100%;background-color:#3c3d38">    <span style="color:#66d9ef">let</span> n: <span style="color:#66d9ef">&amp;</span><span style="color:#66d9ef">str</span> <span style="color:#f92672">=</span> <span style="color:#f92672">&amp;</span>m;  <span style="color:#75715e">// 场景 2：let 左侧显式指定了类型，auto dereferenece
+</span></span><span style="color:#75715e"></span>    hello(n);
+}
+</code></pre></div><p><a href="https://doc.rust-lang.org/std/string/struct.String.html#impl-Deref">标准库为 <code>String</code> 类型实现了 <code>Deref</code> trait</a>，返回一个字符串切片（<code>&amp;str</code>）。在进行函数调用（场景 1）时，编译器自动进行了类型转换（调用 <code>String</code> 实现的 <code>deref(&amp;String)</code>，返回 <code>&amp;str</code>）。场景 2 同理。</p>
+<p>除了使用 <code>*</code> 一元运算符进行<strong>显式</strong>解引用，更多的场景下，编译器（Rust compiler）会<strong>自动</strong>进行隐式解引用（上述编译器执行解引用的情况 2 和 3。在 immutable 的上下文中，使用 <code>Deref</code>；在 mutable 的上下文中，使用 <code>DerefMut</code>），称为 <code>Deref coercion</code>。</p>
+<p>如果没有 <code>Deref coercion</code>，需按照 <code>hello(&amp;str)</code> 的签名进行严格匹配（支持 <code>Deref coercion</code>，编译器会在编译期（compile time）自动进行转换），写出来的代码不易阅读；但同时也应认识到，过分的依赖 <code>Deref</code> 会使代码不易维护，因此 <a href="https://doc.rust-lang.org/std/ops/trait.Deref.html">Deref</a> / <a href="https://doc.rust-lang.org/std/ops/trait.DerefMut.html">DerefMut</a> trait 的文档中都提到：</p>
+<blockquote>
+<p><strong><code>Deref</code> / <code>DerefMut</code> should only be implemented for smart pointers</strong> to avoid confusion.</p>
+</blockquote>
+<p>Rust 编译器执行 <code>Deref coercion</code> 时会区分可变和不可变，<a href="https://doc.rust-lang.org/book/ch15-02-deref.html#how-deref-coercion-interacts-with-mutability">The Book - How Deref Coercion Interacts with Mutability</a>：</p>
+<ul>
+<li>From <code>&amp;T</code> to <code>&amp;U</code> when <code>T: Deref&lt;Target=U&gt;</code></li>
+<li>From <code>&amp;mut T</code> to <code>&amp;mut U</code> when <code>T: DerefMut&lt;Target=U&gt;</code></li>
+<li>From <code>&amp;mut T</code> to <code>&amp;U</code> when <code>T: Deref&lt;Target=U&gt;</code> 一个可变借用（可变借用是排他的，只能有一个）可以解引用为不可变借用，满足 Rust 的借用规则；反过来不行，将一个不可变借用（不可变借用可以有多个）解引用为可变借用会破坏 Rust 的借用规则。</li>
+</ul>
+<h3 id="into_iter">into_iter()</h3>
+<p>3、<code>v.into_iter()</code>，<code>std::vec::Vec</code> 实现 <code>IntoIterator</code> trait，将 <code>std::vec::Vec</code> 转换为迭代器 <code>std::vec::IntoIter</code>（实现了 <code>Iterator</code> trait）。</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-rust" data-lang="rust"><span style="color:#75715e">// https://doc.rust-lang.org/src/core/iter/traits/collect.rs.html#204-235
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">pub</span> <span style="color:#66d9ef">trait</span> IntoIterator {
+    <span style="color:#66d9ef">type</span> <span style="color:#a6e22e">Item</span>;
+    <span style="color:#66d9ef">type</span> <span style="color:#a6e22e">IntoIter</span>: Iterator;
+
+<span style="display:block;width:100%;background-color:#3c3d38">    <span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">into_iter</span>(self) -&gt; <span style="color:#a6e22e">Self</span>::IntoIter;
+</span>}
+
+<span style="color:#75715e">// https://doc.rust-lang.org/src/alloc/vec/mod.rs.html#2522-2561
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">impl</span><span style="color:#f92672">&lt;</span>T, A: <span style="color:#a6e22e">Allocator</span><span style="color:#f92672">&gt;</span> IntoIterator <span style="color:#66d9ef">for</span> Vec<span style="color:#f92672">&lt;</span>T, A<span style="color:#f92672">&gt;</span> {
+    <span style="color:#66d9ef">type</span> <span style="color:#a6e22e">Item</span> <span style="color:#f92672">=</span> T;
+    <span style="color:#66d9ef">type</span> <span style="color:#a6e22e">IntoIter</span> <span style="color:#f92672">=</span> IntoIter<span style="color:#f92672">&lt;</span>T, A<span style="color:#f92672">&gt;</span>;
+
+<span style="display:block;width:100%;background-color:#3c3d38">   <span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">into_iter</span>(self) -&gt; <span style="color:#a6e22e">IntoIter</span><span style="color:#f92672">&lt;</span>T, A<span style="color:#f92672">&gt;</span> {}
+</span>}
+
+<span style="color:#75715e">// https://doc.rust-lang.org/src/alloc/vec/into_iter.rs.html#131-209
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">impl</span><span style="color:#f92672">&lt;</span>T, A: <span style="color:#a6e22e">Allocator</span><span style="color:#f92672">&gt;</span> Iterator <span style="color:#66d9ef">for</span> IntoIter<span style="color:#f92672">&lt;</span>T, A<span style="color:#f92672">&gt;</span> {
+    <span style="color:#66d9ef">type</span> <span style="color:#a6e22e">Item</span> <span style="color:#f92672">=</span> T;
+
+<span style="display:block;width:100%;background-color:#3c3d38">    <span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">next</span>(<span style="color:#f92672">&amp;</span><span style="color:#66d9ef">mut</span> self) -&gt; Option<span style="color:#f92672">&lt;</span>T<span style="color:#f92672">&gt;</span> {}
+</span>}
+</code></pre></div><p>需要特别注意的是，<code>.into_iter(self)</code> 的签名，伴随有所有权的转移。借助图 2 进行理解。</p>
+<figure>
+    <img src="images/vec-into-iter-impl-iterator.png"
+         alt="图 2：std::vec module 下的 Vec&amp;lt;T&amp;gt; 和 IntoIter&amp;lt;T&amp;gt;"/> <figcaption>
+            <p>图 2：<code>std::vec</code> module 下的 <code>Vec&lt;T&gt;</code> 和 <code>IntoIter&lt;T&gt;</code></p>
+        </figcaption>
+</figure>
+
+<p>这里会产生一个疑问：为什么 Rust 不直接为 <code>Vec&lt;T&gt;</code> 实现 <code>Iterator</code> trait 呢，而是另外定义了一个 <code>IntoIter&lt;T&gt; struct</code> 来实现 <code>Iterator</code> trait 呢？</p>
+<p>理由有以下两点：</p>
+<p>1、回顾一下 <code>Iterator</code> trait <code>next(&amp;mut self)</code> 的签名，为可变引用，基于 Rust 的借用规则，活跃的可变引用只能有一个。因此，如果为 <code>Vec&lt;T&gt;</code> 实现 <code>Iterator</code> trait，就不支持同时经由 <code>Vec&lt;T&gt;</code> 创建多个迭代器；并且由于可以在迭代期间修改迭代器，很容易出现错误，不符合 Rust 安全的宣言；</p>
+<p>2、外部迭代器需要保存当前迭代的状态，并且此状态需要在每次迭代时更新。因此，如果为 <code>Vec&lt;T&gt;</code> 实现 <code>Iterator</code> trait，就需要在 <code>Vec&lt;T&gt;</code> 保存迭代状态，经由 <code>Vec&lt;T&gt;</code> 不可变引用上创建的迭代器，修改不了其保存的迭代状态，也就实现不了迭代器。</p>
+<p>因此，Rust 另外定义一个 <code>IntoIter&lt;T&gt; struct</code> 来实现 <code>Iterator</code> trait。</p>
+<h3 id="for-in-loops--iterator-loops">for-in-loops / Iterator loops</h3>
+<p><a href="https://doc.rust-lang.org/reference/expressions/loop-expr.html#iterator-loops">语法</a>表示为：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash">IteratorLoopExpression :
+   <span style="color:#66d9ef">for</span> Pattern in Expression_<span style="color:#f92672">{</span>except struct expression<span style="color:#f92672">}</span> BlockExpression
+</code></pre></div><p>Rust 语法糖，<code>in</code> 关键字后的表达式需要实现 <code>IntoIterator</code> trait，<code>for</code> 循环遍历<code>.into_iter()</code> 返回的迭代器，当迭代器返回 <code>Some(val)</code> 时，按照 <code>Pattern</code> 匹配，然后执行 <code>for-block</code> 中的语句。<code>for</code> 循环多次执行，直至迭代器返回 <code>None</code> 或显式 <code>break</code>。</p>
+<p>写一段代码测试一下，<a href="https://play.rust-lang.org/?version=stable&amp;mode=debug&amp;edition=2021&amp;gist=a1c4f6688fb064aefd732f27aac1979f">代码 3，for-in-loops</a>，代码示例来源于文档 <a href="https://doc.rust-lang.org/std/iter/#for-loops-and-intoiterator">iter-for-loops-and-IntoIterator</a>：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-rust" data-lang="rust"><span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">main</span>() {
+    <span style="color:#66d9ef">let</span> values <span style="color:#f92672">=</span> vec<span style="color:#f92672">!</span>[<span style="color:#ae81ff">1</span>, <span style="color:#ae81ff">2</span>, <span style="color:#ae81ff">3</span>, <span style="color:#ae81ff">4</span>, <span style="color:#ae81ff">5</span>];
+    <span style="color:#66d9ef">for</span> x <span style="color:#66d9ef">in</span> values {
+        println<span style="color:#f92672">!</span>(<span style="color:#e6db74">&#34;{}&#34;</span>, x);
+    }
+}
+</code></pre></div><p>de-sugars 后：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-rust" data-lang="rust"><span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">main</span>() {
+    <span style="color:#66d9ef">let</span> values <span style="color:#f92672">=</span> vec<span style="color:#f92672">!</span>[<span style="color:#ae81ff">1</span>, <span style="color:#ae81ff">2</span>, <span style="color:#ae81ff">3</span>, <span style="color:#ae81ff">4</span>, <span style="color:#ae81ff">5</span>];
+    <span style="color:#75715e">// for x in values {
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">//     println!(&#34;{}&#34;, x);
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// }
+</span><span style="color:#75715e"></span>    {
+<span style="display:block;width:100%;background-color:#3c3d38">        <span style="color:#66d9ef">let</span> result <span style="color:#f92672">=</span> <span style="color:#66d9ef">match</span> IntoIterator::into_iter(values) {
+</span>            <span style="color:#66d9ef">mut</span> iter <span style="color:#f92672">=&gt;</span> <span style="color:#66d9ef">loop</span> {
+                <span style="color:#66d9ef">let</span> next;
+                <span style="color:#66d9ef">match</span> iter.next() {
+                    Some(val) <span style="color:#f92672">=&gt;</span> next <span style="color:#f92672">=</span> val,
+                    None <span style="color:#f92672">=&gt;</span> <span style="color:#66d9ef">break</span>,
+                };
+                <span style="color:#66d9ef">let</span> x <span style="color:#f92672">=</span> next;
+                <span style="color:#66d9ef">let</span> () <span style="color:#f92672">=</span> { println<span style="color:#f92672">!</span>(<span style="color:#e6db74">&#34;{}&#34;</span>, x); };
+            },
+        };
+        result
+    }
+}
+</code></pre></div><h3 id="five-types-of-for-in-loops">five types of for-in-loops</h3>
+<p>针对第二部分内容，看一段综合的代码，<a href="https://play.rust-lang.org/?version=stable&amp;mode=debug&amp;edition=2021&amp;gist=f46910738cabf6db121bb1c3c8086f43">代码 4，five-for-iterator</a>：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-rust" data-lang="rust"><span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">main</span>() {
+    <span style="color:#66d9ef">let</span> v1 <span style="color:#f92672">=</span> vec<span style="color:#f92672">!</span>[<span style="color:#ae81ff">1</span>, <span style="color:#ae81ff">2</span>, <span style="color:#ae81ff">3</span>];
+<span style="display:block;width:100%;background-color:#3c3d38">    <span style="color:#66d9ef">for</span> x1 <span style="color:#66d9ef">in</span> v1.iter() {
+</span>        <span style="color:#75715e">// std::slice::Iter struct 实现了 Iterator trait
+</span><span style="color:#75715e"></span>        <span style="color:#75715e">// 对于所有 Iterator trait bound 的类型，都实现了 IntoIterator trait
+</span><span style="color:#75715e"></span>        println<span style="color:#f92672">!</span>(<span style="color:#e6db74">&#34;{}&#34;</span>, x1);
+    }
+    println<span style="color:#f92672">!</span>(<span style="color:#e6db74">&#34;v1 = {:?}&#34;</span>, v1);  <span style="color:#75715e">// v1.iter() borrows immutable, so v1 can access
+</span><span style="color:#75715e"></span>    
+    <span style="color:#66d9ef">let</span> <span style="color:#66d9ef">mut</span> v2 <span style="color:#f92672">=</span> vec<span style="color:#f92672">!</span>[<span style="color:#ae81ff">1</span>, <span style="color:#ae81ff">2</span>, <span style="color:#ae81ff">3</span>];
+<span style="display:block;width:100%;background-color:#3c3d38">    <span style="color:#66d9ef">for</span> x2 <span style="color:#66d9ef">in</span> v2.iter_mut() {
+</span>        <span style="color:#75715e">// std::slice::IterMut struct 实现了 Iterator trait
+</span><span style="color:#75715e"></span>        <span style="color:#75715e">// 对于所有 Iterator trait bound 的类型，都实现了 IntoIterator trait
+</span><span style="color:#75715e"></span>        println<span style="color:#f92672">!</span>(<span style="color:#e6db74">&#34;{}&#34;</span>, x2);
+    }
+    println<span style="color:#f92672">!</span>(<span style="color:#e6db74">&#34;v2 = {:?}&#34;</span>, v2);  <span style="color:#75715e">// v2.iter() borrows mutable, so v2 can access
+</span><span style="color:#75715e"></span>    
+    <span style="color:#66d9ef">let</span> v3 <span style="color:#f92672">=</span> vec<span style="color:#f92672">!</span>[<span style="color:#ae81ff">1</span>, <span style="color:#ae81ff">2</span>, <span style="color:#ae81ff">3</span>];
+<span style="display:block;width:100%;background-color:#3c3d38">    <span style="color:#66d9ef">for</span> x3 <span style="color:#66d9ef">in</span> v3 {
+</span>        <span style="color:#75715e">// 隐式调用 v3.into_iter(), v3 所有权 move 了，后续不能继续访问 v3
+</span><span style="color:#75715e"></span>        println<span style="color:#f92672">!</span>(<span style="color:#e6db74">&#34;{}&#34;</span>, x3);
+    }
+    <span style="color:#75715e">// println!(&#34;v3 = {:?}&#34;, v3);  // error[E0382]: value borrowed here after move
+</span><span style="color:#75715e"></span>    
+    <span style="color:#66d9ef">let</span> v4 <span style="color:#f92672">=</span> vec<span style="color:#f92672">!</span>[<span style="color:#ae81ff">1</span>, <span style="color:#ae81ff">2</span>, <span style="color:#ae81ff">3</span>];
+<span style="display:block;width:100%;background-color:#3c3d38">    <span style="color:#66d9ef">for</span> x4 <span style="color:#66d9ef">in</span> <span style="color:#f92672">&amp;</span>v4 {
+</span>        <span style="color:#75715e">// &amp;v4 -- &amp;Vec&lt;{integer}&gt;
+</span><span style="color:#75715e"></span>        <span style="color:#75715e">// https://doc.rust-lang.org/src/alloc/vec/mod.rs.html#2564-2571
+</span><span style="color:#75715e"></span>        <span style="color:#75715e">// impl&lt;&#39;a, T, A: Allocator&gt; IntoIterator for &amp;&#39;a Vec&lt;T, A&gt;
+</span><span style="color:#75715e"></span>        <span style="color:#75715e">// IntoIterator::into_iter(&amp;v4) === v4.iter()
+</span><span style="color:#75715e"></span>        println<span style="color:#f92672">!</span>(<span style="color:#e6db74">&#34;{}&#34;</span>, x4);
+    }
+    println<span style="color:#f92672">!</span>(<span style="color:#e6db74">&#34;v4 = {:?}&#34;</span>, v4);  <span style="color:#75715e">// &amp;v4 borrows immutable, so v4 still access
+</span><span style="color:#75715e"></span>    
+    <span style="color:#66d9ef">let</span> <span style="color:#66d9ef">mut</span> v5 <span style="color:#f92672">=</span> vec<span style="color:#f92672">!</span>[<span style="color:#ae81ff">1</span>, <span style="color:#ae81ff">2</span>, <span style="color:#ae81ff">3</span>];
+<span style="display:block;width:100%;background-color:#3c3d38">    <span style="color:#66d9ef">for</span> x5 <span style="color:#66d9ef">in</span> <span style="color:#f92672">&amp;</span><span style="color:#66d9ef">mut</span> v5 {
+</span>        <span style="color:#75715e">// &amp;mut v5 -- &amp;mut Vec&lt;{integer}&gt;
+</span><span style="color:#75715e"></span>        <span style="color:#75715e">// https://doc.rust-lang.org/src/alloc/vec/mod.rs.html#2574-2581
+</span><span style="color:#75715e"></span>        <span style="color:#75715e">// impl&lt;&#39;a, T, A&gt; IntoIterator for &amp;&#39;a mut Vec&lt;T, A&gt;
+</span><span style="color:#75715e"></span>        <span style="color:#75715e">// IntoIterator::into_iter(&amp;mut v5) === v5.iter_mut()
+</span><span style="color:#75715e"></span>        println<span style="color:#f92672">!</span>(<span style="color:#e6db74">&#34;{}&#34;</span>, x5);
+    }
+    println<span style="color:#f92672">!</span>(<span style="color:#e6db74">&#34;v5 = {:?}&#34;</span>, v5);  <span style="color:#75715e">// &amp;mut v5 borrows immutable, so v5 can access
+</span><span style="color:#75715e"></span>}
+</code></pre></div><p>1、<code>v1.iter()</code> 和 <code>v2.iter_mut()</code> 返回切片的迭代器（<code>std::slice::Iter struct</code> 和 <code>std::slice::IterMut struct</code>），都实现了 <code>Iterator</code> trait。而所有迭代器（实现了 <code>Iterator</code> trait 的类型），均实现了 <code>IntoIterator</code> trait（返回该迭代器本身），因此可以使用 <code>for-in-loops</code> 进行迭代访问：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-rust" data-lang="rust"><span style="color:#75715e">// https://doc.rust-lang.org/src/core/iter/traits/collect.rs.html#238-246
+</span><span style="display:block;width:100%;background-color:#3c3d38"><span style="color:#75715e"></span><span style="color:#66d9ef">impl</span><span style="color:#f92672">&lt;</span>I: Iterator<span style="color:#f92672">&gt;</span> IntoIterator <span style="color:#66d9ef">for</span> I {
+</span>    <span style="color:#66d9ef">type</span> <span style="color:#a6e22e">Item</span> <span style="color:#f92672">=</span> I::Item;
+<span style="display:block;width:100%;background-color:#3c3d38">    <span style="color:#66d9ef">type</span> <span style="color:#a6e22e">IntoIter</span> <span style="color:#f92672">=</span> I;
+</span>
+    <span style="color:#75715e">#[inline]</span>
+<span style="display:block;width:100%;background-color:#3c3d38">    <span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">into_iter</span>(self) -&gt; <span style="color:#a6e22e">I</span> {
+</span>        self
+    }
+}
+</code></pre></div><p>2、<code>v3</code> 与上一节的示例代码相同，不重复解释；</p>
+<p>3、<code>&amp;v4</code> 和 <code>&amp;mut v5</code> 对应为 <code>&amp;'a Vec&lt;T, A&gt;</code> 和 <code>&amp;'a mut Vec&lt;T, A&gt;</code> 实现 <code>IntoIterator</code> trait，在 <code>into_iter(self)</code> 的实现中直接调用 <code>iter()</code> 和 <code>iter_mut()</code>；与 <code>v1</code> 和 <code>v2</code> 的处理逻辑等价</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-rust" data-lang="rust"><span style="color:#75715e">// https://doc.rust-lang.org/src/alloc/vec/mod.rs.html#2564-2571
+</span><span style="display:block;width:100%;background-color:#3c3d38"><span style="color:#75715e"></span><span style="color:#66d9ef">impl</span><span style="color:#f92672">&lt;</span><span style="color:#a6e22e">&#39;a</span>, T, A: <span style="color:#a6e22e">Allocator</span><span style="color:#f92672">&gt;</span> IntoIterator <span style="color:#66d9ef">for</span> <span style="color:#f92672">&amp;</span><span style="color:#a6e22e">&#39;a</span> Vec<span style="color:#f92672">&lt;</span>T, A<span style="color:#f92672">&gt;</span> {
+</span>    <span style="color:#66d9ef">type</span> <span style="color:#a6e22e">Item</span> <span style="color:#f92672">=</span> <span style="color:#f92672">&amp;</span><span style="color:#a6e22e">&#39;a</span> T;
+    <span style="color:#66d9ef">type</span> <span style="color:#a6e22e">IntoIter</span> <span style="color:#f92672">=</span> slice::Iter<span style="color:#f92672">&lt;</span><span style="color:#a6e22e">&#39;a</span>, T<span style="color:#f92672">&gt;</span>;
+
+    <span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">into_iter</span>(self) -&gt; <span style="color:#a6e22e">slice</span>::Iter<span style="color:#f92672">&lt;</span><span style="color:#a6e22e">&#39;a</span>, T<span style="color:#f92672">&gt;</span> {
+<span style="display:block;width:100%;background-color:#3c3d38">        self.iter()
+</span>    }
+}
+
+<span style="color:#75715e">// https://doc.rust-lang.org/src/alloc/vec/mod.rs.html#2574-2581
+</span><span style="display:block;width:100%;background-color:#3c3d38"><span style="color:#75715e"></span><span style="color:#66d9ef">impl</span><span style="color:#f92672">&lt;</span><span style="color:#a6e22e">&#39;a</span>, T, A: <span style="color:#a6e22e">Allocator</span><span style="color:#f92672">&gt;</span> IntoIterator <span style="color:#66d9ef">for</span> <span style="color:#f92672">&amp;</span><span style="color:#a6e22e">&#39;a</span> <span style="color:#66d9ef">mut</span> Vec<span style="color:#f92672">&lt;</span>T, A<span style="color:#f92672">&gt;</span> {
+</span>    <span style="color:#66d9ef">type</span> <span style="color:#a6e22e">Item</span> <span style="color:#f92672">=</span> <span style="color:#f92672">&amp;</span><span style="color:#a6e22e">&#39;a</span> <span style="color:#66d9ef">mut</span> T;
+    <span style="color:#66d9ef">type</span> <span style="color:#a6e22e">IntoIter</span> <span style="color:#f92672">=</span> slice::IterMut<span style="color:#f92672">&lt;</span><span style="color:#a6e22e">&#39;a</span>, T<span style="color:#f92672">&gt;</span>;
+
+    <span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">into_iter</span>(self) -&gt; <span style="color:#a6e22e">slice</span>::IterMut<span style="color:#f92672">&lt;</span><span style="color:#a6e22e">&#39;a</span>, T<span style="color:#f92672">&gt;</span> {
+<span style="display:block;width:100%;background-color:#3c3d38">        self.iter_mut()
+</span>    }
+}
+</code></pre></div><p>借助图 3 进行理解：</p>
+<figure>
+    <img src="images/three-forms-for-in-loop.png"
+         alt="图 3：三种类型的 for-in-loop"/> <figcaption>
+            <p>图 3：三种类型的 <code>for-in-loop</code></p>
+        </figcaption>
+</figure>
+
+<p>如果一个集合类型 <code>C</code> 提供了 <code>iter()</code> 方法，通常会为 <code>&amp;C</code> 实现 <code>IntoIterator</code> trait（直接调用 <code>iter()</code> 方法）；同理，如果 <code>C</code> 提供了 <code>iter_mut()</code> 方法，通常会为 <code>&amp;mut C</code> 实现 <code>IntoIterator</code> trait（直接调用 <code>iter_mut()</code> 方法）。</p>
+<p>自然会产生一个疑问：既然为 <code>&amp;C</code> / <code>&amp;mut C</code> 实现 <code>IntoIterator</code> trait，与 <code>C</code> 上的  <code>iter(&amp;self)</code> / <code>iter_mut(&amp;mut self)</code> 等价，为什么 Rust 要同时提供这两种方式呢？只提供一种方式是否可以？</p>
+<p>基于以下两个方面考虑：</p>
+<p>1、实现 <code>IntoIterator</code> trait 是使用 <code>for-in-loops</code> 的要求；当不在 <code>for-in-loops</code> 中使用时，使用 <code>v.iter()</code> 要比 <code>(&amp;v).into_iter()</code> 更清晰，代码更易读；</p>
+<p>2、<code>IntoIterator</code> trait 可以作为 trait bounds，范型编程中进行参数类型约束，<code>T: IntoIterator</code> 表示参数类型 <code>T</code> 需要能够作为迭代器进行访问；或者，<code>T: IntoIterator&lt;Item = U&gt;</code> 表示被迭代的类型需要是类型 <code>U</code>；而 <code>iter(&amp;self)</code> / <code>iter_mut(&amp;mut self)</code> 表达不了 trait bounds 约束。例如下面这个例子（<a href="https://play.rust-lang.org/?version=stable&amp;mode=debug&amp;edition=2021&amp;gist=a413366a115c86dec36bb38021f3aeb4">代码 5，dump-function</a>），<code>dump</code> 函数将传入的可迭代变量依次打印出来，<code>Item</code> 需要实现 <code>Display</code> trait；<code>Vec&lt;T&gt;</code> 未实现 <code>Display</code> trait，因此 <code>dump(v3)</code>  会编译报错。</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-rust" data-lang="rust"><span style="color:#66d9ef">use</span> std::fmt::Display;
+
+<span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">dump</span><span style="color:#f92672">&lt;</span>T, U<span style="color:#f92672">&gt;</span>(t: <span style="color:#a6e22e">T</span>)
+<span style="color:#66d9ef">where</span>
+<span style="display:block;width:100%;background-color:#3c3d38">    T: IntoIterator<span style="color:#f92672">&lt;</span>Item <span style="color:#f92672">=</span> U<span style="color:#f92672">&gt;</span>,
+</span><span style="display:block;width:100%;background-color:#3c3d38">    U: <span style="color:#a6e22e">Display</span>,
+</span>{
+    <span style="color:#66d9ef">for</span> u <span style="color:#66d9ef">in</span> t {
+        println<span style="color:#f92672">!</span>(<span style="color:#e6db74">&#34;{}&#34;</span>, u);
+    }
+}
+
+<span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">main</span>() {
+    <span style="color:#66d9ef">let</span> v1 <span style="color:#f92672">=</span> vec<span style="color:#f92672">!</span>[<span style="color:#ae81ff">1</span>, <span style="color:#ae81ff">2</span>, <span style="color:#ae81ff">3</span>];
+    dump(v1);
+    
+    <span style="color:#66d9ef">let</span> v2 <span style="color:#f92672">=</span> vec<span style="color:#f92672">!</span>[<span style="color:#e6db74">&#34;a&#34;</span>.to_string(), <span style="color:#e6db74">&#34;b&#34;</span>.to_string(), <span style="color:#e6db74">&#34;c&#34;</span>.to_string()];
+    dump(v2);
+    
+    <span style="color:#66d9ef">let</span> v3 <span style="color:#f92672">=</span> vec<span style="color:#f92672">!</span>[vec<span style="color:#f92672">!</span>[<span style="color:#ae81ff">1</span>, <span style="color:#ae81ff">4</span>], vec<span style="color:#f92672">!</span>[<span style="color:#ae81ff">2</span>, <span style="color:#ae81ff">5</span>], vec<span style="color:#f92672">!</span>[<span style="color:#ae81ff">3</span>, <span style="color:#ae81ff">6</span>]];
+    dump(v3); <span style="color:#75715e">// error[E0277]: `Vec&lt;{integer}&gt;` doesn&#39;t implement `std::fmt::Display`
+</span><span style="color:#75715e"></span>}
+</code></pre></div><hr>
+<p>至此，第两部分结束，使用 <code>Vec&lt;T&gt;</code> 为例，分析了 <code>iter()</code> / <code>iter_mut()</code> / <code>into_iter()</code> 三种方式的原理：</p>
+<ul>
+<li>通过为 <code>Vec&lt;T&gt;</code> 实现 <code>Deref</code> / <code>DerefMut</code> trait，可以使用 <code>v.iter()</code> / <code>v.iter_mut()</code> 调用切片类型 <code>[T]</code> 的方法；</li>
+<li>通过为 <code>Vec&lt;T&gt;</code> 实现 <code>IntoIterator</code> trait，可以使用 <code>v.into_iter()</code> 获取迭代器，同时可以使用 <code>for x in v { ... }</code> 进行迭代访问；</li>
+<li>通过为 <code>&amp;Vec&lt;T&gt;</code> / <code>&amp;mut Vec&lt;T&gt;</code> 实现 <code>IntoIterator</code> trait，可以使用 <code>for x in &amp;v { ... }</code> / <code>for x in &amp;mut v { ... }</code> 进行迭代访问（等价于 <code>for x in v.iter()</code> / <code>for x in v.iter_mut()</code>）；</li>
+</ul>
+<p>按照上述分析 <code>Vec&lt;T&gt;</code> 的思路，读者可以试着分析 <code>HashMap</code> 对迭代器的支持。</p>
+<hr>
+<p>前两部分学习完，来动手练习一下，实现一个自己的迭代器 —— <code>our_flatten()</code> —— 支持从前往后和从后往前同时遍历。</p>
+<h2 id="implementing-our_flatten">Implementing our_flatten()</h2>
+<p>首先，看一下 <code>Iterator</code> trait 中 <a href="https://doc.rust-lang.org/std/iter/trait.Iterator.html#method.flatten">flatten()</a> 方法的功能，将一个嵌套的迭代器往下平铺<strong>一层</strong>（one level down），<a href="https://play.rust-lang.org/?version=stable&amp;mode=debug&amp;edition=2021&amp;gist=2fb3fe9722d21cfa00868701bbfcb2fa">代码 6，flatten-one-level-down</a>：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-rust" data-lang="rust"><span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">main</span>() {
+    <span style="color:#75715e">// data1 -- Vec&lt;Vec&lt;{integer}&gt;&gt;
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">let</span> data1 <span style="color:#f92672">=</span> vec<span style="color:#f92672">!</span>[vec<span style="color:#f92672">!</span>[<span style="color:#ae81ff">1</span>, <span style="color:#ae81ff">2</span>], vec<span style="color:#f92672">!</span>[<span style="color:#ae81ff">3</span>, <span style="color:#ae81ff">4</span>]];
+<span style="display:block;width:100%;background-color:#3c3d38">    <span style="color:#66d9ef">let</span> <span style="color:#66d9ef">mut</span> flattened1 <span style="color:#f92672">=</span> data1.into_iter().flatten();
+</span>    assert_eq<span style="color:#f92672">!</span>(flattened1.next(), Some(<span style="color:#ae81ff">1</span>));
+    assert_eq<span style="color:#f92672">!</span>(flattened1.next(), Some(<span style="color:#ae81ff">2</span>));
+    assert_eq<span style="color:#f92672">!</span>(flattened1.next(), Some(<span style="color:#ae81ff">3</span>));
+    assert_eq<span style="color:#f92672">!</span>(flattened1.next(), Some(<span style="color:#ae81ff">4</span>));
+    assert_eq<span style="color:#f92672">!</span>(flattened1.next(), None);
+
+    <span style="color:#75715e">// data2 -- Vec&lt;Vec&lt;Vec&lt;{integer}&gt;&gt;&gt;
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">let</span> data2 <span style="color:#f92672">=</span> vec<span style="color:#f92672">!</span>[vec<span style="color:#f92672">!</span>[vec<span style="color:#f92672">!</span>[<span style="color:#ae81ff">1</span>, <span style="color:#ae81ff">2</span>], vec<span style="color:#f92672">!</span>[<span style="color:#ae81ff">3</span>, <span style="color:#ae81ff">4</span>]], vec<span style="color:#f92672">!</span>[vec<span style="color:#f92672">!</span>[<span style="color:#ae81ff">5</span>, <span style="color:#ae81ff">6</span>], vec<span style="color:#f92672">!</span>[<span style="color:#ae81ff">7</span>, <span style="color:#ae81ff">8</span>]]];
+<span style="display:block;width:100%;background-color:#3c3d38">    <span style="color:#66d9ef">let</span> <span style="color:#66d9ef">mut</span> flattened2 <span style="color:#f92672">=</span> data2.into_iter().flatten();
+</span>    assert_eq<span style="color:#f92672">!</span>(flattened2.next(), Some(vec<span style="color:#f92672">!</span>[<span style="color:#ae81ff">1</span>, <span style="color:#ae81ff">2</span>]));
+    assert_eq<span style="color:#f92672">!</span>(flattened2.next(), Some(vec<span style="color:#f92672">!</span>[<span style="color:#ae81ff">3</span>, <span style="color:#ae81ff">4</span>]));
+    assert_eq<span style="color:#f92672">!</span>(flattened2.next(), Some(vec<span style="color:#f92672">!</span>[<span style="color:#ae81ff">5</span>, <span style="color:#ae81ff">6</span>]));
+    assert_eq<span style="color:#f92672">!</span>(flattened2.next(), Some(vec<span style="color:#f92672">!</span>[<span style="color:#ae81ff">7</span>, <span style="color:#ae81ff">8</span>]));
+    assert_eq<span style="color:#f92672">!</span>(flattened2.next(), None);
+}
+</code></pre></div><p><code>data1</code> / <code>data2</code>  的每一个元素类型为 <code>Vec&lt;T&gt;</code>（<code>outer::Item</code>），实现了 <code>IntoIterator</code> trait，都可以调用 <code>.flatten()</code> 将嵌套的迭代器向下平铺一层：</p>
+<ul>
+<li><code>data1.into_iter().flatten()</code> 得到的迭代器，其遍历的元素类型为 <code>T</code>；</li>
+<li><code>data2.into_iter().flatten()</code> 得到的迭代器，其遍历的元素类型为 <code>Vec&lt;T&gt;</code>。<code>flatten()</code> 只往下平铺一层，就是这个含义，如果需要再往下一层，可以进行多次调用 <code>data2.into_inter().flatten().flatten()</code>。</li>
+</ul>
+<p>弄清楚了标准库 <code>std::iter::Iterator::flatten()</code> 的功能，接下来看看我们应该如何实现该功能，实现 <code>our_flatten()</code>。</p>
+<h3 id="version-1-set-up">version #1: set up</h3>
+<p><code>flatten(iter)</code> 的入参需遵循以下要求（图 4）：</p>
+<ul>
+<li><code>iter</code> 为迭代器（iterator，实现 <code>Iterator</code> trait）或者可以被迭代（iterable，实现 <code>IntoIterator</code> trait）；</li>
+<li><code>iter::Item</code> 可以被迭代（iterable，实现 <code>IntoIterator</code> trait）；</li>
+</ul>
+<figure>
+    <img src="images/flatten-outer-item-bounds.png"
+         alt="图 4：iter 为迭代器，iter::Item 可以被迭代"/> <figcaption>
+            <p>图 4：<code>iter</code> 为迭代器，<code>iter::Item</code> 可以被迭代</p>
+        </figcaption>
+</figure>
+
+<p>第一层 <code>outer</code> 调用 <code>next()</code> 获取 <code>Option&lt;Item&gt;</code>，当存在待处理的值时 —— <code>Some(inner)</code> —— 调用 <code>.into_iter().next()</code>。这样就实现了 <code>flatten()</code> 的第一个版本，<a href="https://play.rust-lang.org/?version=stable&amp;mode=debug&amp;edition=2021&amp;gist=41717cc3d5ab80bb07b0ba7700ef5b3f">代码 7，version #1: set-up</a>。</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-rust" data-lang="rust"><span style="color:#66d9ef">pub</span> <span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">flatten</span><span style="color:#f92672">&lt;</span>O<span style="color:#f92672">&gt;</span>(iter: <span style="color:#a6e22e">O</span>) -&gt; <span style="color:#a6e22e">Flatten</span><span style="color:#f92672">&lt;</span>O<span style="color:#f92672">&gt;</span> {
+    Flatten::new(iter)
+}
+
+<span style="color:#66d9ef">pub</span> <span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">Flatten</span><span style="color:#f92672">&lt;</span>O<span style="color:#f92672">&gt;</span> {
+    outer: <span style="color:#a6e22e">O</span>,
+}
+
+<span style="color:#66d9ef">impl</span><span style="color:#f92672">&lt;</span>O<span style="color:#f92672">&gt;</span> Flatten<span style="color:#f92672">&lt;</span>O<span style="color:#f92672">&gt;</span> {
+    <span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">new</span>(iter: <span style="color:#a6e22e">O</span>) -&gt; <span style="color:#a6e22e">Self</span> {
+        Flatten { outer: <span style="color:#a6e22e">iter</span> }
+    }
+}
+
+<span style="color:#66d9ef">impl</span><span style="color:#f92672">&lt;</span>O<span style="color:#f92672">&gt;</span> Iterator <span style="color:#66d9ef">for</span> Flatten<span style="color:#f92672">&lt;</span>O<span style="color:#f92672">&gt;</span>
+<span style="color:#66d9ef">where</span>
+<span style="display:block;width:100%;background-color:#3c3d38">    O: Iterator,
+</span><span style="display:block;width:100%;background-color:#3c3d38">    O::Item: IntoIterator,
+</span>{
+    <span style="color:#66d9ef">type</span> <span style="color:#a6e22e">Item</span> <span style="color:#f92672">=</span> <span style="color:#f92672">&lt;</span>O::Item <span style="color:#66d9ef">as</span> IntoIterator<span style="color:#f92672">&gt;</span>::Item;
+
+    <span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">next</span>(<span style="color:#f92672">&amp;</span><span style="color:#66d9ef">mut</span> self) -&gt; Option<span style="color:#f92672">&lt;</span>Self::Item<span style="color:#f92672">&gt;</span> {
+<span style="display:block;width:100%;background-color:#3c3d38">        self.outer.next().and_then(<span style="color:#f92672">|</span>inner<span style="color:#f92672">|</span> inner.into_iter().next())
+</span>    }
+}
+
+<span style="color:#75715e">#[cfg(test)]</span>
+<span style="color:#66d9ef">mod</span> tests {
+    <span style="color:#66d9ef">use</span> <span style="color:#66d9ef">super</span>::<span style="color:#f92672">*</span>;
+
+    <span style="color:#75715e">#[test]</span>
+    <span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">empty</span>() {
+        assert_eq<span style="color:#f92672">!</span>(flatten(std::iter::empty::<span style="color:#f92672">&lt;</span>Vec<span style="color:#f92672">&lt;</span>()<span style="color:#f92672">&gt;&gt;</span>()).count(), <span style="color:#ae81ff">0</span>);
+    }
+    
+    <span style="color:#75715e">#[test]</span>
+    <span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">one</span>() {
+        assert_eq<span style="color:#f92672">!</span>(flatten(std::iter::once(vec<span style="color:#f92672">!</span>[<span style="color:#e6db74">&#34;a&#34;</span>])).count(), <span style="color:#ae81ff">1</span>);
+    }
+    
+    <span style="color:#75715e">#[test]</span>
+    <span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">two</span>() {
+        assert_eq<span style="color:#f92672">!</span>(flatten(std::iter::once(vec<span style="color:#f92672">!</span>[<span style="color:#e6db74">&#34;a&#34;</span>, <span style="color:#e6db74">&#34;b&#34;</span>])).count(), <span style="color:#ae81ff">2</span>);
+    }
+    
+    <span style="color:#75715e">#[test]</span>
+    <span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">two_wide</span>() {
+        assert_eq<span style="color:#f92672">!</span>(flatten(vec<span style="color:#f92672">!</span>[vec<span style="color:#f92672">!</span>[<span style="color:#e6db74">&#34;a&#34;</span>], vec<span style="color:#f92672">!</span>[<span style="color:#e6db74">&#34;b&#34;</span>]].into_iter()).count(), <span style="color:#ae81ff">2</span>);
+    }
+}
+</code></pre></div><p>当 <code>Item</code> 存在多个元素时，测试错误。</p>
+<p><code>and_then()</code> 使用 <code>?</code> 展开，问题就更清晰了：每次调用 <code>next</code>，<code>outer</code> 都往前走了一步，即使 <code>inner_item</code> 存在多个元素待处理。</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-rust" data-lang="rust"><span style="color:#66d9ef">impl</span><span style="color:#f92672">&lt;</span>O<span style="color:#f92672">&gt;</span> Iterator <span style="color:#66d9ef">for</span> Flatten<span style="color:#f92672">&lt;</span>O<span style="color:#f92672">&gt;</span>
+<span style="color:#66d9ef">where</span>
+    O: Iterator,
+    O::Item: IntoIterator,
+{
+    <span style="color:#66d9ef">type</span> <span style="color:#a6e22e">Item</span> <span style="color:#f92672">=</span> <span style="color:#f92672">&lt;</span>O::Item <span style="color:#66d9ef">as</span> IntoIterator<span style="color:#f92672">&gt;</span>::Item;
+
+    <span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">next</span>(<span style="color:#f92672">&amp;</span><span style="color:#66d9ef">mut</span> self) -&gt; Option<span style="color:#f92672">&lt;</span>Self::Item<span style="color:#f92672">&gt;</span> {
+<span style="display:block;width:100%;background-color:#3c3d38">        <span style="color:#75715e">// self.outer.next().and_then(|inner| inner.into_iter().next())
+</span></span><span style="color:#75715e"></span>        
+<span style="display:block;width:100%;background-color:#3c3d38">        <span style="color:#75715e">// simplifying with ?
+</span></span><span style="display:block;width:100%;background-color:#3c3d38"><span style="color:#75715e"></span>        <span style="color:#66d9ef">let</span> inner_item <span style="color:#f92672">=</span> self.outer.next()<span style="color:#f92672">?</span>;
+</span><span style="display:block;width:100%;background-color:#3c3d38">        <span style="color:#66d9ef">let</span> <span style="color:#66d9ef">mut</span> inner_iter <span style="color:#f92672">=</span> inner_item.into_iter();  <span style="color:#75715e">// 需要保存正在迭代的 inner_iter
+</span></span><span style="display:block;width:100%;background-color:#3c3d38"><span style="color:#75715e"></span>        inner_iter.next()
+</span>    }
+}
+</code></pre></div><h3 id="version-2-save-inner_iter">version #2: save inner_iter</h3>
+<p>需要保存当前正在迭代的 <code>inner_iter</code>，从 <code>inner_item.into_iter()</code> 可知其类型为 <code>&lt;O::Item as IntoIterator&gt;::IntoIter</code>；同时，<code>inner_iter</code> 未开始迭代和迭代完成时，需切换迭代 <code>outer</code>，因此使用 <code>Option</code> 修饰 <code>inner_iter</code>：</p>
+<p>1、迭代未开始，<code>outer</code> 指向入参迭代器，<code>inner</code> 为 <code>None</code>；</p>
+<p>2、迭代开始，<code>outer.next()</code> 返回外层迭代器的第一个元素，若该元素为 <code>Some(inner_item)</code>，调用 <code>inner_item.into_iter()</code> 得到内层元素对应的迭代器，赋值给 <code>inner</code>；</p>
+<p>3、处理内层迭代器 <code>inner</code>，若仍有待处理元素，将元素包裹在 <code>Some(i)</code> 中作为返回；若没有待处理元素，将 <code>inner</code> 设置为 <code>None</code>。外层迭代器的第一个元素迭代结束;</p>
+<p>4、<code>outer.next()</code> 返回外层迭代器的后续元素，继续处理。</p>
+<p>得到 <code>flatten()</code> 的第二个版本，<a href="https://play.rust-lang.org/?version=stable&amp;mode=debug&amp;edition=2021&amp;gist=7e2f1df53f70a2af30d02147f8fb3d31">代码 8，version #2: save-inner-iter</a>，主要逻辑在 <code>next()</code> 的 <code>loop</code> 循环中，可以按照上述逻辑比对代码进行理解。</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-rust" data-lang="rust"><span style="color:#66d9ef">pub</span> <span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">flatten</span><span style="color:#f92672">&lt;</span>O<span style="color:#f92672">&gt;</span>(iter: <span style="color:#a6e22e">O</span>) -&gt; <span style="color:#a6e22e">Flatten</span><span style="color:#f92672">&lt;</span>O<span style="color:#f92672">&gt;</span>
+<span style="color:#66d9ef">where</span>
+    O: Iterator,
+    O::Item: IntoIterator,
+{
+    Flatten::new(iter)
+}
+
+<span style="color:#66d9ef">pub</span> <span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">Flatten</span><span style="color:#f92672">&lt;</span>O<span style="color:#f92672">&gt;</span>
+<span style="color:#66d9ef">where</span>
+    O: Iterator,
+    O::Item: IntoIterator,
+{
+    outer: <span style="color:#a6e22e">O</span>,
+    inner: Option<span style="color:#f92672">&lt;&lt;</span>O::Item <span style="color:#66d9ef">as</span> IntoIterator<span style="color:#f92672">&gt;</span>::IntoIter<span style="color:#f92672">&gt;</span>,
+}
+
+<span style="color:#66d9ef">impl</span><span style="color:#f92672">&lt;</span>O<span style="color:#f92672">&gt;</span> Flatten<span style="color:#f92672">&lt;</span>O<span style="color:#f92672">&gt;</span>
+<span style="color:#66d9ef">where</span>
+    O: Iterator,
+    O::Item: IntoIterator,
+{
+    <span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">new</span>(iter: <span style="color:#a6e22e">O</span>) -&gt; <span style="color:#a6e22e">Self</span> {
+        Flatten {
+            outer: <span style="color:#a6e22e">iter</span>,
+            inner: None,
+        }
+    }
+}
+
+<span style="color:#66d9ef">impl</span><span style="color:#f92672">&lt;</span>O<span style="color:#f92672">&gt;</span> Iterator <span style="color:#66d9ef">for</span> Flatten<span style="color:#f92672">&lt;</span>O<span style="color:#f92672">&gt;</span>
+<span style="color:#66d9ef">where</span>
+    O: Iterator,
+    O::Item: IntoIterator,
+{
+    <span style="color:#66d9ef">type</span> <span style="color:#a6e22e">Item</span> <span style="color:#f92672">=</span> <span style="color:#f92672">&lt;</span>O::Item <span style="color:#66d9ef">as</span> IntoIterator<span style="color:#f92672">&gt;</span>::Item;
+
+<span style="display:block;width:100%;background-color:#3c3d38">    <span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">next</span>(<span style="color:#f92672">&amp;</span><span style="color:#66d9ef">mut</span> self) -&gt; Option<span style="color:#f92672">&lt;</span>Self::Item<span style="color:#f92672">&gt;</span> {
+</span><span style="display:block;width:100%;background-color:#3c3d38">        <span style="color:#66d9ef">loop</span> {
+</span><span style="display:block;width:100%;background-color:#3c3d38">            <span style="color:#66d9ef">if</span> <span style="color:#66d9ef">let</span> Some(<span style="color:#66d9ef">ref</span> <span style="color:#66d9ef">mut</span> inner_iter) <span style="color:#f92672">=</span> self.inner {
+</span><span style="display:block;width:100%;background-color:#3c3d38">                <span style="color:#66d9ef">if</span> <span style="color:#66d9ef">let</span> Some(i) <span style="color:#f92672">=</span> inner_iter.next() {
+</span><span style="display:block;width:100%;background-color:#3c3d38">                    <span style="color:#66d9ef">return</span> Some(i);
+</span><span style="display:block;width:100%;background-color:#3c3d38">                }
+</span><span style="display:block;width:100%;background-color:#3c3d38">                self.inner <span style="color:#f92672">=</span> None;
+</span><span style="display:block;width:100%;background-color:#3c3d38">            }
+</span><span style="display:block;width:100%;background-color:#3c3d38">
+</span><span style="display:block;width:100%;background-color:#3c3d38">            <span style="color:#66d9ef">let</span> next_inner_iter <span style="color:#f92672">=</span> self.outer.next()<span style="color:#f92672">?</span>.into_iter();
+</span><span style="display:block;width:100%;background-color:#3c3d38">            self.inner <span style="color:#f92672">=</span> Some(next_inner_iter);
+</span><span style="display:block;width:100%;background-color:#3c3d38">        }
+</span><span style="display:block;width:100%;background-color:#3c3d38">    }
+</span>}
+
+<span style="color:#75715e">#[cfg(test)]</span>
+<span style="color:#66d9ef">mod</span> tests {
+    <span style="color:#66d9ef">use</span> <span style="color:#66d9ef">super</span>::<span style="color:#f92672">*</span>;
+
+    <span style="color:#75715e">#[test]</span>
+    <span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">empty</span>() {
+        assert_eq<span style="color:#f92672">!</span>(flatten(std::iter::empty::<span style="color:#f92672">&lt;</span>Vec<span style="color:#f92672">&lt;</span>()<span style="color:#f92672">&gt;&gt;</span>()).count(), <span style="color:#ae81ff">0</span>);
+    }
+
+    <span style="color:#75715e">#[test]</span>
+    <span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">one</span>() {
+        assert_eq<span style="color:#f92672">!</span>(flatten(std::iter::once(vec<span style="color:#f92672">!</span>[<span style="color:#e6db74">&#34;a&#34;</span>])).count(), <span style="color:#ae81ff">1</span>);
+    }
+
+    <span style="color:#75715e">#[test]</span>
+    <span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">two</span>() {
+        assert_eq<span style="color:#f92672">!</span>(flatten(std::iter::once(vec<span style="color:#f92672">!</span>[<span style="color:#e6db74">&#34;a&#34;</span>, <span style="color:#e6db74">&#34;b&#34;</span>])).count(), <span style="color:#ae81ff">2</span>);
+    }
+
+    <span style="color:#75715e">#[test]</span>
+    <span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">two_wide</span>() {
+        assert_eq<span style="color:#f92672">!</span>(flatten(vec<span style="color:#f92672">!</span>[vec<span style="color:#f92672">!</span>[<span style="color:#e6db74">&#34;a&#34;</span>], vec<span style="color:#f92672">!</span>[<span style="color:#e6db74">&#34;b&#34;</span>]].into_iter()).count(), <span style="color:#ae81ff">2</span>);
+    }
+}
+</code></pre></div><h3 id="version-3-impl-doubleendediterator-trait">version #3: impl DoubleEndedIterator trait</h3>
+<p>实现 <code>Iterator</code> trait 后，可以使用 <code>.next()</code> 从前往后进行迭代；实现 <code>DoubleEndedIterator</code> trait，就可以使用 <code>next_back()</code> 从后往前迭代。</p>
+<p>直接看定义：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-rust" data-lang="rust"><span style="color:#66d9ef">pub</span> <span style="color:#66d9ef">trait</span> DoubleEndedIterator: Iterator {
+    <span style="color:#75715e">// Removes and returns an element from the end of the iterator.
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">next_back</span>(<span style="color:#f92672">&amp;</span><span style="color:#66d9ef">mut</span> self) -&gt; Option<span style="color:#f92672">&lt;</span>Self::Item<span style="color:#f92672">&gt;</span>;
+}
+</code></pre></div><p>前、后是相对的，因此实现 <code>DoubleEndedIterator</code> trait，一定也实现了 <code>Iterator</code> trait （supertrait），同时 <code>next()</code> 和 <code>next_back()</code> 处理的是相同 Range，<code>next()</code> 从前往后，<code>next_back()</code> 从后往前，当二者相遇时，就没有剩余待处理的元素了，都返回 <code>None</code>。标准库文档中给到了一段代码示进行阐述，<a href="https://play.rust-lang.org/?version=stable&amp;mode=debug&amp;edition=2021&amp;gist=289b9ae3fa768a21647515c759f36473">代码 9，next-and-next-back</a>。</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-rust" data-lang="rust"><span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">main</span>() {
+    <span style="color:#66d9ef">let</span> numbers <span style="color:#f92672">=</span> vec<span style="color:#f92672">!</span>[<span style="color:#ae81ff">1</span>, <span style="color:#ae81ff">2</span>, <span style="color:#ae81ff">3</span>, <span style="color:#ae81ff">4</span>, <span style="color:#ae81ff">5</span>, <span style="color:#ae81ff">6</span>];
+
+    <span style="color:#66d9ef">let</span> <span style="color:#66d9ef">mut</span> iter <span style="color:#f92672">=</span> numbers.iter();
+
+    assert_eq<span style="color:#f92672">!</span>(Some(<span style="color:#f92672">&amp;</span><span style="color:#ae81ff">1</span>), iter.next());
+    assert_eq<span style="color:#f92672">!</span>(Some(<span style="color:#f92672">&amp;</span><span style="color:#ae81ff">6</span>), iter.next_back());
+    assert_eq<span style="color:#f92672">!</span>(Some(<span style="color:#f92672">&amp;</span><span style="color:#ae81ff">5</span>), iter.next_back());
+    assert_eq<span style="color:#f92672">!</span>(Some(<span style="color:#f92672">&amp;</span><span style="color:#ae81ff">2</span>), iter.next());
+    assert_eq<span style="color:#f92672">!</span>(Some(<span style="color:#f92672">&amp;</span><span style="color:#ae81ff">3</span>), iter.next());
+    assert_eq<span style="color:#f92672">!</span>(Some(<span style="color:#f92672">&amp;</span><span style="color:#ae81ff">4</span>), iter.next());
+    assert_eq<span style="color:#f92672">!</span>(None, iter.next());
+    assert_eq<span style="color:#f92672">!</span>(None, iter.next_back());
+}
+</code></pre></div><p>回到 <code>flatten()</code> 的实现，为 <code>Flatten struct</code> 实现 <code>DoubleEndedIterator</code> trait，模仿着 <a href="https://play.rust-lang.org/?version=stable&amp;mode=debug&amp;edition=2021&amp;gist=7e2f1df53f70a2af30d02147f8fb3d31">代码 8，version #2: save-inner-iter</a> 中 <code>next()</code> 的实现，补充 <code>next_back()</code> 的实现。同时需补充上外层迭代器和内层迭代器需要满足 <code>DoubleEndedIterator</code> trait bounds。<a href="https://play.rust-lang.org/?version=stable&amp;mode=debug&amp;edition=2021&amp;gist=b65cce6accf0efc97c5ac5831c7c08cb">代码 10，version #3: impl-DoubleEndedIterator-trait</a>，增加了两个测试用例，测试正常。<code>flatten_iter.rev()</code> 返回 <code>struct std::iter::Rev</code>，<code>struct std::iter::Rev</code> 实现了 <code>Iterator</code> trait，<code>next()</code> 方法调用 <code>flatten_iter.next_back()</code>，感兴趣的读者可以查看 <a href="https://doc.rust-lang.org/src/core/iter/adapters/rev.rs.html#33"><code>Recv</code> 标准库的源码实现</a>。</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-rust" data-lang="rust"><span style="color:#66d9ef">impl</span><span style="color:#f92672">&lt;</span>O<span style="color:#f92672">&gt;</span> DoubleEndedIterator <span style="color:#66d9ef">for</span> Flatten<span style="color:#f92672">&lt;</span>O<span style="color:#f92672">&gt;</span>
+<span style="color:#66d9ef">where</span>
+    O: Iterator <span style="color:#f92672">+</span> DoubleEndedIterator,
+    O::Item: IntoIterator,
+    <span style="color:#f92672">&lt;</span>O::Item <span style="color:#66d9ef">as</span> IntoIterator<span style="color:#f92672">&gt;</span>::IntoIter: DoubleEndedIterator,
+{
+<span style="display:block;width:100%;background-color:#3c3d38">    <span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">next_back</span>(<span style="color:#f92672">&amp;</span><span style="color:#66d9ef">mut</span> self) -&gt; Option<span style="color:#f92672">&lt;</span>Self::Item<span style="color:#f92672">&gt;</span> {
+</span><span style="display:block;width:100%;background-color:#3c3d38">        <span style="color:#66d9ef">loop</span> {
+</span><span style="display:block;width:100%;background-color:#3c3d38">            <span style="color:#66d9ef">if</span> <span style="color:#66d9ef">let</span> Some(<span style="color:#66d9ef">ref</span> <span style="color:#66d9ef">mut</span> inner_iter) <span style="color:#f92672">=</span> self.inner {
+</span><span style="display:block;width:100%;background-color:#3c3d38">                <span style="color:#66d9ef">if</span> <span style="color:#66d9ef">let</span> Some(i) <span style="color:#f92672">=</span> inner_iter.next_back() {
+</span><span style="display:block;width:100%;background-color:#3c3d38">                    <span style="color:#66d9ef">return</span> Some(i);
+</span><span style="display:block;width:100%;background-color:#3c3d38">                }
+</span><span style="display:block;width:100%;background-color:#3c3d38">                self.inner <span style="color:#f92672">=</span> None;
+</span><span style="display:block;width:100%;background-color:#3c3d38">            }
+</span><span style="display:block;width:100%;background-color:#3c3d38">
+</span><span style="display:block;width:100%;background-color:#3c3d38">            <span style="color:#66d9ef">let</span> next_inner_iter <span style="color:#f92672">=</span> self.outer.next_back()<span style="color:#f92672">?</span>.into_iter();
+</span><span style="display:block;width:100%;background-color:#3c3d38">            self.inner <span style="color:#f92672">=</span> Some(next_inner_iter);
+</span><span style="display:block;width:100%;background-color:#3c3d38">        }
+</span><span style="display:block;width:100%;background-color:#3c3d38">    }
+</span>}
+
+<span style="color:#75715e">#[cfg(test)]</span>
+<span style="color:#66d9ef">mod</span> tests {
+    <span style="color:#66d9ef">use</span> <span style="color:#66d9ef">super</span>::<span style="color:#f92672">*</span>;
+
+    <span style="color:#75715e">#[test]</span>
+    <span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">reverse</span>() {
+        assert_eq<span style="color:#f92672">!</span>(
+            flatten(std::iter::once(vec<span style="color:#f92672">!</span>[<span style="color:#e6db74">&#34;a&#34;</span>, <span style="color:#e6db74">&#34;b&#34;</span>]).into_iter())
+                .rev()
+                .collect::<span style="color:#f92672">&lt;</span>Vec<span style="color:#f92672">&lt;</span>_<span style="color:#f92672">&gt;&gt;</span>(),
+            vec<span style="color:#f92672">!</span>[<span style="color:#e6db74">&#34;b&#34;</span>, <span style="color:#e6db74">&#34;a&#34;</span>]
+        );
+    }
+
+    <span style="color:#75715e">#[test]</span>
+    <span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">reverse_wide</span>() {
+        assert_eq<span style="color:#f92672">!</span>(
+            flatten(vec<span style="color:#f92672">!</span>[vec<span style="color:#f92672">!</span>[<span style="color:#e6db74">&#34;a&#34;</span>], vec<span style="color:#f92672">!</span>[<span style="color:#e6db74">&#34;b&#34;</span>]].into_iter())
+                .rev()
+                .collect::<span style="color:#f92672">&lt;</span>Vec<span style="color:#f92672">&lt;</span>_<span style="color:#f92672">&gt;&gt;</span>(),
+            vec<span style="color:#f92672">!</span>[<span style="color:#e6db74">&#34;b&#34;</span>, <span style="color:#e6db74">&#34;a&#34;</span>]
+        );
+    }
+}
+</code></pre></div><p>如果在 <code>flatten_iter</code> 上同时调用 <code>next()</code> 和 <code>next_back()</code> 会出现什么问题？前面提到，<code>next()</code> 和 <code>next_back()</code> 处理的是相同 Range。增加 <code>both_ends</code> 测试用例，测试报错：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-rust" data-lang="rust"><span style="color:#75715e">#[cfg(test)]</span>
+<span style="color:#66d9ef">mod</span> tests {
+    <span style="color:#66d9ef">use</span> <span style="color:#66d9ef">super</span>::<span style="color:#f92672">*</span>;
+
+    <span style="color:#75715e">#[test]</span>
+    <span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">both_ends</span>() {
+        <span style="color:#66d9ef">let</span> <span style="color:#66d9ef">mut</span> iter <span style="color:#f92672">=</span> flatten(
+            vec<span style="color:#f92672">!</span>[vec<span style="color:#f92672">!</span>[<span style="color:#e6db74">&#34;a1&#34;</span>, <span style="color:#e6db74">&#34;a2&#34;</span>, <span style="color:#e6db74">&#34;a3&#34;</span>], vec<span style="color:#f92672">!</span>[<span style="color:#e6db74">&#34;b1&#34;</span>, <span style="color:#e6db74">&#34;b2&#34;</span>, <span style="color:#e6db74">&#34;b3&#34;</span>]].into_iter());
+        assert_eq<span style="color:#f92672">!</span>(iter.next(), Some(<span style="color:#e6db74">&#34;a1&#34;</span>));
+        assert_eq<span style="color:#f92672">!</span>(iter.next_back(), Some(<span style="color:#e6db74">&#34;b3&#34;</span>)); <span style="color:#75715e">// a3
+</span><span style="color:#75715e"></span>        assert_eq<span style="color:#f92672">!</span>(iter.next(), Some(<span style="color:#e6db74">&#34;a2&#34;</span>));
+        assert_eq<span style="color:#f92672">!</span>(iter.next_back(), Some(<span style="color:#e6db74">&#34;b2&#34;</span>));
+        assert_eq<span style="color:#f92672">!</span>(iter.next(), Some(<span style="color:#e6db74">&#34;a3&#34;</span>));
+        assert_eq<span style="color:#f92672">!</span>(iter.next_back(), Some(<span style="color:#e6db74">&#34;b1&#34;</span>));
+        assert_eq<span style="color:#f92672">!</span>(iter.next(), None);
+        assert_eq<span style="color:#f92672">!</span>(iter.next_back(), None);
+    }
+}
+</code></pre></div><p>分析原因：在外层迭代器上调用 <code>next()</code> 后，<code>inner</code> 保存的是第一个元素的内层迭代器，<code>next()</code> 和 <code>next_back()</code> 后续都是基于 <code>inner</code> 进行处理，对于 <code>next()</code> 返回符合预期，但 <code>next_back()</code> 返回的是 <code>inner</code> 迭代器最后一个元素，不符合预期（预期返回外层迭代器最后一个元素（其作为内部迭代器）的最后一个元素）。</p>
+<figure>
+    <img src="images/flatten-next-next-back-both-end.png"
+         alt="图 5：next() 和 next_back() 迭代相同的 inner"/> <figcaption>
+            <p>图 5：<code>next()</code> 和 <code>next_back()</code> 迭代相同的 <code>inner</code></p>
+        </figcaption>
+</figure>
+
+<h3 id="version-4-save-front_iter-and-back_iter">version #4: save front_iter and back_iter</h3>
+<p>也就是说，<code>next()</code> 迭代访问的内部迭代器与 <code>next_back()</code> 迭代访问的内部迭代器，需要分别保存，如下图所示，使用 <code>front_iter</code> 和 <code>back_iter</code> 表示。</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-rust" data-lang="rust"><span style="color:#66d9ef">pub</span> <span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">Flatten</span><span style="color:#f92672">&lt;</span>O<span style="color:#f92672">&gt;</span>
+<span style="color:#66d9ef">where</span>
+    O: Iterator,
+    O::Item: IntoIterator,
+{
+    outer: <span style="color:#a6e22e">O</span>,
+<span style="display:block;width:100%;background-color:#3c3d38">    front_iter: Option<span style="color:#f92672">&lt;&lt;</span>O::Item <span style="color:#66d9ef">as</span> IntoIterator<span style="color:#f92672">&gt;</span>::IntoIter<span style="color:#f92672">&gt;</span>,
+</span><span style="display:block;width:100%;background-color:#3c3d38">    back_iter: Option<span style="color:#f92672">&lt;&lt;</span>O::Item <span style="color:#66d9ef">as</span> IntoIterator<span style="color:#f92672">&gt;</span>::IntoIter<span style="color:#f92672">&gt;</span>,
+</span>}
+</code></pre></div><figure>
+    <img src="images/flatten-front-iter-and-back-iter.png"
+         alt="图 6：next() 和 next_back() 分别迭代 front_iter 和 back_iter"/> <figcaption>
+            <p>图 6：<code>next()</code> 和 <code>next_back()</code> 分别迭代 <code>front_iter</code> 和 <code>back_iter</code></p>
+        </figcaption>
+</figure>
+
+<p>由于 <code>next()</code> 和 <code>next_back()</code> 处理的是相同 Range，在迭代处理的最后，会出现两种类似的情况：</p>
+<ul>
+<li>情况 1：<code>front_iter</code> 还有元素可以进行处理，<code>back_iter</code> 已处理完毕，调用 <code>next_back()</code> 时外层迭代器已经处理完毕；</li>
+<li>情况 2：<code>back_iter</code> 还有元素可以进行处理，<code>front_iter</code> 已处理完毕，调用 <code>next()</code> 时外层迭代器已经处理完毕；</li>
+</ul>
+<figure>
+    <img src="images/flatten-front-iter-back-iter-only-one.png"
+         alt="图 7：两种边界情况均需要继续进行迭代"/> <figcaption>
+            <p>图 7：两种边界情况均需要继续进行迭代</p>
+        </figcaption>
+</figure>
+
+<p>这两种情况下，都要继续进行迭代。</p>
+<p>基于以上分析，得到 <code>flatten()</code> 的第四个版本，<a href="https://play.rust-lang.org/?version=stable&amp;mode=debug&amp;edition=2021&amp;gist=f16e1494e0f61fa913876969439bd54d">代码 11，version #4: save-front_iter-and-back_iter</a>。<code>next()</code> 和 <code>next_back()</code> 的主体逻辑与 version #2 和 version #3 一致，以 <code>next_back()</code> 的实现为例：</p>
+<p>1、判断对应的内层迭代器 <code>back_iter</code> 是否有待处理的元素</p>
+<ul>
+<li>刚开始迭代时，对应的内层迭代器均为 <code>None</code>，继续执行步骤 2；</li>
+<li>进行处理，内层迭代器调用 <code>.next_back()</code>，有值，作为 <code>next_back()</code> 的调用返回值，返回；无值，说明内层迭代器已处理完毕，赋值为 <code>None</code> ，继续执行步骤 2；</li>
+</ul>
+<p>2、判断对应的外层迭代器 <code>outer.next_back()</code> 是否有待处理的元素</p>
+<ul>
+<li>存在待处理的元素 <code>Some(next_back_inner)</code>，获取外层迭代器对应的元素，<code>Some(next_back_inner.into_iter())</code> 赋值给内层迭代器 <code>back_iter</code>，循环处理，跳转到步骤 1 执行；</li>
+<li>外层迭代器返回 <code>None</code>（对应图示情况 1），使用另一个内层迭代器 <code>front_iter</code> 进行迭代访问。</li>
+</ul>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-rust" data-lang="rust"><span style="color:#66d9ef">impl</span><span style="color:#f92672">&lt;</span>O<span style="color:#f92672">&gt;</span> Iterator <span style="color:#66d9ef">for</span> Flatten<span style="color:#f92672">&lt;</span>O<span style="color:#f92672">&gt;</span>
+<span style="color:#66d9ef">where</span>
+    O: Iterator,
+    O::Item: IntoIterator,
+{
+    <span style="color:#66d9ef">type</span> <span style="color:#a6e22e">Item</span> <span style="color:#f92672">=</span> <span style="color:#f92672">&lt;</span>O::Item <span style="color:#66d9ef">as</span> IntoIterator<span style="color:#f92672">&gt;</span>::Item;
+
+    <span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">next</span>(<span style="color:#f92672">&amp;</span><span style="color:#66d9ef">mut</span> self) -&gt; Option<span style="color:#f92672">&lt;</span>Self::Item<span style="color:#f92672">&gt;</span> {
+        <span style="color:#66d9ef">loop</span> {
+            <span style="color:#75715e">// front_iter 还有数据可以遍历
+</span><span style="color:#75715e"></span>            <span style="color:#66d9ef">if</span> <span style="color:#66d9ef">let</span> Some(<span style="color:#66d9ef">ref</span> <span style="color:#66d9ef">mut</span> front_iter) <span style="color:#f92672">=</span> self.front_iter {
+                <span style="color:#66d9ef">if</span> <span style="color:#66d9ef">let</span> Some(i) <span style="color:#f92672">=</span> front_iter.next() {
+                    <span style="color:#66d9ef">return</span> Some(i);
+                }
+                self.front_iter <span style="color:#f92672">=</span> None;
+            }
+
+            <span style="color:#66d9ef">if</span> <span style="color:#66d9ef">let</span> Some(next_inner) <span style="color:#f92672">=</span> self.outer.next() {
+                <span style="color:#75715e">// 外层迭代器还有元素待处理
+</span><span style="color:#75715e"></span>                self.front_iter <span style="color:#f92672">=</span> Some(next_inner.into_iter());
+            } <span style="color:#66d9ef">else</span> {
+<span style="display:block;width:100%;background-color:#3c3d38">                <span style="color:#75715e">// 处理图示情况 2
+</span></span><span style="display:block;width:100%;background-color:#3c3d38"><span style="color:#75715e"></span>                <span style="color:#75715e">// back_iter 被调用过一次，consume 了一个 outer Item，还有内容可以遍历
+</span></span><span style="display:block;width:100%;background-color:#3c3d38"><span style="color:#75715e"></span>                <span style="color:#75715e">// 此时调用 front_iter.next() 时需要返回数据
+</span></span><span style="display:block;width:100%;background-color:#3c3d38"><span style="color:#75715e"></span>                <span style="color:#66d9ef">return</span> self.back_iter.as_mut()<span style="color:#f92672">?</span>.next();
+</span>            }
+        }
+    }
+}
+
+<span style="color:#66d9ef">impl</span><span style="color:#f92672">&lt;</span>O<span style="color:#f92672">&gt;</span> DoubleEndedIterator <span style="color:#66d9ef">for</span> Flatten<span style="color:#f92672">&lt;</span>O<span style="color:#f92672">&gt;</span>
+<span style="color:#66d9ef">where</span>
+    O: Iterator <span style="color:#f92672">+</span> DoubleEndedIterator,
+    O::Item: IntoIterator,
+    <span style="color:#f92672">&lt;</span>O::Item <span style="color:#66d9ef">as</span> IntoIterator<span style="color:#f92672">&gt;</span>::IntoIter: DoubleEndedIterator,
+{
+    <span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">next_back</span>(<span style="color:#f92672">&amp;</span><span style="color:#66d9ef">mut</span> self) -&gt; Option<span style="color:#f92672">&lt;</span>Self::Item<span style="color:#f92672">&gt;</span> {
+        <span style="color:#66d9ef">loop</span> {
+            <span style="color:#75715e">// back_iter 还有数据可以遍历
+</span><span style="color:#75715e"></span>            <span style="color:#66d9ef">if</span> <span style="color:#66d9ef">let</span> Some(<span style="color:#66d9ef">ref</span> <span style="color:#66d9ef">mut</span> back_iter) <span style="color:#f92672">=</span> self.back_iter {
+                <span style="color:#66d9ef">if</span> <span style="color:#66d9ef">let</span> Some(i) <span style="color:#f92672">=</span> back_iter.next_back() {
+                    <span style="color:#66d9ef">return</span> Some(i);
+                }
+                self.back_iter <span style="color:#f92672">=</span> None;
+            }
+
+            <span style="color:#66d9ef">if</span> <span style="color:#66d9ef">let</span> Some(next_back_inner) <span style="color:#f92672">=</span> self.outer.next_back() {
+                <span style="color:#75715e">// 外层迭代器还有元素待处理
+</span><span style="color:#75715e"></span>                self.back_iter <span style="color:#f92672">=</span> Some(next_back_inner.into_iter());
+            } <span style="color:#66d9ef">else</span> {
+<span style="display:block;width:100%;background-color:#3c3d38">                <span style="color:#75715e">// 处理图示情况 1
+</span></span><span style="display:block;width:100%;background-color:#3c3d38"><span style="color:#75715e"></span>                <span style="color:#75715e">// front_iter 被调用过一次，consume 了一个 outer Item，还有内容可以遍历
+</span></span><span style="display:block;width:100%;background-color:#3c3d38"><span style="color:#75715e"></span>                <span style="color:#75715e">// 此时调用 back_iter.next_back() 时需要返回数据
+</span></span><span style="display:block;width:100%;background-color:#3c3d38"><span style="color:#75715e"></span>                <span style="color:#66d9ef">return</span> self.front_iter.as_mut()<span style="color:#f92672">?</span>.next_back();
+</span>            }
+        }
+    }
+}
+</code></pre></div><p>注意：<code>next(&amp;mut self)</code> 和 <code>next_back(&amp;mut self)</code> 都是可变引用（mutable references），不能并发进行调用（活跃的可变引用只能存在一个，独占）。</p>
+<p>至此，我们实现了自己的 <code>our_flatten(iter)</code> 🎉🎉🎉，入参迭代器作为函数参数传入，<a href="https://play.rust-lang.org/?version=stable&amp;mode=debug&amp;edition=2021&amp;gist=f16e1494e0f61fa913876969439bd54d">代码 11，version #4: save-front_iter-and-back_iter</a>。</p>
+<p>标准库 <code>flatten()</code> 的实现与上述实现基本一致，感兴趣的读者可以跳转过去查看</p>
+<ul>
+<li>实现 <code>Iterator</code> trait —— <a href="https://doc.rust-lang.org/src/core/iter/adapters/flatten.rs.html#183">https://doc.rust-lang.org/src/core/iter/adapters/flatten.rs.html#183</a></li>
+<li>实现 <code>DoubleEndedIterator</code> trait —— <a href="https://doc.rust-lang.org/src/core/iter/adapters/flatten.rs.html#431">https://doc.rust-lang.org/src/core/iter/adapters/flatten.rs.html#431</a></li>
+</ul>
+<h2 id="extension-traits">Extension traits</h2>
+<p>为了让 API 更好用（Rust 中称为语言的人体工程学，<a href="https://blog.rust-lang.org/2017/03/02/lang-ergonomics.html">Rust&rsquo;s language ergonomics initiative</a>），作为迭代器的方法直接调用 <code>iter.our_flatten()</code>，引入 <a href="https://github.com/rust-lang/rfcs/blob/master/text/0445-extension-trait-conventions.md">extension traits</a>。</p>
+<p>对于 extension traits，查看 Rust for Rustaceans Chapter 13.2 Pattern in the Wild：</p>
+<blockquote>
+<p>Extension traits allow crates to provide additional functionality to types that implement a trait from a different crate. For example, the <code>itertools</code> crate provides an extension trait for <code>Iterator</code>, which adds a number of convenient shortcuts for common (and not so common) iterator operations. As another example, <code>tower</code> provides <code>ServiceExt</code>, which adds several more ergonomic operations to wrap the low-level interface in the <code>Service</code> trait from <code>tower-service</code>.</p>
+<p>Extension traits tend to be useful either when you do not control the base trait, as with <code>Iterator</code>, or when the base trait lives in a crate of its own so that it rarely sees breaking releases and thus doesn’t cause unnecessary ecosystem splits, as with <code>Service</code>.</p>
+<p>An extension trait extends the base trait it is an extension of (<code>trait ServiceExt: Service</code>) and consists solely of provided methods. It also comes with a blanket implementation for any <code>T</code> that implements the base trait (<code>impl&lt;T&gt; ServiceExt for T where T: Service {}</code>). Together, these conditions ensure that the extension trait’s methods are available on anything that implements the base trait.</p>
+</blockquote>
+<p>这段话中提到了两个例子，看看这两个例子是如何使用 extension traits 的。</p>
+<h3 id="two-examples-of-using-extension-traits">two examples of using extension traits</h3>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-rust" data-lang="rust"><span style="color:#75715e">// https://docs.rs/itertools/0.10.3/src/itertools/lib.rs.html#429
+</span><span style="color:#75715e">// An Iterator blanket implementation that provides extra adaptors and methods.
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">pub</span> <span style="color:#66d9ef">trait</span> Itertools : Iterator {
+    <span style="color:#75715e">// more than 100 methods ...
+</span><span style="color:#75715e"></span>}
+
+<span style="color:#75715e">// https://docs.rs/itertools/0.10.3/src/itertools/lib.rs.html#3475
+</span><span style="color:#75715e">// blanket implementations
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">impl</span><span style="color:#f92672">&lt;</span>T: <span style="color:#f92672">?</span>Sized<span style="color:#f92672">&gt;</span> Itertools <span style="color:#66d9ef">for</span> T <span style="color:#66d9ef">where</span> T: Iterator { }
+</code></pre></div><p><code>Iterator</code> trait 是 <code>Itertools</code> trait 的 <a href="https://doc.rust-lang.org/book/ch19-03-advanced-traits.html#using-supertraits-to-require-one-traits-functionality-within-another-trait">supertrait</a>（前面提到的 <code>trait DerefMut: Deref</code> 和 <code>trait DoubleEndedIterator: Iterator</code> 都是如此），可以使用面向对象中的“<strong>继承（inheriting）</strong>”进行理解，<code>trait B: A</code>，是说任何类型 <code>T</code>，如果实现了 trait B（<code>impl B for T</code>），它也必须实现 trait A（<code>impl A for T</code>），换句话说，<strong>trait B 在定义时可以使用 trait A 中的关联类型和方法</strong>。</p>
+<p>定义好 <code>Itertools</code> trait 后，提供方法的缺省实现，再为外部类型 <code>T</code>（使用 <code>where T: Iterator</code> 子句为 <code>T</code> 添加 trait bounds）实现 <code>Itertools</code> trait —— 即对于所有的满足 <code>Iterator</code> trait bounds 的类型 <code>T</code>，都实现了 <code>Itertools</code> trait —— 因此所有的迭代器都可以直接使用 <code>Itertools</code> trait 中的所有方法，相当于对 <code>Iterator</code> trait 进行了扩展（extension）。</p>
+<p>同理，查看 <code>tower::ServiceExt</code> 源码实现：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-rust" data-lang="rust"><span style="color:#75715e">// https://docs.rs/tower/0.4.11/src/tower/util/mod.rs.html#65
+</span><span style="color:#75715e">// An extension trait for `Service`s that provides a variety of convenient adapters
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">pub</span> <span style="color:#66d9ef">trait</span> ServiceExt<span style="color:#f92672">&lt;</span>Request<span style="color:#f92672">&gt;</span>: <span style="color:#a6e22e">tower_service</span>::Service<span style="color:#f92672">&lt;</span>Request<span style="color:#f92672">&gt;</span> {
+    <span style="color:#75715e">// methods ...
+</span><span style="color:#75715e"></span>}
+
+<span style="color:#75715e">// https://docs.rs/tower/0.4.11/src/tower/util/mod.rs.html#1055
+</span><span style="color:#75715e">// blanket implementations
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">impl</span><span style="color:#f92672">&lt;</span>T: <span style="color:#f92672">?</span>Sized, Request<span style="color:#f92672">&gt;</span> ServiceExt<span style="color:#f92672">&lt;</span>Request<span style="color:#f92672">&gt;</span> <span style="color:#66d9ef">for</span> T
+<span style="color:#66d9ef">where</span>
+    T: <span style="color:#a6e22e">tower_service</span>::Service<span style="color:#f92672">&lt;</span>Request<span style="color:#f92672">&gt;</span> {}
+</code></pre></div><p>两个例子使用 extension traits 的方式是一样的：</p>
+<p>1、定义一个 <code>trait XxxxExt</code>，可以指定 supertrait，可以提供方法的缺省实现；</p>
+<p>2、为外部类型实现步骤 1 中定义的 trait（<code>impl&lt;T: ?Sized&gt; XxxxExt for T where T: ExternalTrait { ... }</code>）。</p>
+<p>注：外部类型约束 <code>ExternalTrait</code> trait 与 <code>XxxxExt</code> trait 不在同一个 crate。</p>
+<h3 id="blanket-implementations">blanket implementations</h3>
+<p>为指定了 trait bounds 的外部类型 <code>T</code> 实现自定义的 <code>XxxxExt</code> trait，称为 blanket implementations。</p>
+<p>例如，标准库中的 <code>ToString</code> trait —— 只要 <code>T</code> 实现了 <code>Display</code> trait，<code>T</code> 就实现了 <code>ToString</code> trait，就可以调用 <code>to_string()</code> 方法。</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-rust" data-lang="rust"><span style="color:#75715e">// https://doc.rust-lang.org/src/alloc/string.rs.html#2357-2373
+</span><span style="color:#75715e"></span><span style="color:#e6db74">/// A trait for converting a value to a `String`.
+</span><span style="color:#e6db74"></span><span style="color:#66d9ef">pub</span> <span style="color:#66d9ef">trait</span> ToString {
+    <span style="color:#e6db74">/// Converts the given value to a `String`.
+</span><span style="display:block;width:100%;background-color:#3c3d38"><span style="color:#e6db74"></span>    <span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">to_string</span>(<span style="color:#f92672">&amp;</span>self) -&gt; String;
+</span>}
+
+<span style="color:#75715e">// https://doc.rust-lang.org/src/alloc/string.rs.html#2383
+</span><span style="display:block;width:100%;background-color:#3c3d38"><span style="color:#75715e"></span><span style="color:#66d9ef">impl</span><span style="color:#f92672">&lt;</span>T: <span style="color:#a6e22e">fmt</span>::Display <span style="color:#f92672">+</span> <span style="color:#f92672">?</span>Sized<span style="color:#f92672">&gt;</span> ToString <span style="color:#66d9ef">for</span> T {
+</span>    <span style="color:#66d9ef">default</span> <span style="color:#66d9ef">fn</span> to_string(<span style="color:#f92672">&amp;</span>self) -&gt; String {
+        <span style="color:#66d9ef">let</span> <span style="color:#66d9ef">mut</span> buf <span style="color:#f92672">=</span> String::new();
+        <span style="color:#66d9ef">let</span> <span style="color:#66d9ef">mut</span> formatter <span style="color:#f92672">=</span> core::fmt::Formatter::new(<span style="color:#f92672">&amp;</span><span style="color:#66d9ef">mut</span> buf);
+        <span style="color:#75715e">// Bypass format_args!() to avoid write_str with zero-length strs
+</span><span style="color:#75715e"></span>        fmt::Display::fmt(self, <span style="color:#f92672">&amp;</span><span style="color:#66d9ef">mut</span> formatter)
+            .expect(<span style="color:#e6db74">&#34;a Display implementation returned an error unexpectedly&#34;</span>);
+        buf
+    }
+}
+</code></pre></div><p><a href="https://cheats.rs">cheats.rs</a> 有 blanket implementations 的说明（对应的说明是默认折叠的，入口 Working with Types-Types, Traits, Generics-Generics-Blanket Implementations）。</p>
+<figure>
+    <img src="images/cheatsrs-blanket-implementations.png"
+         alt="图 8：cheats.rs 关于 blanket implementations 的说明"/> <figcaption>
+            <p>图 8：<a href="https://cheats.rs">cheats.rs</a> 关于 blanket implementations 的说明</p>
+        </figcaption>
+</figure>
+
+<h3 id="traits-with-generic-types">traits with generic types</h3>
+<p>查看 <code>tower_service::Service&lt;Request&gt;</code> trait 的定义，使用了范型参数 <code>Request</code>，允许某个 service 的实现能处理多个不同的 <code>Request</code>；但对于某个确定的 <code>Request</code> 类型，只会返回对应的 <code>Respone</code> 类型，因此 <code>Response</code> 定义为关联类型，而非范型参数。</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-rust" data-lang="rust"><span style="color:#75715e">// https://docs.rs/tower-service/0.3.1/tower_service/trait.Service.html
+</span><span style="color:#75715e">// Service trait 允许某个 service 的实现能处理多个不同的 Request
+</span><span style="display:block;width:100%;background-color:#3c3d38"><span style="color:#75715e"></span><span style="color:#66d9ef">pub</span> <span style="color:#66d9ef">trait</span> Service<span style="color:#f92672">&lt;</span>Request<span style="color:#f92672">&gt;</span> {
+</span><span style="display:block;width:100%;background-color:#3c3d38">    <span style="color:#66d9ef">type</span> <span style="color:#a6e22e">Response</span>;
+</span>    <span style="color:#66d9ef">type</span> <span style="color:#a6e22e">Error</span>;
+    <span style="color:#66d9ef">type</span> <span style="color:#a6e22e">Future</span>: <span style="color:#a6e22e">Future</span><span style="color:#f92672">&lt;</span>Output <span style="color:#f92672">=</span> Result<span style="color:#f92672">&lt;</span>Self::Response, Self::Error<span style="color:#f92672">&gt;&gt;</span>;
+
+    <span style="color:#66d9ef">pub</span> <span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">poll_ready</span>(
+        <span style="color:#f92672">&amp;</span><span style="color:#66d9ef">mut</span> self, 
+        cx: <span style="color:#66d9ef">&amp;</span><span style="color:#a6e22e">mut</span> Context<span style="color:#f92672">&lt;</span><span style="color:#a6e22e">&#39;_</span><span style="color:#f92672">&gt;</span>
+    ) -&gt; <span style="color:#a6e22e">Poll</span><span style="color:#f92672">&lt;</span>Result<span style="color:#f92672">&lt;</span>(), Self::Error<span style="color:#f92672">&gt;&gt;</span>;
+    <span style="color:#66d9ef">pub</span> <span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">call</span>(<span style="color:#f92672">&amp;</span><span style="color:#66d9ef">mut</span> self, req: <span style="color:#a6e22e">Request</span>) -&gt; <span style="color:#a6e22e">Self</span>::Future;
+}
+</code></pre></div><h3 id="why-use-associated-types-in-iterator-trait">why use associated types in Iterator trait?</h3>
+<p>基于 <code>tower_service::Service&lt;Request&gt;</code> trait 的定义，重新审视一下标准库中 <code>Iterator</code> trait 的定义：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-rust" data-lang="rust"><span style="color:#75715e">// 使用关联类型（associated types）进行定义
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">trait</span> Iterator {
+    <span style="color:#66d9ef">type</span> <span style="color:#a6e22e">Item</span>;
+
+    <span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">next</span>(<span style="color:#f92672">&amp;</span><span style="color:#66d9ef">mut</span> self) -&gt; Option<span style="color:#f92672">&lt;</span>Self::Item<span style="color:#f92672">&gt;</span>;
+}
+</code></pre></div><p>使用关联类型，定义迭代器每次返回的值；是否可以使用范型参数进行定义呢？</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-rust" data-lang="rust"><span style="color:#75715e">// 使用范型参数（generic type parameters）进行定义
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">trait</span> Iterator<span style="color:#f92672">&lt;</span>T<span style="color:#f92672">&gt;</span> {
+    <span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">next</span>(<span style="color:#f92672">&amp;</span><span style="color:#66d9ef">mut</span> self) -&gt; Option<span style="color:#f92672">&lt;</span>T<span style="color:#f92672">&gt;</span>;
+}
+</code></pre></div><p>以 <a href="https://doc.rust-lang.org/stable/book/ch13-02-iterators.html#creating-our-own-iterators-with-the-iterator-trait">Counter</a> 为例：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-rust" data-lang="rust"><span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">Counter</span> {
+    count: <span style="color:#66d9ef">u32</span>,
+}
+
+<span style="color:#66d9ef">impl</span> Counter {
+    <span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">new</span>() -&gt; <span style="color:#a6e22e">Counter</span> {
+        Counter { count: <span style="color:#ae81ff">0</span> }
+    }
+}
+</code></pre></div><p>使用范型参数定义，为 <code>Counter</code> 实现 <code>Iterator&lt;T&gt;</code> trait，<code>impl Iterator&lt;u32&gt; for Counter</code> / <code>impl Iterator&lt;String&gt; for Counter</code>，可以为 <code>Counter</code> 实现多种类型的迭代器（multiple implementations of <code>Iterator</code> for <code>Counter</code>），在调用时，需要指定类型，<a href="https://play.rust-lang.org/?version=stable&amp;mode=debug&amp;edition=2021&amp;gist=3c0e439269e1e9076de77ab3f1df9bc7">代码 12，use-generic-define-Iterator-trait</a>。</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-rust" data-lang="rust"><span style="color:#75715e">// 使用范型参数（generic type parameters）进行定义
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">trait</span> Iterator<span style="color:#f92672">&lt;</span>T<span style="color:#f92672">&gt;</span> {
+    <span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">next</span>(<span style="color:#f92672">&amp;</span><span style="color:#66d9ef">mut</span> self) -&gt; Option<span style="color:#f92672">&lt;</span>T<span style="color:#f92672">&gt;</span>;
+}
+
+<span style="color:#66d9ef">impl</span> Iterator<span style="color:#f92672">&lt;</span><span style="color:#66d9ef">u32</span><span style="color:#f92672">&gt;</span> <span style="color:#66d9ef">for</span> Counter {
+    <span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">next</span>(<span style="color:#f92672">&amp;</span><span style="color:#66d9ef">mut</span> self) -&gt; Option<span style="color:#f92672">&lt;</span><span style="color:#66d9ef">u32</span><span style="color:#f92672">&gt;</span> {
+        <span style="color:#66d9ef">if</span> self.count <span style="color:#f92672">&lt;</span> <span style="color:#ae81ff">5</span> {
+            self.count <span style="color:#f92672">+=</span> <span style="color:#ae81ff">1</span>;
+            Some(self.count)
+        } <span style="color:#66d9ef">else</span> {
+            None
+        }
+    }
+}
+</code></pre></div><p>使用关联类型定义，实现时指定一个确定的返回值类型，因此就只会有一种实现 <code>impl Iterator for Counter</code>，调用时不用指定类型。</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-rust" data-lang="rust"><span style="color:#75715e">// 使用关联类型（associated types）进行定义
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">trait</span> Iterator {
+    <span style="color:#66d9ef">type</span> <span style="color:#a6e22e">Item</span>;
+
+    <span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">next</span>(<span style="color:#f92672">&amp;</span><span style="color:#66d9ef">mut</span> self) -&gt; Option<span style="color:#f92672">&lt;</span>Self::Item<span style="color:#f92672">&gt;</span>;
+}
+
+<span style="color:#66d9ef">impl</span> Iterator <span style="color:#66d9ef">for</span> Counter {
+    <span style="color:#66d9ef">type</span> <span style="color:#a6e22e">Item</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">u32</span>;
+
+    <span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">next</span>(<span style="color:#f92672">&amp;</span><span style="color:#66d9ef">mut</span> self) -&gt; Option<span style="color:#f92672">&lt;</span>Self::Item<span style="color:#f92672">&gt;</span> {
+        <span style="color:#66d9ef">if</span> self.count <span style="color:#f92672">&lt;</span> <span style="color:#ae81ff">5</span> {
+            self.count <span style="color:#f92672">+=</span> <span style="color:#ae81ff">1</span>;
+            Some(self.count)
+        } <span style="color:#66d9ef">else</span> {
+            None
+        }
+    }
+}
+</code></pre></div><p>二者的区别没有那么明显，但使用原则很明了：为某一类型（Type）实现 trait，若仅需要一种实现，使用关联类型（associated type），否则使用范型参数（generic type parameter）。</p>
+<blockquote>
+<p>Rust traits can be generic in one of two ways: with generic type parameters like <code>trait Foo&lt;T&gt;</code> or with associated types like <code>trait Foo { type Bar; }</code>. The difference between these is not immediately apparent, but luckily the rule of thumb is quite simple: <strong>use an associated type if you expect only one implementation of the trait for a given type, and use a generic type parameter otherwise</strong>.</p>
+<p>—— Rust for Rustaceans，Chapter 2.2 Generic Traits</p>
+</blockquote>
+<ul>
+<li>对于 <code>Iterator</code> trait，将集合作为迭代器进行访问，集合的每个元素类型固定，因此选择关联类型（associated types）；</li>
+<li>对于 <code>tower_service::Service&lt;Request&gt;</code> trait，需要为不同的 <code>Request</code> 实现不同的 trait，因此选择范型参数（generic type parameter）。</li>
+</ul>
+<p>更多关于 generic and associated types 的内容可以参考 <a href="https://stackoverflow.com/a/32065644">StackOverflow 上的回答</a>、博客 <a href="https://blog.thomasheartman.com/posts/on-generics-and-associated-types">On Generics and Associated Types</a>、Rust for Rustaceans Chapter 2.2 Generic Traits。</p>
+<h3 id="version-5-define-iteratorext-trait">version #5: define IteratorExt trait</h3>
+<p>定义 <code>IteratorExt</code> trait，提供 <code>our_flatten()</code> 方法的缺省实现；同时，为外部类型 <code>T</code>（使用 <code>where T: Iterator</code> 子句为 <code>T</code> 添加 trait bounds）实现 <code>IteratorExt</code> trait，就可以直接在迭代器上调用我们实现的 <code>our_flatten()</code> 了，<a href="https://play.rust-lang.org/?version=stable&amp;mode=debug&amp;edition=2021&amp;gist=99a1fd34e596705960b259d6a39e998c">代码 13，define-IteratorExt-trait</a>。</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-rust" data-lang="rust"><span style="display:block;width:100%;background-color:#3c3d38"><span style="color:#75715e">// traits 默认绑定了 `?Sized` trait
+</span></span><span style="display:block;width:100%;background-color:#3c3d38"><span style="color:#75715e"></span><span style="color:#66d9ef">pub</span> <span style="color:#66d9ef">trait</span> IteratorExt: Iterator {
+</span><span style="display:block;width:100%;background-color:#3c3d38">    <span style="color:#75715e">// IteratorExt trait 默认绑定了 `?Sized` trait
+</span></span><span style="display:block;width:100%;background-color:#3c3d38"><span style="color:#75715e"></span>    <span style="color:#75715e">// 也就是说，实现 IteratorExt trait 的类型可以是一个 unsized type（例如 str）
+</span></span><span style="display:block;width:100%;background-color:#3c3d38"><span style="color:#75715e"></span>    <span style="color:#75715e">// 同时 our_flatten 的参数类型是 pass by value
+</span></span><span style="display:block;width:100%;background-color:#3c3d38"><span style="color:#75715e"></span>    <span style="color:#75715e">// 因此对这个函数单独进行限制，Self: Sized
+</span></span><span style="display:block;width:100%;background-color:#3c3d38"><span style="color:#75715e"></span>    <span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">our_flatten</span>(self) -&gt; <span style="color:#a6e22e">Flatten</span><span style="color:#f92672">&lt;</span>Self<span style="color:#f92672">&gt;</span>
+</span><span style="display:block;width:100%;background-color:#3c3d38">    <span style="color:#66d9ef">where</span>
+</span><span style="display:block;width:100%;background-color:#3c3d38">        Self: Sized,  <span style="color:#75715e">// --- 读者可以试着注释掉 playground 中的这行语句，看看编译报错信息
+</span></span><span style="display:block;width:100%;background-color:#3c3d38"><span style="color:#75715e"></span>        Self::Item: IntoIterator,
+</span><span style="display:block;width:100%;background-color:#3c3d38">    {
+</span><span style="display:block;width:100%;background-color:#3c3d38">        flatten(self)
+</span><span style="display:block;width:100%;background-color:#3c3d38">    }
+</span><span style="display:block;width:100%;background-color:#3c3d38">}
+</span>
+<span style="color:#66d9ef">impl</span><span style="color:#f92672">&lt;</span>T: <span style="color:#f92672">?</span>Sized<span style="color:#f92672">&gt;</span> IteratorExt <span style="color:#66d9ef">for</span> T <span style="color:#66d9ef">where</span> T: Iterator {}
+
+<span style="color:#75715e">// 默认情况下，所有泛型类型参数都与 `Sized` trait 绑定
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">pub</span> <span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">flatten</span><span style="color:#f92672">&lt;</span>I<span style="color:#f92672">&gt;</span>(iter: <span style="color:#a6e22e">I</span>) -&gt; <span style="color:#a6e22e">Flatten</span><span style="color:#f92672">&lt;</span>I<span style="color:#f92672">&gt;</span>
+<span style="color:#66d9ef">where</span>
+    I: Iterator, <span style="color:#75715e">// I: Iterator + Sized
+</span><span style="color:#75715e"></span>    I::Item: IntoIterator,
+{
+    Flatten::new(iter)
+}
+
+<span style="color:#75715e">#[cfg(test)]</span>
+<span style="color:#66d9ef">mod</span> tests {
+    <span style="color:#66d9ef">use</span> <span style="color:#66d9ef">super</span>::<span style="color:#f92672">*</span>;
+
+    <span style="color:#75715e">#[test]</span>
+    <span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">ext</span>() {
+        assert_eq<span style="color:#f92672">!</span>(vec<span style="color:#f92672">!</span>[vec<span style="color:#f92672">!</span>[<span style="color:#ae81ff">1</span>, <span style="color:#ae81ff">2</span>]].into_iter().our_flatten().count(), <span style="color:#ae81ff">2</span>);
+    }
+}
+</code></pre></div><p><code>our_flatten()</code> 的最终实现，我们添加了关于 <code>Sized</code> trait 的注释。</p>
+<p><a href="https://doc.rust-lang.org/std/marker/trait.Sized.html"><code>Sized</code> trait</a> 为 <a href="https://doc.rust-lang.org/std/marker/index.html">marker trait</a>，标记编译期能够确定大小的类型（Types with a constant size known at compile time）。如果一个类型不能在编译期间确定其大小（只能在运行时确定），则称其为 DST（dynamically sized type），例如 <code>str</code> 类型。</p>
+<p>默认情况下：</p>
+<ul>
+<li>所有范型参数（generic type parameters）都会隐式添加 <code>Sized</code> trait bound（all generic type parameters have an implicit bound of <code>Sized</code> by default）；</li>
+<li>所有 trait 都是 DST，默认的 trait bound 为 <code>?Sized</code>，表示实现该 trait 的类型可以是 unsized type（不满足 <code>Sized</code> trait bound，例如 <code>str</code>），也可以是 sized type（满足 <code>Sized</code> trait bound，例如 <code>&amp;str</code>）。</li>
+</ul>
+<p>借助下面的示例代码进行理解，<a href="https://play.rust-lang.org/?version=stable&amp;mode=debug&amp;edition=2021&amp;gist=f1a4ae4aea4d3466c4f68411ed5cb4de">代码 14，Sized-trait-pass-by-value-or-by-reference</a>。关于 <code>Sized</code> trait 更详细的介绍推荐阅读 <a href="https://github.com/pretzelhammer/rust-blog/blob/master/posts/sizedness-in-rust.md">rust-blog/sizedness-in-rust</a>。</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-rust" data-lang="rust"><span style="color:#75715e">// Trait 默认为 `?Sized` trait bound
+</span><span style="color:#75715e">// 实现该 trait 的类型可以是 unsized type，也可以是 sized type
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">trait</span> Trait {
+    <span style="color:#75715e">// pass by value
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// 需要限制调用该方法的类型为 Sized
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">method1</span>(self)
+    <span style="color:#66d9ef">where</span>
+        Self: Sized,
+    {
+        println<span style="color:#f92672">!</span>(<span style="color:#e6db74">&#34;method1&#34;</span>);
+    }
+
+    <span style="color:#75715e">// pass by reference，编译期就能够知道大小
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">method2</span>(<span style="color:#f92672">&amp;</span>self) {
+        println<span style="color:#f92672">!</span>(<span style="color:#e6db74">&#34;method2&#34;</span>);
+    }
+}
+
+<span style="color:#75715e">// 为 str（unsized type）实现 Trait trait
+</span><span style="display:block;width:100%;background-color:#3c3d38"><span style="color:#75715e"></span><span style="color:#66d9ef">impl</span> Trait <span style="color:#66d9ef">for</span> <span style="color:#66d9ef">str</span> {}
+</span>
+<span style="color:#75715e">// 为 &amp;str（sized type）实现 Trait trait
+</span><span style="display:block;width:100%;background-color:#3c3d38"><span style="color:#75715e"></span><span style="color:#66d9ef">impl</span> Trait <span style="color:#66d9ef">for</span> <span style="color:#f92672">&amp;</span><span style="color:#66d9ef">str</span> {}
+</span>
+<span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">main</span>() {
+    <span style="color:#75715e">// &#34;str&#34;.method1();// method1 参数为 Self, pass by value，需满足 Sized trait bound
+</span><span style="color:#75715e"></span>    <span style="color:#e6db74">&#34;str&#34;</span>.method2();
+
+    <span style="color:#66d9ef">let</span> hello: <span style="color:#66d9ef">&amp;</span><span style="color:#66d9ef">str</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;hello&#34;</span>;
+    hello.method1();
+    hello.method2();
+}
+</code></pre></div><h2 id="summary">Summary</h2>
+<p>在本文中，我们介绍了 Rust 外部迭代器的基础知识，包括 <code>Iterator</code> trait 的含义、从集合获取迭代器的三种方式、并对这三种方式进行了详细比较，接下来实现了我们自己的迭代器 <code>our_flatten()</code>，支持从前往后和从后往前同时遍历。最后，为 <code>Iterator</code> trait 引入 extension traits，让所有迭代器都可以直接调用 <code>our_flatten()</code>。</p>
+<p>对于迭代器的 Laziness 特性，会在后续介绍闭包（closures）时，结合适配器（adapter）一起讲解。</p>
+<p>除了对迭代器的介绍外，本文还对其他的知识点做了一些分析：</p>
+<ul>
+<li><code>Deref</code> / <code>DerefMut</code> trait</li>
+<li>Deref coercion</li>
+<li><code>for-in-loops</code></li>
+<li>blanket implementations</li>
+<li>关联类型（associated type）和范型参数（generic type parameter）</li>
+<li>extension traits</li>
+<li>etc &hellip;</li>
+</ul>
+<p>本文为作者学习 Rust 的一篇学习笔记，肯定存在遗漏或错误，欢迎大家在评论区讨论指出。</p>
+<p>【系列文章】：</p>
+<p>1、<a href="https://zhuanlan.zhihu.com/p/442574694">Rust 中的生命周期</a></p>
+<p>2、Rust 中的迭代器</p>
+<p>3、更多 Rust 相关的文章，敬请期待</p>
+<h2 id="references">References</h2>
+<ul>
+<li>Crust of Rust 系列 <a href="https://www.youtube.com/watch?v=yozQ9C69pNs&amp;list=PLqbS7AVVErFiWDOAVrPt7aYmnuuOLYvOa&amp;index=3&amp;ab_channel=JonGjengset">Iterators</a>，本文为学习此视频后的笔记</li>
+<li><a href="https://doc.rust-lang.org/std/iter/index.html">std::iter</a>，迭代器标准库文档，文中给到的标准库代码片段，在注释开始处均贴了对应的源码链接</li>
+<li>极客时间专栏 <a href="https://time.geekbang.org/column/intro/100085301">陈天 · Rust 编程第一课</a>，第 12 讲 - 第 16 讲，traits with generic types 的内容来源于第 13 讲</li>
+<li><a href="https://doc.rust-lang.org/stable/book/">Rust The Book</a>，Chapter 10、13、19.2、19.3</li>
+<li><a href="https://book.douban.com/subject/1436745/">Design Patterns: Elements of Reusable Object-Oriented Software</a>, Chater 5.4 Iterator，内部迭代器（internal iterator）和外部迭代器（external iterator）的来源</li>
+<li><a href="https://stackoverflow.com/questions/48999776/what-are-the-main-differences-between-a-rust-iterator-and-c-iterator">rust - What are the main differences between a Rust Iterator and C++ Iterator? - Stack Overflow</a></li>
+<li><a href="https://aloso.github.io/2021/03/09/creating-an-iterator">Creating an Iterator in Rust</a>，强烈推荐阅读，实现树的深度优先遍历</li>
+<li><a href="https://book.douban.com/subject/34973905/">Programming Rust (2nd Edition)</a>，Chapter 15，<code>dump</code> 示例来源，有修改</li>
+<li><a href="https://book.douban.com/subject/35520588/">Rust for Rustaceans</a>，Chapter 2.2 Generic Traits、Chapter 13.2 Pattern in the Wild</li>
+<li><a href="https://github.com/rust-lang/rfcs/blob/master/text/0445-extension-trait-conventions.md">rfcs/0445-extension-trait-conventions.md at master · rust-lang/rfcs</a>，extension traits 对应的 RFC</li>
+<li><a href="http://xion.io/post/code/rust-extension-traits.html">Extension traits in Rust</a>，描述了两种使用 extension traits 的场景</li>
+<li><a href="https://cheats.rs/">cheats.rs</a>，Iterators、Blanket Implementations、Sized</li>
+<li><a href="https://github.com/pretzelhammer/rust-blog/blob/master/posts/sizedness-in-rust.md">rust-blog/sizedness-in-rust</a>，强烈推荐阅读，关于 <code>Sized</code> trait 的所有内容，这篇博客都会给到解答</li>
+<li><a href="https://stackoverflow.com/questions/32059370/when-is-it-appropriate-to-use-an-associated-type-versus-a-generic-type">rust - When is it appropriate to use an associated type versus a generic type? - Stack Overflow</a></li>
+<li><a href="https://play.rust-lang.org/">Rust Playground</a> 文中的代码示例都给到了 playground 的链接，在阅读的时候可以点击跳转过去 Run 起来看一下运行结果或错误提示</li>
+<li>文中的所有图片均使用 <a href="https://excalidraw.com/">excalidraw</a> 绘制</li>
+</ul>
+
+    </div>
+  </article>
+
+  
+<section class="comments">
+<script src="https://utteranc.es/client.js"
+        repo="qiaoin/hugo-blog-comments"
+        issue-term="og:title"
+        theme="github-light"
+        crossorigin="anonymous"
+        async>
+</script>
+</section>
+
+
+
+</main>
+
+      <footer class="footer">
+        <ul class="footer-links">
+          <li>
+            <a href="https://qiaoin.github.io">在桥边</a> © 2016 - 2021
+          </li>
+          <li>
+            <a href="https://gohugo.io/" class="footer-links-kudos">Made with <img src="/images/hugo-logo.png" alt="Img link to Hugo website" width="22" height="22"></a>
+          </li>
+        </ul>
+      </footer>
+
+    </div>
+    
+
+
+
+<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/highlight.min.js"></script>
+
+
+
+<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/languages/awk.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/languages/bash.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/languages/c.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/languages/c&#43;&#43;.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/languages/cmake.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/languages/go.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/languages/html.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/languages/java.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/languages/javascript.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/languages/python.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/languages/rust.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/languages/typescript.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/languages/yaml.min.js"></script>
+<script>hljs.configure({languages: []}); hljs.initHighlightingOnLoad();</script>
+
+
+
+    
+
+    
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-EBLEJGMMQV"></script>
+<script>
+var doNotTrack = false;
+if (!doNotTrack) {
+	window.dataLayer = window.dataLayer || [];
+	function gtag(){dataLayer.push(arguments);}
+	gtag('js', new Date());
+	gtag('config', 'G-EBLEJGMMQV', { 'anonymize_ip': false });
+}
+</script>
+
+  </body>
+</html>
+

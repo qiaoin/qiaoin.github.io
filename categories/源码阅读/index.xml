@@ -6,7 +6,16 @@
     <description>Recent content in 源码阅读 on 在桥边</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
-    <lastBuildDate>Sat, 16 Jun 2018 00:00:00 +0000</lastBuildDate><atom:link href="https://qiaoin.github.io/categories/%E6%BA%90%E7%A0%81%E9%98%85%E8%AF%BB/index.xml" rel="self" type="application/rss+xml" />
+    <lastBuildDate>Thu, 04 Nov 2021 00:00:00 +0000</lastBuildDate><atom:link href="https://qiaoin.github.io/categories/%E6%BA%90%E7%A0%81%E9%98%85%E8%AF%BB/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>当我们谈论协程时，我们在谈论什么【未完成】</title>
+      <link>https://qiaoin.github.io/2021/11/04/all-you-should-know-about-coroutines/</link>
+      <pubDate>Thu, 04 Nov 2021 00:00:00 +0000</pubDate>
+      
+      <guid>https://qiaoin.github.io/2021/11/04/all-you-should-know-about-coroutines/</guid>
+      <description>「什么是协程？」几乎是现在面试的必考题。一方面，Donald E. Knuth 说「子过程是协程的一种特殊表现形式」&amp;ldquo;Subroutines are special</description>
+    </item>
+    
     <item>
       <title>传输层模块的 RDMA 实现</title>
       <link>https://qiaoin.github.io/2018/06/16/transport-with-ibverbs/</link>

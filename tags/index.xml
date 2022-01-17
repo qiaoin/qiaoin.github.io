@@ -6,7 +6,61 @@
     <description>Recent content in Tags on 在桥边</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
-    <lastBuildDate>Mon, 26 Apr 2021 00:00:00 +0000</lastBuildDate><atom:link href="https://qiaoin.github.io/tags/index.xml" rel="self" type="application/rss+xml" />
+    <lastBuildDate>Mon, 17 Jan 2022 00:00:00 +0000</lastBuildDate><atom:link href="https://qiaoin.github.io/tags/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>Learning-by-doing</title>
+      <link>https://qiaoin.github.io/tags/learning-by-doing/</link>
+      <pubDate>Mon, 17 Jan 2022 00:00:00 +0000</pubDate>
+      
+      <guid>https://qiaoin.github.io/tags/learning-by-doing/</guid>
+      <description></description>
+    </item>
+    
+    <item>
+      <title>Rust</title>
+      <link>https://qiaoin.github.io/tags/rust/</link>
+      <pubDate>Mon, 17 Jan 2022 00:00:00 +0000</pubDate>
+      
+      <guid>https://qiaoin.github.io/tags/rust/</guid>
+      <description></description>
+    </item>
+    
+    <item>
+      <title>迭代器</title>
+      <link>https://qiaoin.github.io/tags/%E8%BF%AD%E4%BB%A3%E5%99%A8/</link>
+      <pubDate>Mon, 17 Jan 2022 00:00:00 +0000</pubDate>
+      
+      <guid>https://qiaoin.github.io/tags/%E8%BF%AD%E4%BB%A3%E5%99%A8/</guid>
+      <description></description>
+    </item>
+    
+    <item>
+      <title>生命周期</title>
+      <link>https://qiaoin.github.io/tags/%E7%94%9F%E5%91%BD%E5%91%A8%E6%9C%9F/</link>
+      <pubDate>Wed, 15 Dec 2021 00:00:00 +0000</pubDate>
+      
+      <guid>https://qiaoin.github.io/tags/%E7%94%9F%E5%91%BD%E5%91%A8%E6%9C%9F/</guid>
+      <description></description>
+    </item>
+    
+    <item>
+      <title>Coroutine</title>
+      <link>https://qiaoin.github.io/tags/coroutine/</link>
+      <pubDate>Thu, 04 Nov 2021 00:00:00 +0000</pubDate>
+      
+      <guid>https://qiaoin.github.io/tags/coroutine/</guid>
+      <description></description>
+    </item>
+    
+    <item>
+      <title>Go</title>
+      <link>https://qiaoin.github.io/tags/go/</link>
+      <pubDate>Thu, 04 Nov 2021 00:00:00 +0000</pubDate>
+      
+      <guid>https://qiaoin.github.io/tags/go/</guid>
+      <description></description>
+    </item>
+    
     <item>
       <title>Daemon</title>
       <link>https://qiaoin.github.io/tags/daemon/</link>
@@ -40,15 +94,6 @@
       <pubDate>Mon, 13 Jul 2020 00:00:00 +0000</pubDate>
       
       <guid>https://qiaoin.github.io/tags/js/</guid>
-      <description></description>
-    </item>
-    
-    <item>
-      <title>Go</title>
-      <link>https://qiaoin.github.io/tags/go/</link>
-      <pubDate>Tue, 09 Jun 2020 00:00:00 +0000</pubDate>
-      
-      <guid>https://qiaoin.github.io/tags/go/</guid>
       <description></description>
     </item>
     

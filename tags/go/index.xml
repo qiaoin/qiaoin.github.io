@@ -6,7 +6,16 @@
     <description>Recent content in Go on 在桥边</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
-    <lastBuildDate>Tue, 09 Jun 2020 00:00:00 +0000</lastBuildDate><atom:link href="https://qiaoin.github.io/tags/go/index.xml" rel="self" type="application/rss+xml" />
+    <lastBuildDate>Thu, 04 Nov 2021 00:00:00 +0000</lastBuildDate><atom:link href="https://qiaoin.github.io/tags/go/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>当我们谈论协程时，我们在谈论什么【未完成】</title>
+      <link>https://qiaoin.github.io/2021/11/04/all-you-should-know-about-coroutines/</link>
+      <pubDate>Thu, 04 Nov 2021 00:00:00 +0000</pubDate>
+      
+      <guid>https://qiaoin.github.io/2021/11/04/all-you-should-know-about-coroutines/</guid>
+      <description>「什么是协程？」几乎是现在面试的必考题。一方面，Donald E. Knuth 说「子过程是协程的一种特殊表现形式」&amp;ldquo;Subroutines are special</description>
+    </item>
+    
     <item>
       <title>Go 语言基础 -- A Tour of Go</title>
       <link>https://qiaoin.github.io/2020/06/09/go-basis/</link>
