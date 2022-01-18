@@ -722,7 +722,7 @@ fn main() {
 }
 ```
 
-回到 `flatten()` 的实现，为 `Flatten struct` 实现 `DoubleEndedIterator` trait，模仿着 [代码 8，version #2: save-inner-iter](https://play.rust-lang.org/?version=stable&mode=debug&edition=2021&gist=7e2f1df53f70a2af30d02147f8fb3d31) 中 `next()` 的实现，补充 `next_back()` 的实现。同时需补充上外层迭代器和内层迭代器需要满足 `DoubleEndedIterator` trait bounds。[代码 10，version #3: impl-DoubleEndedIterator-trait](https://play.rust-lang.org/?version=stable&mode=debug&edition=2021&gist=b65cce6accf0efc97c5ac5831c7c08cb)，增加了两个测试用例，测试正常。`flatten_iter.rev()` 返回 `struct std::iter::Rev`，`struct std::iter::Rev` 实现了 `Iterator` trait，`next()` 方法调用 `flatten_iter.next_back()`，感兴趣的读者可以查看 [`Recv` 标准库的源码实现](https://doc.rust-lang.org/src/core/iter/adapters/rev.rs.html#33)。
+回到 `flatten()` 的实现，为 `Flatten struct` 实现 `DoubleEndedIterator` trait，模仿着 [代码 8，version #2: save-inner-iter](https://play.rust-lang.org/?version=stable&mode=debug&edition=2021&gist=7e2f1df53f70a2af30d02147f8fb3d31) 中 `next()` 的实现，补充 `next_back()` 的实现。同时需补充上外层迭代器和内层迭代器需要满足 `DoubleEndedIterator` trait bounds。[代码 10，version #3: impl-DoubleEndedIterator-trait](https://play.rust-lang.org/?version=stable&mode=debug&edition=2021&gist=b65cce6accf0efc97c5ac5831c7c08cb)，增加了两个测试用例，测试正常。`flatten_iter.rev()` 返回 `struct std::iter::Rev`，`struct std::iter::Rev` 实现了 `Iterator` trait，`next()` 方法调用 `flatten_iter.next_back()`，感兴趣的读者可以查看 [`Rev` 标准库的源码实现](https://doc.rust-lang.org/src/core/iter/adapters/rev.rs.html#33)。
 
 ```rust {hl_lines=["7-19"]}
 impl<O> DoubleEndedIterator for Flatten<O>
@@ -826,7 +826,7 @@ where
 
 这两种情况下，都要继续进行迭代。
 
-基于以上分析，得到 `flatten()` 的第四个版本，[代码 11，version #4: save-front_iter-and-back_iter](https://play.rust-lang.org/?version=stable&mode=debug&edition=2021&gist=f16e1494e0f61fa913876969439bd54d)。`next()` 和 `next_back()` 的主体逻辑与 version #2 和 version #3 一致，以 `next_back()` 的实现为例：
+基于以上分析，得到 `flatten()` 的第四个版本，[代码 11，version #4: save-front_iter-and-back_iter](https://play.rust-lang.org/?version=stable&mode=debug&edition=2021&gist=5f48d87316e024a7415bd800c120bd1f)。`next()` 和 `next_back()` 的主体逻辑与 version #2 和 version #3 一致，以 `next_back()` 的实现为例：
 
 1、判断对应的内层迭代器 `back_iter` 是否有待处理的元素
 
@@ -901,7 +901,7 @@ where
 
 注意：`next(&mut self)` 和 `next_back(&mut self)` 都是可变引用（mutable references），不能并发进行调用（活跃的可变引用只能存在一个，独占）。
 
-至此，我们实现了自己的 `our_flatten(iter)` 🎉🎉🎉，入参迭代器作为函数参数传入，[代码 11，version #4: save-front_iter-and-back_iter](https://play.rust-lang.org/?version=stable&mode=debug&edition=2021&gist=f16e1494e0f61fa913876969439bd54d)。
+至此，我们实现了自己的 `our_flatten(iter)` 🎉🎉🎉，入参迭代器作为函数参数传入，[代码 11，version #4: save-front_iter-and-back_iter](https://play.rust-lang.org/?version=stable&mode=debug&edition=2021&gist=5f48d87316e024a7415bd800c120bd1f)。
 
 标准库 `flatten()` 的实现与上述实现基本一致，感兴趣的读者可以跳转过去查看
 
