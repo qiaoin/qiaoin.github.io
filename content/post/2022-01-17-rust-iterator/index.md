@@ -1214,11 +1214,15 @@ fn main() {
 
 【系列文章】：
 
-1、[Rust 中的生命周期](https://zhuanlan.zhihu.com/p/442574694)
+1、[Rust 中的生命周期](https://qiaoin.github.io/2021/12/15/rust-lifetime/)
 
-2、Rust 中的迭代器
+2、[Rust 中的迭代器](https://qiaoin.github.io/2022/01/17/rust-iterator/)
 
 3、更多 Rust 相关的文章，敬请期待
+
+## 版权声明
+
+本作品采用[知识共享署名 4.0 国际许可协议](http://creativecommons.org/licenses/by/4.0/)进行许可，转载时请注明原文链接。
 
 ## References
 

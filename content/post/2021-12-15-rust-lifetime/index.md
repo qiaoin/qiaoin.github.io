@@ -1278,13 +1278,17 @@ where
 
 本文为作者学习 Rust 的一篇学习笔记，肯定存在遗漏或错误，欢迎大家在评论区讨论指出。
 
-系列文章：
+【系列文章】：
 
 1、[Rust 中的生命周期](https://qiaoin.github.io/2021/12/15/rust-lifetime/)
 
 2、[Rust 中的迭代器](https://qiaoin.github.io/2022/01/17/rust-iterator/)
 
-3、还有更多 Rust 相关的文章，敬请期待
+3、更多 Rust 相关的文章，敬请期待
+
+## 版权声明
+
+本作品采用[知识共享署名 4.0 国际许可协议](http://creativecommons.org/licenses/by/4.0/)进行许可，转载时请注明原文链接。
 
 ## References
 
