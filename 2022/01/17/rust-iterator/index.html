@@ -706,7 +706,7 @@
     assert_eq<span style="color:#f92672">!</span>(None, iter.next());
     assert_eq<span style="color:#f92672">!</span>(None, iter.next_back());
 }
-</code></pre></div><p>回到 <code>flatten()</code> 的实现，为 <code>Flatten struct</code> 实现 <code>DoubleEndedIterator</code> trait，模仿着 <a href="https://play.rust-lang.org/?version=stable&amp;mode=debug&amp;edition=2021&amp;gist=7e2f1df53f70a2af30d02147f8fb3d31">代码 8，version #2: save-inner-iter</a> 中 <code>next()</code> 的实现，补充 <code>next_back()</code> 的实现。同时需补充上外层迭代器和内层迭代器需要满足 <code>DoubleEndedIterator</code> trait bounds。<a href="https://play.rust-lang.org/?version=stable&amp;mode=debug&amp;edition=2021&amp;gist=b65cce6accf0efc97c5ac5831c7c08cb">代码 10，version #3: impl-DoubleEndedIterator-trait</a>，增加了两个测试用例，测试正常。<code>flatten_iter.rev()</code> 返回 <code>struct std::iter::Rev</code>，<code>struct std::iter::Rev</code> 实现了 <code>Iterator</code> trait，<code>next()</code> 方法调用 <code>flatten_iter.next_back()</code>，感兴趣的读者可以查看 <a href="https://doc.rust-lang.org/src/core/iter/adapters/rev.rs.html#33"><code>Recv</code> 标准库的源码实现</a>。</p>
+</code></pre></div><p>回到 <code>flatten()</code> 的实现，为 <code>Flatten struct</code> 实现 <code>DoubleEndedIterator</code> trait，模仿着 <a href="https://play.rust-lang.org/?version=stable&amp;mode=debug&amp;edition=2021&amp;gist=7e2f1df53f70a2af30d02147f8fb3d31">代码 8，version #2: save-inner-iter</a> 中 <code>next()</code> 的实现，补充 <code>next_back()</code> 的实现。同时需补充上外层迭代器和内层迭代器需要满足 <code>DoubleEndedIterator</code> trait bounds。<a href="https://play.rust-lang.org/?version=stable&amp;mode=debug&amp;edition=2021&amp;gist=b65cce6accf0efc97c5ac5831c7c08cb">代码 10，version #3: impl-DoubleEndedIterator-trait</a>，增加了两个测试用例，测试正常。<code>flatten_iter.rev()</code> 返回 <code>struct std::iter::Rev</code>，<code>struct std::iter::Rev</code> 实现了 <code>Iterator</code> trait，<code>next()</code> 方法调用 <code>flatten_iter.next_back()</code>，感兴趣的读者可以查看 <a href="https://doc.rust-lang.org/src/core/iter/adapters/rev.rs.html#33"><code>Rev</code> 标准库的源码实现</a>。</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-rust" data-lang="rust"><span style="color:#66d9ef">impl</span><span style="color:#f92672">&lt;</span>O<span style="color:#f92672">&gt;</span> DoubleEndedIterator <span style="color:#66d9ef">for</span> Flatten<span style="color:#f92672">&lt;</span>O<span style="color:#f92672">&gt;</span>
 <span style="color:#66d9ef">where</span>
     O: Iterator <span style="color:#f92672">+</span> DoubleEndedIterator,
@@ -810,7 +810,7 @@
 </figure>
 
 <p>这两种情况下，都要继续进行迭代。</p>
-<p>基于以上分析，得到 <code>flatten()</code> 的第四个版本，<a href="https://play.rust-lang.org/?version=stable&amp;mode=debug&amp;edition=2021&amp;gist=f16e1494e0f61fa913876969439bd54d">代码 11，version #4: save-front_iter-and-back_iter</a>。<code>next()</code> 和 <code>next_back()</code> 的主体逻辑与 version #2 和 version #3 一致，以 <code>next_back()</code> 的实现为例：</p>
+<p>基于以上分析，得到 <code>flatten()</code> 的第四个版本，<a href="https://play.rust-lang.org/?version=stable&amp;mode=debug&amp;edition=2021&amp;gist=5f48d87316e024a7415bd800c120bd1f">代码 11，version #4: save-front_iter-and-back_iter</a>。<code>next()</code> 和 <code>next_back()</code> 的主体逻辑与 version #2 和 version #3 一致，以 <code>next_back()</code> 的实现为例：</p>
 <p>1、判断对应的内层迭代器 <code>back_iter</code> 是否有待处理的元素</p>
 <ul>
 <li>刚开始迭代时，对应的内层迭代器均为 <code>None</code>，继续执行步骤 2；</li>
@@ -880,7 +880,7 @@
     }
 }
 </code></pre></div><p>注意：<code>next(&amp;mut self)</code> 和 <code>next_back(&amp;mut self)</code> 都是可变引用（mutable references），不能并发进行调用（活跃的可变引用只能存在一个，独占）。</p>
-<p>至此，我们实现了自己的 <code>our_flatten(iter)</code> 🎉🎉🎉，入参迭代器作为函数参数传入，<a href="https://play.rust-lang.org/?version=stable&amp;mode=debug&amp;edition=2021&amp;gist=f16e1494e0f61fa913876969439bd54d">代码 11，version #4: save-front_iter-and-back_iter</a>。</p>
+<p>至此，我们实现了自己的 <code>our_flatten(iter)</code> 🎉🎉🎉，入参迭代器作为函数参数传入，<a href="https://play.rust-lang.org/?version=stable&amp;mode=debug&amp;edition=2021&amp;gist=5f48d87316e024a7415bd800c120bd1f">代码 11，version #4: save-front_iter-and-back_iter</a>。</p>
 <p>标准库 <code>flatten()</code> 的实现与上述实现基本一致，感兴趣的读者可以跳转过去查看</p>
 <ul>
 <li>实现 <code>Iterator</code> trait —— <a href="https://doc.rust-lang.org/src/core/iter/adapters/flatten.rs.html#183">https://doc.rust-lang.org/src/core/iter/adapters/flatten.rs.html#183</a></li>
