@@ -1017,6 +1017,8 @@ pub trait Service<Request> {
 
 ### why use associated types in Iterator trait?
 
+Refernce [associated-items](https://doc.rust-lang.org/reference/items/associated-items.html)
+
 基于 `tower_service::Service<Request>` trait 的定义，重新审视一下标准库中 `Iterator` trait 的定义：
 
 ```rust
@@ -1218,7 +1220,9 @@ fn main() {
 
 2、[Rust 中的迭代器](https://qiaoin.github.io/2022/01/17/rust-iterator/)
 
-3、更多 Rust 相关的文章，敬请期待
+3、[Rust 中的闭包：function-like types and their traits](https://qiaoin.github.io/2022/02/23/rust-closures/)
+
+4、更多 Rust 相关的文章，敬请期待
 
 ## 版权声明
 
@@ -1232,10 +1236,12 @@ fn main() {
 - [Rust The Book](https://doc.rust-lang.org/stable/book/)，Chapter 10、13、19.2、19.3
 - [Design Patterns: Elements of Reusable Object-Oriented Software](https://book.douban.com/subject/1436745/), Chater 5.4 Iterator，内部迭代器（internal iterator）和外部迭代器（external iterator）的来源
 - [rust - What are the main differences between a Rust Iterator and C++ Iterator? - Stack Overflow](https://stackoverflow.com/questions/48999776/what-are-the-main-differences-between-a-rust-iterator-and-c-iterator)
+- [Introducing MIR - Reducing Rust to a simple core](https://blog.rust-lang.org/2016/04/19/MIR.html#reducing-rust-to-a-simple-core)，对于 `for-in-loops` 语法糖有详细介绍
 - [Creating an Iterator in Rust](https://aloso.github.io/2021/03/09/creating-an-iterator)，强烈推荐阅读，实现树的深度优先遍历
 - [Programming Rust (2nd Edition)](https://book.douban.com/subject/34973905/)，Chapter 15，`dump` 示例来源，有修改
 - [Rust for Rustaceans](https://book.douban.com/subject/35520588/)，Chapter 2.2 Generic Traits、Chapter 13.2 Pattern in the Wild
 - [rfcs/0445-extension-trait-conventions.md at master · rust-lang/rfcs](https://github.com/rust-lang/rfcs/blob/master/text/0445-extension-trait-conventions.md)，extension traits 对应的 RFC
+- [Rust extension traits, greppability and IDEs](https://eli.thegreenplace.net/2022/rust-extension-traits-greppability-and-ides/)
 - [Extension traits in Rust](http://xion.io/post/code/rust-extension-traits.html)，描述了两种使用 extension traits 的场景
 - [cheats.rs](https://cheats.rs/)，Iterators、Blanket Implementations、Sized
 - [rust-blog/sizedness-in-rust](https://github.com/pretzelhammer/rust-blog/blob/master/posts/sizedness-in-rust.md)，强烈推荐阅读，关于 `Sized` trait 的所有内容，这篇博客都会给到解答

@@ -138,6 +138,16 @@ fn main() {
 
 因此分隔符 `delimiter` 使用 `&str` 类型。
 
+> [Chapter 8 - Storing UTF-8 Encoded Text with Strings - What Is a String?](https://doc.rust-lang.org/book/ch08-02-strings.html#what-is-a-string) 有详细介绍，这一节内容讲解的很好，值得反复翻看：
+>
+> We’ll first define what we mean by the term *string*. Rust has only one string type in the core language, which is the string slice `str` that is usually seen in its borrowed form `&str`. In Chapter 4, we talked about *string slices*, which are references to some UTF-8 encoded string data stored elsewhere. String literals, for example, are stored in the program’s binary and are therefore string slices.
+>
+> The `String` type, which is provided by Rust’s standard library rather than coded into the core language, is a growable, mutable, owned, UTF-8 encoded string type. When Rustaceans refer to “strings” in Rust, they usually mean the `String` and the string slice `&str` types, not just one of those types. Although this section is largely about `String`, both types are used heavily in Rust’s standard library, and both `String` and string slices are UTF-8 encoded.
+>
+> Rust’s standard library also includes a number of other string types, such as `OsString`, `OsStr`, `CString`, and `CStr`. Library crates can provide even more options for storing string data. See how those names all end in `String` or `Str`? They refer to owned and borrowed variants, just like the `String` and `str` types you’ve seen previously. These string types can store text in different encodings or be represented in memory in a different way, for example. We won’t discuss these other string types in this chapter; see their API documentation for more about how to use them and when each is appropriate.
+
+StackOverflow 上这个问题也值得查看 [What are the differences between Rust's `String` and `str`?](https://stackoverflow.com/questions/24158114/what-are-the-differences-between-rusts-string-and-str)
+
 ### Iterator trait
 
 查看标准文档 [Iterator trait](https://doc.rust-lang.org/std/iter/trait.Iterator.html)：
@@ -1284,7 +1294,9 @@ where
 
 2、[Rust 中的迭代器](https://qiaoin.github.io/2022/01/17/rust-iterator/)
 
-3、更多 Rust 相关的文章，敬请期待
+3、[Rust 中的闭包：function-like types and their traits](https://qiaoin.github.io/2022/02/23/rust-closures/)
+
+4、更多 Rust 相关的文章，敬请期待
 
 ## 版权声明
 
