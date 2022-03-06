@@ -255,8 +255,9 @@ fn main() {
 
 {{< figure src="images/closure-impl-FnMut-trait.png" caption="图 5：闭包类型实现 FnMut trait，对应的 MIR" >}}
 
-将上述三个变种的闭包类型表示为 `C`（for closure type），表 1：
+将上述三个变种的闭包类型表示为 `C`（for closure type）：
 
+{{< bootstrap-table table_class="table table-striped table-borderless" thead_class="table-success" caption="表 1：closure 所捕获变量的类型及调用方式" >}}
 |                 | 图 2 - 显式 move    | 图 4 - 不可变引用    | 图 5 - 可变引用           |
 | --------------- | ------------------- | -------------------- | ------------------------- |
 | C.0             | std::string::String | &std::string::String | &mut std::string::String  |
@@ -264,6 +265,7 @@ fn main() {
 | trait & method  | FnOnce::call_once() | Fn::call()           | FnMut::call_mut()         |
 | first param `C` | self                | &self                | &mut self                 |
 | call type `C`   | call-by-value       | call-by-reference    | call-by-mutable-reference |
+{{< /bootstrap-table >}}
 
 图 6 为 [cheats.rs](https://cheats.rs/#closures-data) 上对 closures data layout 的介绍，同时生成的匿名函数 `fn` —— `f(C1, X)` 或 `f(&C2, X)` —— 即对应图 2、图 4、图 5 中的标记 4。
 
@@ -759,11 +761,13 @@ fn bar<F>(f: F) where F: FnOnce(Gender) {
 
 使用下表进行理解。
 
+{{< bootstrap-table table_class="table table-striped table-borderless" thead_class="table-success" caption="表 2：closure body 对捕获变量的使用情况与 closure type impl Fn* traits 之间的关系" >}}
 | closure body 使用情况 | closure type impl `Fn*`                    | closure type impl `Copy`                        | 代码示例                                                     |
-| --------------------- | ------------------------------------------ | ----------------------------------------------- | ------------------------------------------------------------ |
+|---------------------|------------------------------------------|-----------------------------------------------|------------------------------------------------------------|
 | by shared references  | `Fn`，由于 supertrait，`FnMut` 和 `FnOnce` | Y                                               | [代码 11，call-Fn-with-FnOnce-and-FnMut](https://play.rust-lang.org/?version=stable&mode=debug&edition=2021&gist=995bc6641906173ec532b40553e20018) |
 | by mutable references | `FnMut`，由于 supertrait，`FnOnce`         | N                                               | [代码 12，call-FnMut-with-FnOnce](https://play.rust-lang.org/?version=stable&mode=debug&edition=2021&gist=7b380aaae5c7514e2bb2f1d837e13924) |
 | by move or copy       | `FnOnce`                                   | If all fields is `Copy`, closure type is `Copy` | /                                                            |
+{{< /bootstrap-table >}}
 
 注意 ⚠️：表格不考虑显式的 `move` 关键字（会影响闭包类型实现 `Fn` trait 时，对 `Copy` trait 的实现），会在后面小结专门介绍。
 

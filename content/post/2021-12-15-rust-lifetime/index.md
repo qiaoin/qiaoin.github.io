@@ -1207,16 +1207,16 @@ where
 
 实现了 `Pattern` trait 的六种类型都可以作为 `split()` 的入参，在 `haystack: &'a str` 中搜索匹配的字符串，[表格 1](https://doc.rust-lang.org/std/str/pattern/trait.Pattern.html) 展示了对应的类型和搜索匹配之间的关系。
 
+{{< bootstrap-table table_class="table table-striped table-borderless" thead_class="table-success" caption="表 1：实现 `Pattern` trait 的六种类型与搜索匹配的对应关系" >}}
 | Pattern type             | Match condition                          |
-| :----------------------- | :--------------------------------------- |
+| -----------------------  | ---------------------------------------  |
 | `&str`                   | is substring                             |
 | `char`                   | is contained in string                   |
 | `&[char]`                | any char in slice is contained in string |
 | `F: FnMut(char) -> bool` | `F` returns `true` for a char in string  |
 | `&&str`                  | is substring                             |
 | `&String`                | is substring                             |
-
-表格 1：实现 `Pattern` trait 的六种类型与搜索匹配的对应关系
+{{< /bootstrap-table >}}
 
 ```rust
 pub trait Pattern<'a> {
