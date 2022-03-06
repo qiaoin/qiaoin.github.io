@@ -1,0 +1,1276 @@
+<!DOCTYPE html>
+<html lang="en-us">
+  <head>
+    <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="generator" content="Hugo 0.82.0" />
+
+
+<title>Rust 中的闭包：function-like types and their traits - 在桥边</title>
+<meta property="og:title" content="Rust 中的闭包：function-like types and their traits - 在桥边">
+
+
+  <link href='https://qiaoin.github.io/favicon.ico' rel='icon' type='image/x-icon'/>
+
+
+
+  
+
+
+
+
+
+
+
+
+<link href='//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/styles/monokai.min.css' rel='stylesheet' type='text/css' />
+
+
+
+<link rel="stylesheet" href="/css/fonts.css" media="all">
+<link rel="stylesheet" href="/css/main.css" media="all">
+<link rel="stylesheet" href="/css/bootstrap-table.css">
+
+<link rel="stylesheet" href="/css/custom.css">
+
+
+
+  </head>
+  <body>
+    <div class="wrapper">
+      <header class="header">
+        <nav class="nav">
+  <a href="/" class="nav-logo">
+    <img src="/images/logo.png"
+         width="50"
+         height="50"
+         alt="Logo">
+  </a>
+
+  <ul class="nav-links">
+    
+    <li><a href="/re-learning-cs/">重学基础</a></li>
+    
+    <li><a href="/readings/">Readings</a></li>
+    
+    <li><a href="/about/">About</a></li>
+    
+    <li><a href="https://github.com/qiaoin">GitHub</a></li>
+    
+  </ul>
+</nav>
+
+      </header>
+
+
+<main class="content" role="main">
+
+  <article class="article">
+    
+    
+
+    <h1 class="article-title">Rust 中的闭包：function-like types and their traits</h1>
+
+    
+    <span class="article-date">2022-02-23</span>
+    
+
+    <div class="article-content">
+      <p>在本文中，我们首先介绍 Rust 中三种 function-like types，分别是 function items、function pointers、closures，讲解它们之间的区别与联系。另一大部分是分析 <code>Fn*</code> traits —— <code>FnOnce</code>、<code>FnMut</code>、<code>Fn</code> 三个 traits，梳理它们的 supertrait 关系，以及 <code>move</code> 关键字对 closures 的影响。</p>
+<hr>
+<div class="toc">
+    <details>
+        <summary>Table of contents</summary>
+        <nav id="TableOfContents">
+  <ul>
+    <li><a href="#three-function-like-types">Three function-like types</a>
+      <ul>
+        <li><a href="#function-item-types">function item types</a></li>
+        <li><a href="#function-pointer-types">function pointer types</a></li>
+        <li><a href="#closure-types">closure types</a></li>
+        <li><a href="#summary">summary</a></li>
+      </ul>
+    </li>
+    <li><a href="#three-fn-traits">Three <code>Fn*</code> traits</a>
+      <ul>
+        <li><a href="#fnonce-trait">FnOnce trait</a></li>
+        <li><a href="#fnmut-trait">FnMut trait</a></li>
+        <li><a href="#fn-trait">Fn trait</a></li>
+        <li><a href="#supertrait-between-three">supertrait between three</a></li>
+        <li><a href="#mut-keyword"><code>mut</code> keyword</a></li>
+        <li><a href="#move-keyword"><code>move</code> keyword</a></li>
+        <li><a href="#summary-1">summary</a></li>
+      </ul>
+    </li>
+    <li><a href="#conclusion">Conclusion</a></li>
+    <li><a href="#license">License</a></li>
+    <li><a href="#references">References</a></li>
+    <li><a href="#appendix">Appendix</a>
+      <ul>
+        <li><a href="#a---tuple-like-struct-or-enum-variant">A - tuple-like struct or enum variant</a></li>
+        <li><a href="#b---rust-mir">B - Rust MIR</a></li>
+        <li><a href="#c---method-call-expressions">C - Method-call expressions</a></li>
+      </ul>
+    </li>
+  </ul>
+</nav>
+    </details>
+</div>
+<hr>
+<h2 id="three-function-like-types">Three function-like types</h2>
+<p>Rust 中包含三种 function-like types：</p>
+<p>1、<a href="https://doc.rust-lang.org/reference/types/function-item.html">Function item types</a></p>
+<p>2、<a href="https://doc.rust-lang.org/reference/types/function-pointer.html">Function pointer types</a></p>
+<p>3、<a href="https://doc.rust-lang.org/reference/types/closure.html">Closure types</a></p>
+<h3 id="function-item-types">function item types</h3>
+<p>直接从示例代码开始，<a href="https://play.rust-lang.org/?version=stable&amp;mode=debug&amp;edition=2021&amp;gist=cfb527e705feff799a7459f0487d702d">代码 1，function-item-types</a>：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-rust" data-lang="rust"><span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">main</span>() {
+    <span style="color:#75715e">// `not_ptr_bar` is zero-sized, uniquely identifying `bar`
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// `not_ptr_bar`&#39;s type == fn item `fn() -&gt; i32 {bar}`
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">let</span> <span style="color:#66d9ef">mut</span> not_ptr_bar <span style="color:#f92672">=</span> bar;
+    assert_eq<span style="color:#f92672">!</span>(std::mem::size_of_val(<span style="color:#f92672">&amp;</span>not_ptr_bar), <span style="color:#ae81ff">0</span>);
+    assert_eq<span style="color:#f92672">!</span>(not_ptr_bar(), <span style="color:#ae81ff">42</span>);
+
+    <span style="color:#75715e">// error[E0308]: mismatched types
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// lefe side == fn item `fn() -&gt; _ {bar}`
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// right side == fn item `fn() -&gt; _ {foo}`
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// different `fn` items always have unique types, even if their signatures are
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// the same change the expected type to be function pointer `fn() -&gt; i32`
+</span><span style="color:#75715e"></span>    not_ptr_bar <span style="color:#f92672">=</span> foo;
+
+    <span style="color:#75715e">// a shared reference to the zero-sized type identifying `bar`
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// `&amp;bar` is never what you want when `bar` is a function
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// `shared_ref_bar`&#39;s type == reference `&amp;fn() -&gt; i32 {bar}`
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">let</span> shared_ref_bar <span style="color:#f92672">=</span> <span style="color:#f92672">&amp;</span>bar;
+    assert_eq<span style="color:#f92672">!</span>(std::mem::size_of_val(<span style="color:#f92672">&amp;</span>shared_ref_bar), mem::size_of::<span style="color:#f92672">&lt;</span><span style="color:#66d9ef">usize</span><span style="color:#f92672">&gt;</span>());<span style="color:#75715e">// 8
+</span><span style="color:#75715e"></span>    assert_eq<span style="color:#f92672">!</span>(shared_ref_bar(), <span style="color:#ae81ff">42</span>);
+}
+
+<span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">bar</span>() -&gt; <span style="color:#66d9ef">i32</span> {
+    <span style="color:#ae81ff">42</span>
+}
+
+<span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">foo</span>() -&gt; <span style="color:#66d9ef">i32</span> {
+    <span style="color:#ae81ff">32</span>
+}
+</code></pre></div><p>使用 <code>fn bar() -&gt; i32 { ... }</code> 创建函数，<code>bar</code> 作为函数名表示一个不可命名的类型，唯一标识该函数（a value of an unnameable type that uniquely identifies the function <code>bar</code>），称为 <a href="https://doc.rust-lang.org/reference/types/function-item.html">function item types</a>。function item types 是 ZST（Zero-Sized-Type, contains no data），因为类型已经唯一确定函数了，在执行函数调用时无需动态派发（no indirection is needed when the function is called; does not require dynamic dispatch）。</p>
+<p>注意到 <code>bar</code> 和 <code>foo</code> 有相同的函数签名，但表示 function item types 时为不同的类型，因此不能相互赋值（<code>error[E0308]: mismatched types</code>）。编译器的错误信息中，将 <code>bar</code> function item type 打印为 <code>fn() -&gt; i32 {bar}</code>（函数名 <code>bar</code> 包含在 <code>{}</code> 中）。</p>
+<p>感兴趣的同学可以查看 <a href="https://github.com/rust-lang/rust/pull/19891">Implement unique types per fn item, rather than having all fn items have fn pointer type by nikomatsakis · Pull Request #19891</a>。</p>
+<p>funtion item types 唯一标识对应的函数（unique identifier），那对于包含有范型参数（generic type parameters）的函数应如何处理？</p>
+<p><a href="https://play.rust-lang.org/?version=stable&amp;mode=debug&amp;edition=2021&amp;gist=05608259d3531c815a920f312d8c73d8">代码 2，function-item-types-with-generic-type</a>，范型参数作为 function item types 的一部分。</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-rust" data-lang="rust"><span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">main</span>() {
+    <span style="color:#75715e">// error[E0282]: type annotations needed for `fn() -&gt; i32`
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// let without_generic_type_bar = bar;
+</span><span style="color:#75715e"></span>
+    <span style="color:#75715e">// `with_i32_bar`&#39;s type == fn item `fn() -&gt; i32 {bar::&lt;i32&gt;}`
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">let</span> <span style="color:#66d9ef">mut</span> with_i32_bar <span style="color:#f92672">=</span> bar::<span style="color:#f92672">&lt;</span><span style="color:#66d9ef">i32</span><span style="color:#f92672">&gt;</span>;
+    assert_eq<span style="color:#f92672">!</span>(std::mem::size_of_val(<span style="color:#f92672">&amp;</span>with_i32_bar), <span style="color:#ae81ff">0</span>);
+
+    <span style="color:#75715e">// error[E0308]: mismatched types
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// left type == fn item `fn() -&gt; _ {bar::&lt;i32&gt;}`
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// right type == fn item `fn() -&gt; _ {bar::&lt;u32&gt;}`
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// different `fn` items always have unique types, even if their signatures are
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// the same change the expected type to be function pointer `fn() -&gt; i32`
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// if the expected type is due to type inference,
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// cast the expected `fn` to a function pointer: `bar::&lt;i32&gt; as fn() -&gt; i32`
+</span><span style="color:#75715e"></span>    with_i32_bar <span style="color:#f92672">=</span> bar::<span style="color:#f92672">&lt;</span><span style="color:#66d9ef">u32</span><span style="color:#f92672">&gt;</span>;
+}
+
+<span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">bar</span><span style="color:#f92672">&lt;</span>T<span style="color:#f92672">&gt;</span>() -&gt; <span style="color:#66d9ef">i32</span> {
+    <span style="color:#ae81ff">42</span>
+}
+</code></pre></div><p>所有的 function items 均实现了以下 traits：</p>
+<ul>
+<li><a href="https://doc.rust-lang.org/std/ops/trait.Fn.html"><code>Fn</code></a></li>
+<li><a href="https://doc.rust-lang.org/std/ops/trait.FnMut.html"><code>FnMut</code></a></li>
+<li><a href="https://doc.rust-lang.org/std/ops/trait.FnOnce.html"><code>FnOnce</code></a></li>
+<li><a href="https://doc.rust-lang.org/reference/special-types-and-traits.html#copy"><code>Copy</code></a></li>
+<li><a href="https://doc.rust-lang.org/reference/special-types-and-traits.html#clone"><code>Clone</code></a></li>
+<li><a href="https://doc.rust-lang.org/reference/special-types-and-traits.html#send"><code>Send</code></a></li>
+<li><a href="https://doc.rust-lang.org/reference/special-types-and-traits.html#sync"><code>Sync</code></a></li>
+</ul>
+<p><code>error[E0308]</code> 提示信息中，编译器建议将 funtciont item types 转换为 function pointer types。什么是 function pointer types 呢？</p>
+<h3 id="function-pointer-types">function pointer types</h3>
+<blockquote>
+<p>Function pointers are pointers that point to <strong>code</strong>, not data. They can be called just like functions.</p>
+</blockquote>
+<p>与 function item types 不同（function item types 不可命名，Rust 编译器打印为 <code>fn() -&gt; i32 {bar}</code>，函数名 <code>bar</code> 包含在 <code>{}</code> 中），function pointer types 使用 <code>fn</code> 关键字进行命名（表示为 <code>fn() -&gt; i32</code>），指向函数的入口地址（refer to a function whose identity is not necessarily known at compile-time），可以经由 function items 和 non-capturing <a href="https://doc.rust-lang.org/reference/types/closure.html">closures</a> 转换得到。先看一下 function items 到 function pointers 的类型转换（non-capturing closures 到 function pointers 的类型转换在下一小节介绍），<a href="https://play.rust-lang.org/?version=stable&amp;mode=debug&amp;edition=2021&amp;gist=436e5f77b3e16dccf3b67d620e056178">代码 3，create-function-pointers-by-function-items</a>：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-rust" data-lang="rust"><span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">main</span>() {
+    <span style="color:#75715e">// `not_ptr_bar` is zero-sized, uniquely identifying `bar`
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// `not_ptr_bar`&#39;s type == fn item `fn() -&gt; i32 {bar}`
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">let</span> not_ptr_bar <span style="color:#f92672">=</span> bar;
+    assert_eq<span style="color:#f92672">!</span>(std::mem::size_of_val(<span style="color:#f92672">&amp;</span>not_ptr_bar), <span style="color:#ae81ff">0</span>);
+    assert_eq<span style="color:#f92672">!</span>(not_ptr_bar(), <span style="color:#ae81ff">42</span>);
+
+    <span style="color:#75715e">// force coercion to function pointer
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// `ptr_bar`&#39;s type == funtion pointer `fn() -&gt; i32`
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">let</span> <span style="color:#66d9ef">mut</span> ptr_bar: <span style="color:#a6e22e">fn</span>() -&gt; <span style="color:#66d9ef">i32</span> <span style="color:#f92672">=</span> not_ptr_bar;
+    assert_eq<span style="color:#f92672">!</span>(std::mem::size_of_val(<span style="color:#f92672">&amp;</span>ptr_bar), std::mem::size_of::<span style="color:#f92672">&lt;</span><span style="color:#66d9ef">usize</span><span style="color:#f92672">&gt;</span>());
+    assert_eq<span style="color:#f92672">!</span>(ptr_bar(), <span style="color:#ae81ff">42</span>);
+
+    <span style="color:#75715e">// force coercion to function pointer
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// `ptr_bar`&#39;s type == funtion pointer `fn() -&gt; i32`
+</span><span style="color:#75715e"></span>    ptr_bar <span style="color:#f92672">=</span> foo;
+    assert_eq<span style="color:#f92672">!</span>(std::mem::size_of_val(<span style="color:#f92672">&amp;</span>ptr_bar), std::mem::size_of::<span style="color:#f92672">&lt;</span><span style="color:#66d9ef">usize</span><span style="color:#f92672">&gt;</span>());
+    assert_eq<span style="color:#f92672">!</span>(ptr_bar(), <span style="color:#ae81ff">32</span>);
+}
+
+<span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">bar</span>() -&gt; <span style="color:#66d9ef">i32</span> {
+    <span style="color:#ae81ff">42</span>
+}
+
+<span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">foo</span>() -&gt; <span style="color:#66d9ef">i32</span> {
+    <span style="color:#ae81ff">32</span>
+}
+</code></pre></div><p>使用 Rust MIR（<strong>M</strong>id-level <strong>I</strong>ntermediate <strong>R</strong>epresentation，一种中间表示，我们只需能够阅读并理解即可，本文会大量使用 Rust MIR 进行内容阐述 ⚠️。关于 Rust MIR 的资料见本文附录 A）查看类型转换（<a href="https://doc.rust-lang.org/reference/type-coercions.html">type-coercion</a>），有两种在线方式输出 MIR：</p>
+<ul>
+<li>方式 1：<a href="https://play.rust-lang.org/">Rust Playground</a>，左上角「RUN ▶️  &hellip;」，点击「&hellip;」选择 MIR；</li>
+<li>方式 2：<a href="https://godbolt.org/">Compiler Explorer</a>，「➕ Add new&hellip;」选择「Rust MIR output」，输出的 MIR 支持关键字高亮展示和代码块折叠，本文截图都使用 Compiler Explorer。</li>
+</ul>
+<p>将 <code>assert_eq!()</code> 删除，保留最简单的一段代码，function items 到 function pointers 的隐式类型转换，对应图 1 右侧 Line 25，使用 <code>as</code> 关键字将 <code>_3</code> 的 <code>fn() -&gt; i32 {bar}</code> 转换为 <code>fn() -&gt; i32 (Pointer(ReifyFnPointer))</code>，<code>ReifyFnPointer</code> 文档说明见 <a href="https://doc.rust-lang.org/nightly/nightly-rustc/rustc_middle/ty/adjustment/enum.PointerCast.html#variant.ReifyFnPointer">PointerCast in rustc_middle::ty::adjustment</a> —— 「Go from a fn-item type to a fn-pointer type」。</p>
+<figure>
+    <img src="images/fn-item-force-coercion-fn-pointer.png"
+         alt="图 1：fn items 转换为 fn pointers"/> <figcaption>
+            <p>图 1：fn items 转换为 fn pointers</p>
+        </figcaption>
+</figure>
+
+<p>以下两种情况会进行 function item type 到  function pointer type 的转换：</p>
+<ul>
+<li>1、显式指定时：显式进行类型指定 <code>let ptr_bar: fn() -&gt; i32 = not_ptr_bar;</code>（a function item is used when a function pointer is directly expected）；</li>
+<li>2、模式匹配时：<code>if</code> or <code>match</code> 模式匹配中，相同函数签名的不同 function item types（different function item types with the same signature meet in different arms of the same <code>if</code> or <code>match</code>）。</li>
+</ul>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-rust" data-lang="rust"><span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">foo</span><span style="color:#f92672">&lt;</span>T<span style="color:#f92672">&gt;</span>() -&gt; <span style="color:#66d9ef">i32</span> {
+    <span style="color:#ae81ff">42</span>
+}
+
+<span style="color:#75715e">// `foo_ptr_1` has function pointer type `fn() -&gt; i32` here
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">let</span> foo_ptr_1: <span style="color:#a6e22e">fn</span>() -&gt; <span style="color:#66d9ef">i32</span> <span style="color:#f92672">=</span> foo::<span style="color:#f92672">&lt;</span><span style="color:#66d9ef">i32</span><span style="color:#f92672">&gt;</span>;
+
+<span style="color:#75715e">// ... and so does `foo_ptr_2` - this type-checks.
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">let</span> foo_ptr_2 <span style="color:#f92672">=</span> <span style="color:#66d9ef">if</span> want_i32 {
+    foo::<span style="color:#f92672">&lt;</span><span style="color:#66d9ef">i32</span><span style="color:#f92672">&gt;</span>
+} <span style="color:#66d9ef">else</span> {
+    foo::<span style="color:#f92672">&lt;</span><span style="color:#66d9ef">u32</span><span style="color:#f92672">&gt;</span>
+};
+</code></pre></div><p>所有的 function pointers 均实现了以下 traits：</p>
+<ul>
+<li><a href="https://doc.rust-lang.org/std/marker/trait.Copy.html"><code>Copy</code></a></li>
+<li><a href="https://doc.rust-lang.org/std/clone/trait.Clone.html"><code>Clone</code></a></li>
+<li><a href="https://doc.rust-lang.org/std/cmp/trait.PartialEq.html"><code>PartialEq</code></a></li>
+<li><a href="https://doc.rust-lang.org/std/cmp/trait.Eq.html"><code>Eq</code></a></li>
+<li><a href="https://doc.rust-lang.org/std/cmp/trait.PartialOrd.html"><code>PartialOrd</code></a></li>
+<li><a href="https://doc.rust-lang.org/std/cmp/trait.Ord.html"><code>Ord</code></a></li>
+<li><a href="https://doc.rust-lang.org/std/hash/trait.Hash.html"><code>Hash</code></a></li>
+<li><a href="https://doc.rust-lang.org/std/fmt/trait.Pointer.html"><code>Pointer</code></a></li>
+<li><a href="https://doc.rust-lang.org/std/fmt/macro.Debug.html"><code>Debug</code></a></li>
+</ul>
+<p>此外，所有的 <strong>safe</strong> function pointers 同时还实现了 <a href="https://doc.rust-lang.org/std/ops/trait.Fn.html"><code>Fn</code></a>、<a href="https://doc.rust-lang.org/std/ops/trait.FnMut.html"><code>FnMut</code></a> 和 <a href="https://doc.rust-lang.org/std/ops/trait.FnOnce.html"><code>FnOnce</code></a> traits。function pointers safety 相关的内容参见文档 <a href="https://doc.rust-lang.org/std/primitive.fn.html#safety">Safety</a>。</p>
+<p>接下来看一下 closures。</p>
+<h3 id="closure-types">closure types</h3>
+<p>Rust reference 对 <a href="https://doc.rust-lang.org/reference/types/closure.html">closure types</a> 的介绍如下：</p>
+<blockquote>
+<p>A <a href="https://doc.rust-lang.org/reference/expressions/closure-expr.html">closure expression</a> produces a closure value with a unique, anonymous type that cannot be written out. A closure type is approximately equivalent to a struct which contains the captured variables.</p>
+</blockquote>
+<p>使用闭包语法（<code>|args| expression</code>）创建闭包，与 function item types 类似，每个闭包对应一个唯一的、不可命名的类型（闭包类型在生成的 MIR 中有体现，但无法在 Rust 代码的其他地方使用）。这个类型就像一个 <code>struct</code>，捕获的自由变量表示为 <code>struct</code> 的字段。</p>
+<p>闭包类似于一个特殊的 <code>struct</code>？</p>
+<p>写段代码测试，<a href="https://play.rust-lang.org/?version=nightly&amp;mode=debug&amp;edition=2021&amp;gist=e43563a0fe2c44d22239bfad8676cba1">代码 4，closure-types</a>，闭包类型大小与 <code>struct Person</code> 大小一致（内存对齐的规则也是一致的）。</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-rust" data-lang="rust"><span style="color:#75715e">// 闭包等价的结构体，该结构体需实现 FnOnce trait
+</span><span style="color:#75715e">// 对应图 2 中标记 2
+</span><span style="color:#75715e">// struct Person(String, u32); 
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">Person</span> {
+    name: String,
+    age: <span style="color:#66d9ef">u32</span>,
+}
+
+<span style="color:#66d9ef">enum</span> <span style="color:#a6e22e">Gender</span> {
+    Male,
+    Famale,
+}
+
+<span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">main</span>() {
+    <span style="color:#66d9ef">let</span> name <span style="color:#f92672">=</span> String::from(<span style="color:#e6db74">&#34;qiao&#34;</span>);  <span style="color:#75715e">// 24 bytes
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">let</span> age: <span style="color:#66d9ef">u32</span> <span style="color:#f92672">=</span> <span style="color:#ae81ff">28</span>;  <span style="color:#75715e">// 4 bytes
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// 捕获 name 和 age，类似 struct Person
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">let</span> me <span style="color:#f92672">=</span> <span style="color:#66d9ef">move</span> <span style="color:#f92672">|</span>gender: <span style="color:#a6e22e">Gender</span><span style="color:#f92672">|</span> (name, age, gender);
+
+    assert_eq<span style="color:#f92672">!</span>(std::mem::size_of_val(<span style="color:#f92672">&amp;</span>me), <span style="color:#ae81ff">32</span>);  <span style="color:#75715e">// 内存对齐
+</span><span style="color:#75715e"></span>    assert_eq<span style="color:#f92672">!</span>(std::mem::size_of::<span style="color:#f92672">&lt;</span>Person<span style="color:#f92672">&gt;</span>(), <span style="color:#ae81ff">32</span>);  <span style="color:#75715e">// 内存对齐
+</span><span style="color:#75715e"></span>
+    <span style="color:#66d9ef">let</span> person <span style="color:#f92672">=</span> me(Gender::Male);
+}
+</code></pre></div><p>简化代码，图 2 为编译器生成的 MIR 中间代码，<code>me</code> 表示的闭包类型为 <code>[closure@/app/example.rs:10:14: 10:55]</code>（图 2 标记 1），包含两个字段，类型分别为 <code>std::string::String</code> 和 <code>u32</code>（图 2 标记 2），在执行调用时将闭包类型转换为 <code>FnOnce&lt;(Gender,)&gt;</code>，然后调用 <code>call_once([closure@/app/example.rs:10:14: 10:55], Gender)</code>（图 2 标记 3），对应匿名函数 <code>fn main::{closure#0}(_1: [closure@/app/example.rs:10:14: 10:55], _2: Gender) -&gt; (String, u32, Gender)</code>（图 2 标记 4）。</p>
+<figure>
+    <img src="images/closure-impl-FnOnce-trait.png"
+         alt="图 2：闭包类型实现 FnOnce trait，对应的 MIR"/> <figcaption>
+            <p>图 2：闭包类型实现 FnOnce trait，对应的 MIR</p>
+        </figcaption>
+</figure>
+
+<p>注意，标记 1 处的闭包类型包含有行号+列号（这只是目前 Rust MIR 对闭包类型的一种表示，唯一标识闭包类型），因此，图 3 中的赋值，即使二者定义完全相同，编译器也会报错 —— 类型不一致：</p>
+<figure>
+    <img src="images/same-signature-different-closures.png"
+         alt="图 3：相同签名的闭包定义对应不同的闭包类型表示"/> <figcaption>
+            <p>图 3：相同签名的闭包定义对应不同的闭包类型表示</p>
+        </figcaption>
+</figure>
+
+<p>图 2 中的标记 2、3、4 是相互关联的，将标记 0 处的代码修改一下，可以得到以下几个变种：</p>
+<ul>
+<li>shared reference —— 对应图 4，见下文；</li>
+<li>mutable reference —— 对应图 5，见下文；</li>
+<li>move or copy —— 对应图 2，显式 move 语义。</li>
+</ul>
+<p>对于捕获到的变量，仅使用不可变引用，闭包类型为 <code>[closure@/app/example.rs:10:14: 10:52]</code>（图 4 标记 1），包含两个字段，类型分别为 <code>&amp;std::string::String</code> 和 <code>&amp;u32</code>（图 4 标记 2），实现 <code>Fn</code> trait（图 4 标记 3），匿名函数的第一个入参为不可变引用 <code>_1: &amp;[closure@/app/example.rs:10:14: 10:52]</code>（图 4 标记 4）；</p>
+<figure>
+    <img src="images/closure-impl-Fn-trait.png"
+         alt="图 4：闭包类型实现 Fn trait，对应的 MIR"/> <figcaption>
+            <p>图 4：闭包类型实现 Fn trait，对应的 MIR</p>
+        </figcaption>
+</figure>
+
+<p>对于捕获到的变量，执行修改，闭包类型为 <code>[closure@/app/example.rs:10:18: 13:6]</code>（图 5 标记 1），包含两个字段，类型分别为 <code>&amp;mut std::string::String</code> 和 <code>&amp;mut u32</code>（图 5 标记 2），实现 <code>FnMut</code> trait（图 5 标记 3），匿名函数的第一个入参为可变引用 <code>_1: &amp;mut [closure@/app/example.rs:10:18: 13:6]</code>（图 5 标记 4）；</p>
+<figure>
+    <img src="images/closure-impl-FnMut-trait.png"
+         alt="图 5：闭包类型实现 FnMut trait，对应的 MIR"/> <figcaption>
+            <p>图 5：闭包类型实现 FnMut trait，对应的 MIR</p>
+        </figcaption>
+</figure>
+
+<p>将上述三个变种的闭包类型表示为 <code>C</code>（for closure type）：</p>
+
+
+
+
+     
+    
+    
+     
+
+
+
+
+
+
+
+<div class="table-responsive">
+<table class="table table-striped table-borderless">
+<caption>表 1：closure 所捕获变量的类型及调用方式</caption>
+<thead class="table-success">
+<tr>
+<th></th>
+<th>图 2 - 显式 move</th>
+<th>图 4 - 不可变引用</th>
+<th>图 5 - 可变引用</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>C.0</td>
+<td>std::string::String</td>
+<td>&amp;std::string::String</td>
+<td>&amp;mut std::string::String</td>
+</tr>
+<tr>
+<td>C.1</td>
+<td>u32</td>
+<td>&amp;u32</td>
+<td>&amp;mut u32</td>
+</tr>
+<tr>
+<td>trait &amp; method</td>
+<td>FnOnce::call_once()</td>
+<td>Fn::call()</td>
+<td>FnMut::call_mut()</td>
+</tr>
+<tr>
+<td>first param <code>C</code></td>
+<td>self</td>
+<td>&amp;self</td>
+<td>&amp;mut self</td>
+</tr>
+<tr>
+<td>call type <code>C</code></td>
+<td>call-by-value</td>
+<td>call-by-reference</td>
+<td>call-by-mutable-reference</td>
+</tr>
+</tbody>
+</table>
+
+</div>
+
+<p>图 6 为 <a href="https://cheats.rs/#closures-data">cheats.rs</a> 上对 closures data layout 的介绍，同时生成的匿名函数 <code>fn</code> —— <code>f(C1, X)</code> 或 <code>f(&amp;C2, X)</code> —— 即对应图 2、图 4、图 5 中的标记 4。</p>
+<figure>
+    <img src="images/cheatsrs-closures-data-layout.png"
+         alt="图 6：closures data layout"/> <figcaption>
+            <p>图 6：closures data layout</p>
+        </figcaption>
+</figure>
+
+<p>上一小节中提到，non-capturing closures 可以转换为 function pointers，同样写段测试代码，<a href="https://play.rust-lang.org/?version=stable&amp;mode=debug&amp;edition=2021&amp;gist=47a498c5e14c8426d7fc0257b837bac3">代码 5，non-capturing-closure-coerce-fn-pointer</a>，<code>closure_add</code> 未捕获自由变量，size 为 0。</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-rust" data-lang="rust"><span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">main</span>() {
+    <span style="color:#75715e">// `closure_add` is zero-sized, capturing no variables from env
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// `closure_add`&#39;s type == closure@path:line:column
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">let</span> closure_add <span style="color:#f92672">=</span> <span style="color:#f92672">|</span>x: <span style="color:#66d9ef">u32</span>, y: <span style="color:#66d9ef">u32</span><span style="color:#f92672">|</span> -&gt; <span style="color:#66d9ef">u32</span> { x <span style="color:#f92672">+</span> y };
+    assert_eq<span style="color:#f92672">!</span>(std::mem::size_of_val(<span style="color:#f92672">&amp;</span>closure_add), <span style="color:#ae81ff">0</span>);
+    assert_eq<span style="color:#f92672">!</span>(closure_add(<span style="color:#ae81ff">1</span>, <span style="color:#ae81ff">2</span>), <span style="color:#ae81ff">3</span>);
+
+    <span style="color:#75715e">// force coercion to function pointer
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// `ptr_add`&#39;s type == funtion pointer `fn(u32, u32) -&gt; u32`
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">let</span> ptr_add: <span style="color:#a6e22e">fn</span>(<span style="color:#66d9ef">u32</span>, <span style="color:#66d9ef">u32</span>) -&gt; <span style="color:#66d9ef">u32</span> <span style="color:#f92672">=</span> closure_add;
+    assert_eq<span style="color:#f92672">!</span>(std::mem::size_of_val(<span style="color:#f92672">&amp;</span>ptr_add), <span style="color:#ae81ff">8</span>);
+    assert_eq<span style="color:#f92672">!</span>(ptr_add(<span style="color:#ae81ff">1</span>, <span style="color:#ae81ff">2</span>), <span style="color:#ae81ff">3</span>);
+}
+</code></pre></div><p>简化代码，图 7 是编译器为 non-capturing closure（图 7 标记 0）生成的 MIR 中间代码，<code>closure_add</code> 表示的闭包类型为 <code>[closure@/app/example.rs:4:23: 4:56]</code>（图 7 标记 1），在执行调用时将闭包类型转换为 <code>Fn&lt;(u32, u32)&gt;</code>，然后调用 <code>call([closure@/app/example.rs:4:23: 4:56], (u32, u32))</code>（图 7 标记 2），对应匿名函数 <code>fn main::{closure#0}(_1: &amp;[closure@/app/example.rs:4:23: 4:56], _2: u32, _3: u32) -&gt; u32</code>（图 7 中标记 3）。</p>
+<p>对于 non-capturing closures 到 function pointers 的转换（图 7 标记 4），<code>as</code> 关键字将 <code>_6</code> 的 <code>[closure@/app/example.rs:4:23: 4:56]</code> 转换为 <code>fn(u32, u32) -&gt; u32 (Pointer(ClosureFnPointer(Normal))</code>，<code>ClosureFnPointer(Normal)</code> 文档说明见 <a href="https://doc.rust-lang.org/nightly/nightly-rustc/rustc_middle/ty/adjustment/enum.PointerCast.html#variant.ClosureFnPointer">PointerCast in rustc_middle::ty::adjustment</a> —— 「Go from a non-capturing closure to an fn pointer or an unsafe fn pointer. It cannot convert a closure that requires unsafe」。</p>
+<figure>
+    <img src="images/non-capturing-closure-coerce-fn-pointer.png"
+         alt="图 7：non-capturing closures 实现 Fn trait，可转换为 fn pointers"/> <figcaption>
+            <p>图 7：non-capturing closures 实现 Fn trait，可转换为 fn pointers</p>
+        </figcaption>
+</figure>
+
+<p>closure types 对 <code>Fn*</code> trait 的实现，直接引用 Rust reference 中 <a href="https://doc.rust-lang.org/reference/types/closure.html#call-traits-and-coercions">Closure types - Call traits and coercions</a> 的介绍：</p>
+<blockquote>
+<p>Closure types all implement <a href="https://doc.rust-lang.org/std/ops/trait.FnOnce.html"><code>FnOnce</code></a>, indicating that they can be called once by consuming ownership of the closure. Additionally, some closures implement more specific call traits:</p>
+<ul>
+<li>A closure which does not move out of any captured variables implements <a href="https://doc.rust-lang.org/std/ops/trait.FnMut.html"><code>FnMut</code></a>, indicating that it can be called by mutable reference.</li>
+<li>A closure which does not mutate or move out of any captured variables implements <a href="https://doc.rust-lang.org/std/ops/trait.Fn.html"><code>Fn</code></a>, indicating that it can be called by shared reference.</li>
+</ul>
+<p>Note: <code>move</code> closures may still implement <a href="https://doc.rust-lang.org/std/ops/trait.Fn.html"><code>Fn</code></a> or <a href="https://doc.rust-lang.org/std/ops/trait.FnMut.html"><code>FnMut</code></a>, even though they capture variables by move. This is because <strong>the traits implemented by a closure type are determined by what the closure does with captured values, not how it captures them.</strong></p>
+</blockquote>
+<p>看完这段引用，可能会有点迷糊，不用着急，<code>Fn</code>、<code>FnMut</code>、<code>FnOnce</code> 三个 function traits 的介绍和 closure types 与 <code>Fn*</code> traits 之间的联系，会在下一节 Three <code>Fn*</code> traits 详细讲解，到时候读者再来看上面这段引用，就会一目了然了。</p>
+<h3 id="summary">summary</h3>
+<p>参考 StackOverflow 上的这个 <a href="https://stackoverflow.com/questions/27895946/expected-fn-item-found-a-different-fn-item-when-working-with-function-pointer">问题</a>，补充上 no capturing closure，<a href="https://play.rust-lang.org/?version=stable&amp;mode=debug&amp;edition=2021&amp;gist=13b2997636a647bcd1a98dea7dc2f8d7">代码 6，three-function-like-types-and-type-coercion</a>，按照 <code>call_three(foo, bar, baz);</code> 直接进行调用，编译器报类型不匹配：</p>
+<ul>
+<li><code>foo</code> 类型为 fn item <code>fn() -&gt; _ {foo}</code>（fn items 实现了 <code>Fn</code> trait，满足 <code>call_three</code> 的 trait bounds），因此 generic type <code>F</code> 绑定为 <code>fn() -&gt; i32 {foo}</code>；</li>
+<li><code>bar</code> 类型为 fn item <code>fn() -&gt; _ {bar}</code>，按照 <code>call_three</code> 函数签名，需要为 <code>F</code> 类型（<code>F</code> 已绑定为 <code>fn() -&gt; i32 {foo}</code>），但由于每一个 fn item 都是一个唯一标识的类型（unique identifies），因此类型不一致；</li>
+<li><code>baz</code> 类型为 closure <code>[closure@src/main.rs:2:15: 2:20]</code>，同样，按照 <code>call_three</code> 函数签名，需要为 <code>F</code> 类型（<code>fn() -&gt; i32 {foo}</code>），很明显类型不一致。</li>
+</ul>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-rust" data-lang="rust"><span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">main</span>() {
+    <span style="color:#75715e">// no capturing closure
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">let</span> baz <span style="color:#f92672">=</span> <span style="color:#f92672">||</span> <span style="color:#ae81ff">49</span>;
+
+    <span style="color:#75715e">// call_three(foo, bar, baz);  // error[E0308]: mismatched types
+</span><span style="color:#75715e"></span>
+    call_three(foo <span style="color:#66d9ef">as</span> <span style="color:#66d9ef">fn</span>() -&gt; <span style="color:#66d9ef">i32</span>, bar <span style="color:#66d9ef">as</span> <span style="color:#66d9ef">fn</span>() -&gt; <span style="color:#66d9ef">i32</span>, baz <span style="color:#66d9ef">as</span> <span style="color:#66d9ef">fn</span>() -&gt; <span style="color:#66d9ef">i32</span>);
+    call_three(foo <span style="color:#66d9ef">as</span> <span style="color:#66d9ef">fn</span>() -&gt; <span style="color:#66d9ef">i32</span>, bar, baz);
+
+    call_three::<span style="color:#f92672">&lt;</span><span style="color:#66d9ef">fn</span>() -&gt; <span style="color:#66d9ef">i32</span><span style="color:#f92672">&gt;</span>(foo, bar, baz);
+    call_three::<span style="color:#f92672">&lt;</span><span style="color:#66d9ef">fn</span>() -&gt; <span style="color:#a6e22e">_</span><span style="color:#f92672">&gt;</span>(foo, bar, baz);
+}
+
+<span style="color:#75715e">// foo and bar with the signature `fn() -&gt; i32`
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">foo</span>() -&gt; <span style="color:#66d9ef">i32</span> {
+    <span style="color:#ae81ff">32</span>
+}
+
+<span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">bar</span>() -&gt; <span style="color:#66d9ef">i32</span> {
+    <span style="color:#ae81ff">42</span>
+}
+
+<span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">call_three</span><span style="color:#f92672">&lt;</span>F<span style="color:#f92672">&gt;</span>(a: <span style="color:#a6e22e">F</span>, b: <span style="color:#a6e22e">F</span>, c: <span style="color:#a6e22e">F</span>)
+<span style="color:#66d9ef">where</span>
+    F: Fn() -&gt; <span style="color:#66d9ef">i32</span>,
+{
+    a();
+    b();
+    c();
+}
+</code></pre></div><p>明确了错误原因，修复比较简单，让 generic type <code>F</code> 的类型设置为 fn pointer <code>fn() -&gt; i32</code>（fn pointers 实现了 <code>Fn</code> trait，满足 <code>call_three</code> 的 trait bounds），有几种方式：</p>
+<ul>
+<li>1、显式使用 <code>as fn() -&gt; i32</code> 对入参做类型转换；</li>
+<li>2、使用 <code>turbofish</code> 语法 <code>call_three::&lt;fn() -&gt; i32&gt;(...)</code> 指定 generic type，文档参见 <a href="https://matematikaadit.github.io/posts/rust-turbofish.html">Where to put the turbofish</a>。</li>
+</ul>
+<p>结合图 8 进行理解。</p>
+<figure>
+    <img src="images/fn-like-types-coercion-and-fn-traits.png"
+         alt="图 8：三类 function-like types 之间的关系，以及对 Fn* traits 的实现"/> <figcaption>
+            <p>图 8：三类 function-like types 之间的关系，以及对 <code>Fn*</code> traits 的实现</p>
+        </figcaption>
+</figure>
+
+<p>为什么 function items 和 no-capturing closures 可以转换为 function pointers？而 capture env closures 不能转换为 function pointers？</p>
+<p>function items 和 function pointers 都没有 <code>Self</code>（they don&rsquo;t care about <code>Self</code>），它们表示为内存中的一段代码，未指向其他的 references 或者其他任何东西</p>
+<ul>
+<li>没有指向不是所属自己的内存；</li>
+<li>类型本身没有生命周期标志。</li>
+</ul>
+<p>按照这个思路思考闭包类型 <code>C</code>，capture env variables 的时候，对应 <code>C</code> 是包含字段的，也就是有状态的；而 function items 和 no-capturing closures 是没有状态的，因此可以转换为 function pointers。</p>
+<h2 id="three-fn-traits">Three <code>Fn*</code> traits</h2>
+<p>直接看 <code>Fn*</code> traits 的定义。</p>
+<h3 id="fnonce-trait">FnOnce trait</h3>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-rust" data-lang="rust"><span style="color:#75715e">// https://doc.rust-lang.org/src/core/ops/function.rs.html#219-228
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">pub</span> <span style="color:#66d9ef">trait</span> FnOnce<span style="color:#f92672">&lt;</span>Args<span style="color:#f92672">&gt;</span> {
+    <span style="color:#e6db74">/// The returned type after the call operator is used.
+</span><span style="color:#e6db74"></span>    <span style="color:#75715e">#[lang = </span><span style="color:#e6db74">&#34;fn_once_output&#34;</span><span style="color:#75715e">]</span>
+    <span style="color:#75715e">#[stable(feature = </span><span style="color:#e6db74">&#34;fn_once_output&#34;</span><span style="color:#75715e">, since = </span><span style="color:#e6db74">&#34;1.12.0&#34;</span><span style="color:#75715e">)]</span>
+    <span style="color:#66d9ef">type</span> <span style="color:#a6e22e">Output</span>;
+
+    <span style="color:#e6db74">/// Performs the call operation.
+</span><span style="color:#e6db74"></span>    <span style="color:#75715e">#[unstable(feature = </span><span style="color:#e6db74">&#34;fn_traits&#34;</span><span style="color:#75715e">, issue = </span><span style="color:#e6db74">&#34;29625&#34;</span><span style="color:#75715e">)]</span>
+    <span style="color:#66d9ef">extern</span> <span style="color:#e6db74">&#34;rust-call&#34;</span> <span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">call_once</span>(self, args: <span style="color:#a6e22e">Args</span>) -&gt; <span style="color:#a6e22e">Self</span>::Output;
+}
+</code></pre></div><p>包含两个部分：</p>
+<ul>
+<li>关联类型（associated types）。<code>Output</code> 定义了闭包返回的数据类型；</li>
+<li>方法（methods），也称关联函数（associated functions）。<code>call_once</code> 第一个参数是 <code>self</code>，会转移 <code>self</code> 的所有权到 <code>call_once</code> 函数中。因此，在仅实现了 <code>FnOnce</code> trait 类型的实例上，<strong>只能进行一次调用</strong>；再次调用，编译器会提示 <a href="https://doc.rust-lang.org/stable/error-index.html#E0382"><code>error[E0382]</code>: use of moved value</a>。</li>
+</ul>
+<p>在 <a href="https://play.rust-lang.org/?version=nightly&amp;mode=debug&amp;edition=2021&amp;gist=e43563a0fe2c44d22239bfad8676cba1">代码 4，closure-types</a> 中再次调用 <code>me</code>：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-rust" data-lang="rust"><span style="color:#66d9ef">enum</span> <span style="color:#a6e22e">Gender</span> {
+    Male,
+    Famale,
+}
+
+<span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">main</span>() {
+    <span style="color:#66d9ef">let</span> name <span style="color:#f92672">=</span> String::from(<span style="color:#e6db74">&#34;qiao&#34;</span>);
+    <span style="color:#66d9ef">let</span> age: <span style="color:#66d9ef">u32</span> <span style="color:#f92672">=</span> <span style="color:#ae81ff">28</span>;
+    <span style="color:#66d9ef">let</span> me <span style="color:#f92672">=</span> <span style="color:#66d9ef">move</span> <span style="color:#f92672">|</span>gender: <span style="color:#a6e22e">Gender</span><span style="color:#f92672">|</span> (name, age, gender);
+
+    <span style="color:#66d9ef">let</span> person1 <span style="color:#f92672">=</span> me(Gender::Male);
+    
+    <span style="color:#66d9ef">let</span> person2 <span style="color:#f92672">=</span> me(Gender::Famale);
+}
+</code></pre></div><p>编译器给到的报错信息很明确 —— <code>me</code> 对应的闭包类型实现了 <code>FnOnce</code> trait，调用时会将 <code>me</code>（捕获自由变量 <code>name</code>）的所有权转移到 <code>call_once</code> 函数中，再次调用时提示 value used here after move：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash">error<span style="color:#f92672">[</span>E0382<span style="color:#f92672">]</span>: use of moved value: <span style="color:#e6db74">`</span>me<span style="color:#e6db74">`</span>
+  --&gt; src/main.rs:13:19
+   |
+<span style="color:#ae81ff">11</span> |     let person <span style="color:#f92672">=</span> me<span style="color:#f92672">(</span>Gender::Male<span style="color:#f92672">)</span>;
+   |                  ---------------- <span style="color:#e6db74">`</span>me<span style="color:#e6db74">`</span> moved due to this call
+<span style="color:#ae81ff">12</span> | 
+<span style="color:#ae81ff">13</span> |     let person2 <span style="color:#f92672">=</span> me<span style="color:#f92672">(</span>Gender::Famale<span style="color:#f92672">)</span>;
+   |                   ^^ value used here after move
+   |
+note: closure cannot be invoked more than once because it moves the variable <span style="color:#e6db74">`</span>name<span style="color:#e6db74">`</span>
+  out of its environment
+  --&gt; src/main.rs:9:37
+   |
+<span style="color:#ae81ff">9</span>  |     let me <span style="color:#f92672">=</span> move |gender: Gender| <span style="color:#f92672">(</span>name, age, gender<span style="color:#f92672">)</span>;
+   |                                     ^^^^
+note: this value implements <span style="color:#e6db74">`</span>FnOnce<span style="color:#e6db74">`</span>, which causes it to be moved when called
+  --&gt; src/main.rs:11:18
+   |
+<span style="color:#ae81ff">11</span> |     let person <span style="color:#f92672">=</span> me<span style="color:#f92672">(</span>Gender::Male<span style="color:#f92672">)</span>;
+   |                  ^^
+
+For more information about this error, try <span style="color:#e6db74">`</span>rustc --explain E0382<span style="color:#e6db74">`</span>.
+</code></pre></div><p>针对上述代码示例，在 nightly 环境下试着为 <code>struct Person</code> 实现 <code>FnOnce</code> trait（<a href="https://play.rust-lang.org/?version=nightly&amp;mode=debug&amp;edition=2021&amp;gist=22cc0902869faaecbe0c1c5f61f3915e">代码 7，impl-FnOnce-for-struct-Person</a>），enable 两个 unstable feature flags，对应 <a href="https://github.com/rust-lang/rust/issues/29625">Tracking issue for Fn traits (<code>unboxed_closures</code> &amp; <code>fn_traits</code> feature) · Issue #29625 · rust-lang/rust</a>。</p>
+<ul>
+<li><a href="https://doc.rust-lang.org/beta/unstable-book/library-features/fn-traits.html">fn_traits</a> —— 允许用户为自定义类型实现 <code>Fn*</code> traits，实现后该 closure-like types 可以作为函数进行调用；</li>
+<li><a href="https://doc.rust-lang.org/beta/unstable-book/language-features/unboxed-closures.html">unboxed_closures</a> —— 允许用户在实现 <code>Fn*</code> traits 时使用 &ldquo;rust-call&rdquo; ABI，&ldquo;rust-call&rdquo; ABI 只能有唯一一个入参（非 <code>self</code>），使用 tuple 表示参数列表（the argumements must be a tuple representing the argument list），例如 <code>args: (Gender,)</code>，更多信息参考错误列表 <a href="https://doc.rust-lang.org/error-index.html#E0045">E0045</a>、<a href="https://doc.rust-lang.org/error-index.html#E0059">E0059</a>、<a href="https://doc.rust-lang.org/error-index.html#E0183">E0183</a>。</li>
+</ul>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-rust" data-lang="rust"><span style="color:#75715e">#![feature(fn_traits, unboxed_closures)]</span>
+
+<span style="color:#75715e">#[derive(Debug)]</span>
+<span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">Person</span> {
+    name: String,
+    age: <span style="color:#66d9ef">u32</span>,
+}
+
+<span style="color:#66d9ef">impl</span> FnOnce<span style="color:#f92672">&lt;</span>(Gender,)<span style="color:#f92672">&gt;</span> <span style="color:#66d9ef">for</span> Person {
+    <span style="color:#66d9ef">type</span> <span style="color:#a6e22e">Output</span> <span style="color:#f92672">=</span> ();
+
+    <span style="color:#66d9ef">extern</span> <span style="color:#e6db74">&#34;rust-call&#34;</span> <span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">call_once</span>(self, args: (Gender,)) -&gt; <span style="color:#a6e22e">Self</span>::Output {
+        println<span style="color:#f92672">!</span>(<span style="color:#e6db74">&#34;\n---- FnOnce call_once&#34;</span>);
+        ()
+    }
+}
+
+<span style="color:#75715e">#[derive(Debug)]</span>
+<span style="color:#66d9ef">enum</span> <span style="color:#a6e22e">Gender</span> {
+    Male,
+    Famale,
+}
+
+<span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">main</span>() {
+    <span style="color:#66d9ef">let</span> name <span style="color:#f92672">=</span> String::from(<span style="color:#e6db74">&#34;qiao&#34;</span>);
+    <span style="color:#66d9ef">let</span> age: <span style="color:#66d9ef">u32</span> <span style="color:#f92672">=</span> <span style="color:#ae81ff">28</span>;
+    <span style="color:#66d9ef">let</span> person <span style="color:#f92672">=</span> Person { name, age };
+
+    println<span style="color:#f92672">!</span>(<span style="color:#e6db74">&#34;{:?}&#34;</span>, person);  <span style="color:#75715e">// Person { name: &#34;qiao&#34;, age: 28 }
+</span><span style="color:#75715e"></span>
+    <span style="color:#75715e">// 两种调用方式都可以
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// &lt;Person as FnOnce&lt;(Gender,)&gt;&gt;::call_once(person, (Gender::Famale,));
+</span><span style="color:#75715e"></span>    person(Gender::Famale);  <span style="color:#75715e">// ---- FnOnce call_once
+</span><span style="color:#75715e"></span>
+    <span style="color:#75715e">// println!(&#34;{:?}&#34;, person);  // error[E0382]: borrow of moved value: `person`
+</span><span style="color:#75715e"></span>    
+    <span style="color:#75715e">// person(Gender::Famale);  // error[E0382]: use of moved value: `person`
+</span><span style="color:#75715e"></span>}
+</code></pre></div><h3 id="fnmut-trait">FnMut trait</h3>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-rust" data-lang="rust"><span style="color:#75715e">// https://doc.rust-lang.org/src/core/ops/function.rs.html#147-151
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">pub</span> <span style="color:#66d9ef">trait</span> FnMut<span style="color:#f92672">&lt;</span>Args<span style="color:#f92672">&gt;</span>: FnOnce<span style="color:#f92672">&lt;</span>Args<span style="color:#f92672">&gt;</span> {
+    <span style="color:#e6db74">/// Performs the call operation.
+</span><span style="color:#e6db74"></span>    <span style="color:#75715e">#[unstable(feature = </span><span style="color:#e6db74">&#34;fn_traits&#34;</span><span style="color:#75715e">, issue = </span><span style="color:#e6db74">&#34;29625&#34;</span><span style="color:#75715e">)]</span>
+    <span style="color:#66d9ef">extern</span> <span style="color:#e6db74">&#34;rust-call&#34;</span> <span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">call_mut</span>(<span style="color:#f92672">&amp;</span><span style="color:#66d9ef">mut</span> self, args: <span style="color:#a6e22e">Args</span>) -&gt; <span style="color:#a6e22e">Self</span>::Output;
+}
+</code></pre></div><p><code>FnOnce</code> 是 <code>FnMut</code> 的 supertrait，因此为 <code>Person</code> 实现 <code>FnMut</code> trait，需要先实现 <code>FnOnce</code> trait —— 在 <a href="https://play.rust-lang.org/?version=nightly&amp;mode=debug&amp;edition=2021&amp;gist=22cc0902869faaecbe0c1c5f61f3915e">代码 7，impl-FnOnce-for-struct-Person</a> 的基础上，添加 <code>FnMut</code> trait 的实现（<a href="https://play.rust-lang.org/?version=nightly&amp;mode=debug&amp;edition=2021&amp;gist=a3f970a893ac3bb7616147d25ffd2132">代码 8，impl-FnMut-for-struct-Person</a>），执行调用时会优先使用 <code>&lt;Person as FnMut&lt;(Gender,)&gt;&gt;::call_mut(&amp;mut person, (Gender::Famale,))</code> 进行调用：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-rust" data-lang="rust"><span style="color:#75715e">// 完整代码点击跳转 代码 8 playground
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">impl</span> FnMut<span style="color:#f92672">&lt;</span>(Gender,)<span style="color:#f92672">&gt;</span> <span style="color:#66d9ef">for</span> Person {
+    <span style="color:#66d9ef">extern</span> <span style="color:#e6db74">&#34;rust-call&#34;</span> <span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">call_mut</span>(<span style="color:#f92672">&amp;</span><span style="color:#66d9ef">mut</span> self, args: (Gender,)) -&gt; <span style="color:#a6e22e">Self</span>::Output {
+        println<span style="color:#f92672">!</span>(<span style="color:#e6db74">&#34;\n---- FnMut call_mut&#34;</span>);
+        self.name <span style="color:#f92672">=</span> String::from(<span style="color:#e6db74">&#34;qiaoin&#34;</span>);
+        self.age <span style="color:#f92672">=</span> <span style="color:#ae81ff">29</span>;
+        ()
+    }
+}
+
+<span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">main</span>() {
+    <span style="color:#66d9ef">let</span> name <span style="color:#f92672">=</span> String::from(<span style="color:#e6db74">&#34;qiao&#34;</span>);
+    <span style="color:#66d9ef">let</span> age: <span style="color:#66d9ef">u32</span> <span style="color:#f92672">=</span> <span style="color:#ae81ff">28</span>;
+    <span style="color:#66d9ef">let</span> <span style="color:#66d9ef">mut</span> person <span style="color:#f92672">=</span> Person { name, age };
+
+    println<span style="color:#f92672">!</span>(<span style="color:#e6db74">&#34;{:?}&#34;</span>, person);  <span style="color:#75715e">// Person { name: &#34;qiao&#34;, age: 28 }
+</span><span style="color:#75715e"></span>
+    <span style="color:#75715e">// 两种调用方式都可以
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// &lt;Person as FnMut&lt;(Gender,)&gt;&gt;::call_mut(&amp;mut person, (Gender::Famale,));
+</span><span style="color:#75715e"></span>    person(Gender::Famale);  <span style="color:#75715e">// FnMut call_mut
+</span><span style="color:#75715e"></span>
+    println<span style="color:#f92672">!</span>(<span style="color:#e6db74">&#34;{:?}&#34;</span>, person);  <span style="color:#75715e">// Person { name: &#34;qiaoin&#34;, age: 29 }
+</span><span style="color:#75715e"></span>    
+    person(Gender::Famale);  <span style="color:#75715e">// 再次调用，FnMut call_mut
+</span><span style="color:#75715e"></span>}
+</code></pre></div><p><code>Person</code> 实现了 <code>FnMut</code> trait 后，编译器会自动为 <code>&amp;mut Person</code> 实现 <code>FnOnce</code> 和 <code>FnMut</code> traits（对应 <a href="https://github.com/rust-lang/rust/issues/23015">Issue #23015</a>，<a href="https://github.com/rust-lang/rust/pull/23895">PR #23895</a>，感兴趣的读者可以翻看一下） ：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-rust" data-lang="rust"><span style="color:#75715e">// https://doc.rust-lang.org/src/core/ops/function.rs.html#263-282
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">impl</span><span style="color:#f92672">&lt;</span>A, F: <span style="color:#f92672">?</span>Sized<span style="color:#f92672">&gt;</span> FnMut<span style="color:#f92672">&lt;</span>A<span style="color:#f92672">&gt;</span> <span style="color:#66d9ef">for</span> <span style="color:#f92672">&amp;</span><span style="color:#66d9ef">mut</span> F
+<span style="color:#66d9ef">where</span>
+    F: FnMut<span style="color:#f92672">&lt;</span>A<span style="color:#f92672">&gt;</span>,
+{
+    <span style="color:#75715e">// self: &amp;mut &amp;mut Person
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">extern</span> <span style="color:#e6db74">&#34;rust-call&#34;</span> <span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">call_mut</span>(<span style="color:#f92672">&amp;</span><span style="color:#66d9ef">mut</span> self, args: <span style="color:#a6e22e">A</span>) -&gt; <span style="color:#a6e22e">F</span>::Output {
+        (<span style="color:#f92672">*</span>self).call_mut(args)
+    }
+}
+
+<span style="color:#66d9ef">impl</span><span style="color:#f92672">&lt;</span>A, F: <span style="color:#f92672">?</span>Sized<span style="color:#f92672">&gt;</span> FnOnce<span style="color:#f92672">&lt;</span>A<span style="color:#f92672">&gt;</span> <span style="color:#66d9ef">for</span> <span style="color:#f92672">&amp;</span><span style="color:#66d9ef">mut</span> F
+<span style="color:#66d9ef">where</span>
+    F: FnMut<span style="color:#f92672">&lt;</span>A<span style="color:#f92672">&gt;</span>,
+{
+    <span style="color:#66d9ef">type</span> <span style="color:#a6e22e">Output</span> <span style="color:#f92672">=</span> <span style="color:#f92672">&lt;</span>F <span style="color:#66d9ef">as</span> FnOnce<span style="color:#f92672">&lt;</span>A<span style="color:#f92672">&gt;&gt;</span>::Output;
+
+    <span style="color:#75715e">// self: &amp;mut Person
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">extern</span> <span style="color:#e6db74">&#34;rust-call&#34;</span> <span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">call_once</span>(self, args: <span style="color:#a6e22e">A</span>) -&gt; <span style="color:#a6e22e">F</span>::Output {
+        (<span style="color:#f92672">*</span>self).call_mut(args)
+    }
+}
+</code></pre></div><h3 id="fn-trait">Fn trait</h3>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-rust" data-lang="rust"><span style="color:#75715e">// https://doc.rust-lang.org/src/core/ops/function.rs.html#67-71
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">pub</span> <span style="color:#66d9ef">trait</span> Fn<span style="color:#f92672">&lt;</span>Args<span style="color:#f92672">&gt;</span>: FnMut<span style="color:#f92672">&lt;</span>Args<span style="color:#f92672">&gt;</span> {
+    <span style="color:#e6db74">/// Performs the call operation.
+</span><span style="color:#e6db74"></span>    <span style="color:#75715e">#[unstable(feature = </span><span style="color:#e6db74">&#34;fn_traits&#34;</span><span style="color:#75715e">, issue = </span><span style="color:#e6db74">&#34;29625&#34;</span><span style="color:#75715e">)]</span>
+    <span style="color:#66d9ef">extern</span> <span style="color:#e6db74">&#34;rust-call&#34;</span> <span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">call</span>(<span style="color:#f92672">&amp;</span>self, args: <span style="color:#a6e22e">Args</span>) -&gt; <span style="color:#a6e22e">Self</span>::Output;
+}
+</code></pre></div><p><code>Fn</code> trait，也是同理 —— 需要先实现 supertrait <code>FnMut</code> 和 <code>FnOnce</code> traits —— 在 <a href="https://play.rust-lang.org/?version=nightly&amp;mode=debug&amp;edition=2021&amp;gist=a3f970a893ac3bb7616147d25ffd2132">代码 8，impl-FnMut-for-struct-Person</a> 的基础上，添加 <code>Fn</code> trait 的实现（<a href="https://play.rust-lang.org/?version=nightly&amp;mode=debug&amp;edition=2021&amp;gist=6e97c0e64bb92ae2ef6ac7ad802af7b7">代码 9，impl-Fn-for-struct-Person</a>），执行调用时会优先使用 <code>&lt;Person as Fn&lt;(Gender,)&gt;&gt;::call(&amp;person, (Gender::Famale,))</code> 进行调用：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-rust" data-lang="rust"><span style="color:#75715e">// 完整代码点击跳转 代码 9 playground
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">impl</span> Fn<span style="color:#f92672">&lt;</span>(Gender,)<span style="color:#f92672">&gt;</span> <span style="color:#66d9ef">for</span> Person {
+    <span style="color:#75715e">// self: &amp;Person
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">extern</span> <span style="color:#e6db74">&#34;rust-call&#34;</span> <span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">call</span>(<span style="color:#f92672">&amp;</span>self, args: (Gender,)) -&gt; <span style="color:#a6e22e">Self</span>::Output {
+        println<span style="color:#f92672">!</span>(<span style="color:#e6db74">&#34;\n---- Fn call&#34;</span>);
+        ()
+    }
+}
+
+<span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">main</span>() {
+    <span style="color:#66d9ef">let</span> name <span style="color:#f92672">=</span> String::from(<span style="color:#e6db74">&#34;qiao&#34;</span>);
+    <span style="color:#66d9ef">let</span> age: <span style="color:#66d9ef">u32</span> <span style="color:#f92672">=</span> <span style="color:#ae81ff">28</span>;
+    <span style="color:#66d9ef">let</span> person <span style="color:#f92672">=</span> Person { name, age };
+
+    println<span style="color:#f92672">!</span>(<span style="color:#e6db74">&#34;{:?}&#34;</span>, person);  <span style="color:#75715e">// Person { name: &#34;qiao&#34;, age: 28 }
+</span><span style="color:#75715e"></span>
+    <span style="color:#75715e">// 两种调用方式都可以
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// &lt;Person as Fn&lt;(Gender,)&gt;&gt;::call(&amp;person, (Gender::Famale,));
+</span><span style="color:#75715e"></span>    person(Gender::Famale);  <span style="color:#75715e">// Fn call
+</span><span style="color:#75715e"></span>
+    println<span style="color:#f92672">!</span>(<span style="color:#e6db74">&#34;{:?}&#34;</span>, person);  <span style="color:#75715e">// Person { name: &#34;qiao&#34;, age: 28 }
+</span><span style="color:#75715e"></span>    
+    person(Gender::Famale);  <span style="color:#75715e">// 再次调用，Fn call
+</span><span style="color:#75715e"></span>}
+</code></pre></div><p>同样的，<code>Person</code> 实现了 <code>Fn</code> trait 后，编译器会为 <code>&amp;Person</code> 实现 <code>FnOnce</code>、<code>FnMut</code> 和 <code>Fn</code> traits（对应 <a href="https://github.com/rust-lang/rust/issues/23015">Issue #23015</a>，<a href="https://github.com/rust-lang/rust/pull/23895">PR #23895</a>，感兴趣的读者可以翻看一下） ：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-rust" data-lang="rust"><span style="color:#75715e">// https://doc.rust-lang.org/src/core/ops/function.rs.html#231-261
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">impl</span><span style="color:#f92672">&lt;</span>A, F: <span style="color:#f92672">?</span>Sized<span style="color:#f92672">&gt;</span> Fn<span style="color:#f92672">&lt;</span>A<span style="color:#f92672">&gt;</span> <span style="color:#66d9ef">for</span> <span style="color:#f92672">&amp;</span>F
+<span style="color:#66d9ef">where</span>
+    F: Fn<span style="color:#f92672">&lt;</span>A<span style="color:#f92672">&gt;</span>,
+{
+    <span style="color:#66d9ef">extern</span> <span style="color:#e6db74">&#34;rust-call&#34;</span> <span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">call</span>(<span style="color:#f92672">&amp;</span>self, args: <span style="color:#a6e22e">A</span>) -&gt; <span style="color:#a6e22e">F</span>::Output {
+        (<span style="color:#f92672">**</span>self).call(args)
+    }
+}
+
+<span style="color:#66d9ef">impl</span><span style="color:#f92672">&lt;</span>A, F: <span style="color:#f92672">?</span>Sized<span style="color:#f92672">&gt;</span> FnMut<span style="color:#f92672">&lt;</span>A<span style="color:#f92672">&gt;</span> <span style="color:#66d9ef">for</span> <span style="color:#f92672">&amp;</span>F
+<span style="color:#66d9ef">where</span>
+    F: Fn<span style="color:#f92672">&lt;</span>A<span style="color:#f92672">&gt;</span>,
+{
+    <span style="color:#66d9ef">extern</span> <span style="color:#e6db74">&#34;rust-call&#34;</span> <span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">call_mut</span>(<span style="color:#f92672">&amp;</span><span style="color:#66d9ef">mut</span> self, args: <span style="color:#a6e22e">A</span>) -&gt; <span style="color:#a6e22e">F</span>::Output {
+        (<span style="color:#f92672">**</span>self).call(args)
+    }
+}
+
+<span style="color:#66d9ef">impl</span><span style="color:#f92672">&lt;</span>A, F: <span style="color:#f92672">?</span>Sized<span style="color:#f92672">&gt;</span> FnOnce<span style="color:#f92672">&lt;</span>A<span style="color:#f92672">&gt;</span> <span style="color:#66d9ef">for</span> <span style="color:#f92672">&amp;</span>F
+<span style="color:#66d9ef">where</span>
+    F: Fn<span style="color:#f92672">&lt;</span>A<span style="color:#f92672">&gt;</span>,
+{
+    <span style="color:#66d9ef">type</span> <span style="color:#a6e22e">Output</span> <span style="color:#f92672">=</span> F::Output;
+
+    <span style="color:#66d9ef">extern</span> <span style="color:#e6db74">&#34;rust-call&#34;</span> <span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">call_once</span>(self, args: <span style="color:#a6e22e">A</span>) -&gt; <span style="color:#a6e22e">F</span>::Output {
+        (<span style="color:#f92672">*</span>self).call(args)
+    }
+}
+</code></pre></div><p>基于 <a href="https://play.rust-lang.org/?version=nightly&amp;mode=debug&amp;edition=2021&amp;gist=6e97c0e64bb92ae2ef6ac7ad802af7b7">代码 9，impl-Fn-for-struct-Person</a> 和 Rust 编译器自动实现的一些 <code>Fn*</code> traits，写一段代码测试一下，<code>main</code> 中的测试分为三组，<a href="https://play.rust-lang.org/?version=nightly&amp;mode=debug&amp;edition=2021&amp;gist=25d22d1191758641800e3054f282f56d">代码 10，test-all-manual-and-auto-Fn-traits</a>：</p>
+<ul>
+<li>第 1 组：测试为 <code>Person</code> 实现的 <code>Fn*</code> traits（手动实现）；</li>
+<li>第 2 组：测试为 <code>&amp;mut Person</code> 实现的 <code>Fn*</code> traits（Rust 编译器自动实现，放到了代码注释中）；</li>
+<li>第 3 组：测试为 <code>&amp;Person</code> 实现的 <code>Fn*</code> traits（Rust 编译器自动实现，放到了代码注释中）。</li>
+</ul>
+<p>TODO: 对 Line 132-134 有点疑问，<code>&amp;mut</code> 未实现 <code>Copy</code> trait，为什么所有权转移后还可以被访问？</p>
+<p>编译器提供自动实现，在作为参数传递时很有用（满足 trait bounds），可以查看 <a href="https://github.com/rust-lang/rust/issues/23015">Issue #23015</a>，另外本文 <code>mut</code> keyword 小节也会有详细的讲解。</p>
+<p>对于 <code>person()</code> 调用时优先匹配的问题，由于 <code>person</code> 的类型为 <code>struct Person</code>，候选类型列表为 <code>[Person, &amp;Person, &amp;mut Person]</code>，但测试时发现，<code>main</code> 中没有 trait bounds 时，编译器时按照 <code>Fn::call(&amp;self)</code>、<code>FnMut::call_mut(&amp;mut self)</code>、<code>FnOnce::call_once(self)</code> 的顺序来的，没有按照方法调用的匹配顺序。</p>
+<p>FIXME: 可能的解释。rust stable version，在定义闭包的同时，编译器定义了唯一的闭包 <code>struct</code> + 对应的 <code>Fn*</code> 实现，具体实现哪一个 <code>Fn*</code> trait，是根据 closure body 对捕获变量的使用来的（&amp;self / &amp;mut self / self，详细见 <code>move</code> keyword 小节图 10）。nightly 下，自定义 <code>struct Person</code>，然后 <code>impl Fn* for Person</code>，定义后表现应该与 stable 保持一致，因此匹配时也是一样的特殊规则，而不是按照方法调用规则。</p>
+<p>TODO: FIXME 这里的描述可能存在错误，读者可以在评论区指出。遇事不决还是要去看源码实现 🧐。</p>
+<h3 id="supertrait-between-three">supertrait between three</h3>
+<p>为 <code>struct Person</code> 实现三个 <code>Fn*</code> traits，三者有 supertrait 关系：</p>
+<blockquote>
+<p><code>Fn</code> : <code>FnMut</code> : <code>FnOnce</code></p>
+</blockquote>
+<p>supertrait 要求：</p>
+<ul>
+<li>1、一个闭包类型实现了 <code>Fn</code> trait，就必须同时实现了 <code>FnMut</code> 和 <code>FnOnce</code> traits；</li>
+<li>2、一个闭包类型实现了 <code>FnMut</code> trait，就必须同时实现了 <code>FnOnce</code> trait。</li>
+</ul>
+<p>Rust 编译器约定了三者的 supertrait 关系，但为什么是这样一个 supertrait 关系呢？</p>
+<p>闭包 <code>c</code> 仅使用了不可变引用，Rust 编译器按照 closures capture modes（图 10 会进行详细介绍）确定闭包类型 <code>C</code> 实现了 <code>Fn</code> trait，由于 supertrait 关系（<code>Fn</code> : <code>FnMut</code> : <code>FnOnce</code>），闭包类型 <code>C</code> 也必须同时存在对 <code>FnOnce</code> 和 <code>FnMut</code> 这两个 traits 的实现。</p>
+<p>使用上一节 closure types 的例子：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-rust" data-lang="rust"><span style="color:#66d9ef">enum</span> <span style="color:#a6e22e">Gender</span> {
+    Male,
+    Famale,
+}
+
+<span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">main</span>() {
+    <span style="color:#66d9ef">let</span> name <span style="color:#f92672">=</span> String::from(<span style="color:#e6db74">&#34;qiao&#34;</span>);
+    <span style="color:#66d9ef">let</span> age: <span style="color:#66d9ef">u32</span> <span style="color:#f92672">=</span> <span style="color:#ae81ff">28</span>;
+    <span style="color:#75715e">// 捕获 name 和 age，仅使用不可变引用，实现 `Fn` trait
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// 由于 supertrait，me 对应的闭包类型一定同时实现了 `FnOnce` 和 `FnMut`
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">let</span> person <span style="color:#f92672">=</span> <span style="color:#f92672">|</span>gender: <span style="color:#a6e22e">Gender</span><span style="color:#f92672">|</span> {
+        <span style="color:#66d9ef">let</span> x <span style="color:#f92672">=</span> <span style="color:#f92672">&amp;</span>name;
+        <span style="color:#66d9ef">let</span> y <span style="color:#f92672">=</span> <span style="color:#f92672">&amp;</span>age;
+        ()
+    };
+
+    person(Gender::Male);
+}
+</code></pre></div><p>闭包类型等价于 <code>struct Person</code> + 一些对应的函数实现：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-rust" data-lang="rust"><span style="color:#75715e">// 闭包类型等价的结构体，该结构体实现 `Fn` trait
+</span><span style="color:#75715e">// 由于 supertrait，该结构体同时实现了 `FnOnce` 和 `FnMut`
+</span><span style="color:#75715e">// MIR 表示中对应结构体为 tuple struct，字段不具名，使用 `.0` 访问
+</span><span style="color:#75715e">// struct Person&lt;&#39;scope&gt;(&amp;&#39;scope String, &amp;&#39;scope u32); 
+</span><span style="color:#75715e">// 为了表述方便使用具名的 struct
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">Person</span><span style="color:#f92672">&lt;</span><span style="color:#a6e22e">&#39;scope</span><span style="color:#f92672">&gt;</span> {
+    name: <span style="color:#66d9ef">&amp;</span><span style="color:#a6e22e">&#39;scope</span> String,
+    age: <span style="color:#66d9ef">&amp;</span><span style="color:#a6e22e">&#39;scope</span> <span style="color:#66d9ef">u32</span>,
+}
+</code></pre></div><p>在定义闭包 <code>person</code> 时 closure body 仅使用了不可变引用 <code>&amp;name</code> 和 <code>&amp;age</code>，Rust 编译器推断 <code>person</code> 对应的闭包类型（包含两个字段，类型均为不可变引用）实现了 <code>Fn</code> trait，在调用 <code>&lt;Person as Fn&lt;(Gender,)&gt;&gt;::call(&amp;person, (Gender::Famale,))</code> 时获取 <code>person</code> 的不可变引用 <code>&amp;person</code>（满足 borrowing rules），其后使用不可变引用 <code>&amp;person</code>  去访问对应字段 <code>(*self).0</code> 和 <code>(*self).1</code>。</p>
+<p>厘清两个不可变引用：</p>
+<ul>
+<li>1、<code>struct Person</code> 中包含的两个字段的不可变引用 —— closure body 对捕获变量的使用（by shared reference / by mutable reference / by move or copy），闭包一经定义便确定了下来；</li>
+<li>2、闭包类型对应的 <code>struct Person</code> 的不可变引用 —— 根据实际调用的 <code>Fn*</code> trait 进行确定，这里调用 <code>&lt;Person as Fn&lt;(Gender,)&gt;&gt;::call(&amp;person, (Gender::Famale,))</code>，因此获得闭包类型的不可变引用 <code>&amp;person</code>。</li>
+</ul>
+<p>这里我们不禁有个疑问 🤔️，在定义闭包 <code>person</code> 时 closure body 使用不可变引用（即 <code>struct Person</code> 包含的两个字段均为不可变引用，闭包类型实现 <code>Fn</code> trait），调用时却是获取闭包类型的所有权去调用 <code>&lt;Person as FnOnce&lt;(Gender,)&gt;&gt;::call_once(person, (Gender::Famale,))</code>，是否可行呢？</p>
+<p>先从原理上分析一下：</p>
+<p>1、是否可以调用 <code>FnOnce</code> trait 对应的 <code>call_once()</code>？</p>
+<p>由于 supertrait 关系 <code>Fn</code> : <code>FnMut</code> : <code>FnOnce</code>，闭包类型对应的 <code>struct Person</code> 实现了 <code>Fn</code> trait，也一定实现了 <code>FnOnce</code> trait，因此在作为 <code>FnOnce</code> 进行调用时，获得闭包类型的所有权，然后从 owed 所有权得到不可变引用，满足 Rust borrowing rule，再执行与 closure body 中相同的语句（可以这样理解，为 <code>struct Person</code> 实现 <code>FnOnce</code> trait，其 <code>call_once</code> 的实现分为两步，步骤 1）从所有权获取不可变引用，步骤 2）将定义时的 closure body 原样拷贝过来）；</p>
+<p>画外音：读者可以考虑一下，闭包类型实现 <code>FnMut</code> trait，可以作为 <code>FnOnce</code> 被调用，但不能作为 <code>Fn</code> 被调用，其本质是什么？（提示，从所有权可以获取得到可变引用，从可变引用可以获取不可变引用）</p>
+<p>2、是否可以获得闭包类型的所有权？</p>
+<p>闭包是在某一个上下文中定义的，满足 Rust 所有权规则，所有权被移动后就不能再次被调用。需要根据上下文来判断是否可以获得闭包类型的所有权。</p>
+<p>写段代码测试一下，<a href="https://play.rust-lang.org/?version=stable&amp;mode=debug&amp;edition=2021&amp;gist=995bc6641906173ec532b40553e20018">代码 11，call-Fn-with-FnOnce-and-FnMut</a>，特别注意闭包类型（等价描述的 <code>struct Person</code> 的类型）和闭包所捕获的自由变量的类型（等价描述的 <code>struct Person</code> 所 capture 的字段的类型）。</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-rust" data-lang="rust"><span style="color:#66d9ef">enum</span> <span style="color:#a6e22e">Gender</span> {
+    Male,
+    Famale,
+}
+
+<span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">main</span>() {
+    <span style="color:#66d9ef">let</span> name <span style="color:#f92672">=</span> String::from(<span style="color:#e6db74">&#34;qiao&#34;</span>);
+    <span style="color:#66d9ef">let</span> age: <span style="color:#66d9ef">u32</span> <span style="color:#f92672">=</span> <span style="color:#ae81ff">28</span>;
+    <span style="color:#75715e">// 捕获 name 和 age，仅使用不可变引用，实现 `Fn` trait
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// person 为闭包类型，未使用 &amp; 修饰
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">let</span> person <span style="color:#f92672">=</span> <span style="color:#f92672">|</span>gender: <span style="color:#a6e22e">Gender</span><span style="color:#f92672">|</span> {
+        <span style="color:#66d9ef">let</span> x <span style="color:#f92672">=</span> <span style="color:#f92672">&amp;</span>name;
+        <span style="color:#66d9ef">let</span> y <span style="color:#f92672">=</span> <span style="color:#f92672">&amp;</span>age;
+        ()
+    };
+
+    <span style="color:#75715e">// 实际调用 &lt;Person as Fn&lt;(Gender,)&gt;&gt;::call(&amp;person, (Gender::Famale,));
+</span><span style="color:#75715e"></span>    person(Gender::Male);
+
+    <span style="color:#75715e">// person 作为 FnMut 被使用
+</span><span style="color:#75715e"></span>    foo(person);
+    foo(person);  <span style="color:#75715e">// Fn 实现了 Copy trait
+</span><span style="color:#75715e"></span>
+    <span style="color:#75715e">// person 作为 FnOnce 被使用
+</span><span style="color:#75715e"></span>    bar(person);
+    bar(person);  <span style="color:#75715e">// Fn 实现了 Copy trait
+</span><span style="color:#75715e"></span>}
+
+<span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">foo</span><span style="color:#f92672">&lt;</span>F<span style="color:#f92672">&gt;</span>(<span style="color:#66d9ef">mut</span> f: <span style="color:#a6e22e">F</span>) <span style="color:#66d9ef">where</span> F: FnMut(Gender) {
+    <span style="color:#75715e">// 实际调用 &lt;Person as FnMut&lt;(Gender,)&gt;&gt;::call(&amp;mut f, (Gender::Famale,));
+</span><span style="color:#75715e"></span>    f(Gender::Male);
+
+    f(Gender::Male);
+}
+
+<span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">bar</span><span style="color:#f92672">&lt;</span>F<span style="color:#f92672">&gt;</span>(f: <span style="color:#a6e22e">F</span>) <span style="color:#66d9ef">where</span> F: FnOnce(Gender) {
+    <span style="color:#75715e">// 实际调用 &lt;Person as FnOnce&lt;(Gender,)&gt;&gt;::call(f, (Gender::Famale,));
+</span><span style="color:#75715e"></span>    f(Gender::Male);
+
+    <span style="color:#75715e">// f(Gender::Male);  // error[E0382]: use of moved value: `f`
+</span><span style="color:#75715e"></span>}
+</code></pre></div><p>使用下表进行理解。</p>
+
+
+
+
+     
+    
+    
+     
+
+
+
+
+
+
+
+<div class="table-responsive">
+<table class="table table-striped table-borderless">
+<caption>表 2：closure body 对捕获变量的使用情况与 closure type impl Fn* traits 之间的关系</caption>
+<thead class="table-success">
+<tr>
+<th>closure body 使用情况</th>
+<th>closure type impl <code>Fn*</code></th>
+<th>closure type impl <code>Copy</code></th>
+<th>代码示例</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>by shared references</td>
+<td><code>Fn</code>，由于 supertrait，<code>FnMut</code> 和 <code>FnOnce</code></td>
+<td>Y</td>
+<td><a href="https://play.rust-lang.org/?version=stable&amp;mode=debug&amp;edition=2021&amp;gist=995bc6641906173ec532b40553e20018">代码 11，call-Fn-with-FnOnce-and-FnMut</a></td>
+</tr>
+<tr>
+<td>by mutable references</td>
+<td><code>FnMut</code>，由于 supertrait，<code>FnOnce</code></td>
+<td>N</td>
+<td><a href="https://play.rust-lang.org/?version=stable&amp;mode=debug&amp;edition=2021&amp;gist=7b380aaae5c7514e2bb2f1d837e13924">代码 12，call-FnMut-with-FnOnce</a></td>
+</tr>
+<tr>
+<td>by move or copy</td>
+<td><code>FnOnce</code></td>
+<td>If all fields is <code>Copy</code>, closure type is <code>Copy</code></td>
+<td>/</td>
+</tr>
+</tbody>
+</table>
+
+</div>
+
+<p>注意 ⚠️：表格不考虑显式的 <code>move</code> 关键字（会影响闭包类型实现 <code>Fn</code> trait 时，对 <code>Copy</code> trait 的实现），会在后面小结专门介绍。</p>
+<p>同时，<a href="https://cheats.rs/#closures-in-apis">cheats.rs</a> 上也有比较完美的解释：</p>
+<figure>
+    <img src="images/cheatsrs-closures-in-apis.png"
+         alt="图 9：闭包在定义接口时需要注意的要点"/> <figcaption>
+            <p>图 9：闭包在定义接口时需要注意的要点</p>
+        </figcaption>
+</figure>
+
+<h3 id="mut-keyword"><code>mut</code> keyword</h3>
+<p>对于 <a href="https://play.rust-lang.org/?version=stable&amp;mode=debug&amp;edition=2021&amp;gist=995bc6641906173ec532b40553e20018">代码 11，call-Fn-with-FnOnce-and-FnMut</a> 中 <code>foo</code> 函数的签名和 cheatrs 截图中 <code>g</code> 函数的签名，在需要满足 <code>F: FnMut</code> trait bounds 的同时，参数列表中都包含有 <code>mut</code> 关键字，为什么需要这个 <code>mut</code> 呢？是否可以去掉？</p>
+<p><code>mut</code> 关键字用来修饰<a href="https://doc.rust-lang.org/std/keyword.mut.html">两种场景</a>：</p>
+<p>1、修饰变量，表示对应的变量可以修改（mutable variables），<code>mut</code> 不作为类型的一部分；</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-rust" data-lang="rust"><span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">main</span>() {
+    <span style="color:#75715e">// a 的类型为 u8，这里的 `mut` 不作为类型的一部分
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// `mut` 表示变量 a 可以被修改
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">let</span> <span style="color:#66d9ef">mut</span> a <span style="color:#f92672">=</span> <span style="color:#ae81ff">5</span>;
+    a <span style="color:#f92672">=</span> <span style="color:#ae81ff">6</span>;
+
+    assert_eq<span style="color:#f92672">!</span>(foo(<span style="color:#ae81ff">3</span>, <span style="color:#ae81ff">4</span>), <span style="color:#ae81ff">7</span>);
+    assert_eq<span style="color:#f92672">!</span>(a, <span style="color:#ae81ff">6</span>);
+}
+
+<span style="color:#75715e">// x 的类型为 u8，`mut` 不作为类型的一部分
+</span><span style="color:#75715e">// `mut` 表示变量 x 可以被修改
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">foo</span>(<span style="color:#66d9ef">mut</span> x: <span style="color:#66d9ef">u8</span>, y: <span style="color:#66d9ef">u8</span>) -&gt; <span style="color:#66d9ef">u8</span> {
+    x <span style="color:#f92672">+=</span> y;
+    x
+}
+</code></pre></div><p>2、从 mutable variables 获取，得到其可变引用（<a href="https://doc.rust-lang.org/reference/types/pointer.html#mutable-references-mut">mutable references</a>），<code>mut</code> 作为类型的一部分，可变引用是独占的（unique, exclusive）。</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-rust" data-lang="rust"><span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">main</span>() {
+    <span style="color:#75715e">// 首先需要是可变变量（mutable variables）
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// v 的类型为 `Vec&lt;u8&gt;`，`mut` 表示 v 可以被修改
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">let</span> <span style="color:#66d9ef">mut</span> v <span style="color:#f92672">=</span> vec<span style="color:#f92672">!</span>[<span style="color:#ae81ff">0</span>, <span style="color:#ae81ff">1</span>];
+    <span style="color:#75715e">// 才能得到可变引用（mutable references），入参类型为 `&amp;mut Vec&lt;u8&gt;`
+</span><span style="color:#75715e"></span>    push_two(<span style="color:#f92672">&amp;</span><span style="color:#66d9ef">mut</span> v);
+
+    assert_eq<span style="color:#f92672">!</span>(v, vec<span style="color:#f92672">!</span>[<span style="color:#ae81ff">0</span>, <span style="color:#ae81ff">1</span>, <span style="color:#ae81ff">2</span>]);
+}
+
+<span style="color:#75715e">// v 的类型为 `&amp;mut Vec&lt;u8&gt;`
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">push_two</span>(v: <span style="color:#66d9ef">&amp;</span><span style="color:#a6e22e">mut</span> Vec<span style="color:#f92672">&lt;</span><span style="color:#66d9ef">u8</span><span style="color:#f92672">&gt;</span>) {
+    v.push(<span style="color:#ae81ff">2</span>);
+}
+</code></pre></div><p>在满足 <code>F: FnMut</code> trait bounds 时，参数列表中的 <code>mut</code> 关键字，有三种写法：</p>
+<ul>
+<li>写法 1：<code>(mut f: F)</code>（即 <a href="https://play.rust-lang.org/?version=stable&amp;mode=debug&amp;edition=2021&amp;gist=995bc6641906173ec532b40553e20018">代码 11，call-Fn-with-FnOnce-and-FnMut</a> 中 <code>foo</code> 函数签名和 cheatrs 截图中 <code>g</code> 函数签名的写法），表示 mutable variables，<code>f</code> 的类型是 <code>F</code>，<code>mut</code> 表示 <code>f</code> 能够被修改（指向其他内存）或得到 mutable references <code>&amp;mut f</code>；</li>
+<li>写法 2：<code>(f: &amp;mut F)</code>，表示 mutable references，<code>f</code> 的类型是 <code>&amp;mut F</code>；</li>
+<li>写法 3：<code>(mut f: &amp;mut F)</code>，左侧表示 mutable variables，右侧表示 mutable references，<code>f</code> 的类型是 <code>&amp;mut F</code>，左侧 <code>mut</code> 不参与类型表示，左侧 <code>mut</code> 表示可以由 <code>f</code> 得到 <code>&amp;mut f</code>。</li>
+</ul>
+<p>执行 <code>f()</code> 时，会发生什么呢？</p>
+<blockquote>
+<p>方法调用的步骤是根据以下几个文档和自测（附录 Appendix C）确定的，可能理解有误，请以官方文档为准，如 Guide to Rustc Development <a href="https://rustc-dev-guide.rust-lang.org/method-lookup.html">Method Lookup</a> 所说，&ldquo;More detailed notes are in the <strong>code</strong> itself, naturally.&rdquo;</p>
+<ul>
+<li>Rust Reference, <a href="https://doc.rust-lang.org/reference/expressions/method-call-expr.html#method-call-expressions">Method-call expressions</a></li>
+<li>Guide to Rustc Development, <a href="https://rustc-dev-guide.rust-lang.org/method-lookup.html">Method Lookup</a></li>
+<li>The Rustonomicon, <a href="https://doc.rust-lang.org/nomicon/dot-operator.html">The Dot Operator</a></li>
+<li>Stack Overflow, <a href="https://stackoverflow.com/questions/28519997/what-are-rusts-exact-auto-dereferencing-rules">What are Rust&rsquo;s exact auto-dereferencing rules?</a></li>
+</ul>
+</blockquote>
+<p>按照以下步骤进行：</p>
+<ul>
+<li>步骤 1：通过多次解引用获取得到候选类型，添加到候选列表中（build a list of candidate receiver types by repeatedly <a href="https://doc.rust-lang.org/reference/expressions/operator-expr.html#the-dereference-operator">dereferencing</a> the receiver expression&rsquo;s type, finally attempting an <a href="https://doc.rust-lang.org/reference/type-coercions.html#unsized-coercions">unsized coercion</a> at the end, and adding the result type if that is successful）；</li>
+<li>步骤 2：对候选列表中的每一个类型 <code>T</code>，其后添加上 <code>&amp;T</code> 和 <code>&amp;mut T</code>（for each candidate <code>T</code>, add <code>&amp;T</code> and <code>&amp;mut T</code> to the list immediately after <code>T</code>），步骤 2 结束时，就得到的完整了候选类型列表；</li>
+<li>步骤 3：对候选类型列表中的每一个类型 <code>T</code>，进行方法匹配。如何匹配在下文和附录 Appendix C - Method-call expressions 测试代码 2 均有说明。</li>
+</ul>
+<p>对于上述步骤，有几点疑问：</p>
+<ul>
+<li>疑问 1、步骤 2 中，对于候选类型 <code>T</code>，增加 <code>&amp;mut T</code>，是否需要 variable 支持 mutable 以获取可变引用？</li>
+</ul>
+<p>Rust Reference <a href="https://doc.rust-lang.org/reference/expressions/method-call-expr.html#method-call-expressions">Method-call expressions</a> 中有这样一段描述：</p>
+<blockquote>
+<p>This process does not take into account the mutability or lifetime of the receiver, or whether a method is <code>unsafe</code>. Once a method is looked up, if it can&rsquo;t be called for one (or more) of those reasons, the result is a compiler error.</p>
+</blockquote>
+<p>然而，实际测试（附录 Appendix C - Method-call expressions，测试代码 1），如果变量（类型为 <code>T</code>）不支持 mutable，是无法获得 <code>&amp;mut T</code> 的，编译报错。</p>
+<ul>
+<li>疑问 2、步骤 3 中，匹配规则是怎么样的？先匹配方法的 <code>self</code> 参数类型，还是先匹配 <code>Self</code> 类型？</li>
+</ul>
+<p>FIXME: 直接给出自测后的结论，<strong>针对候选类型列表中的每一个类型 <code>T</code>，匹配方法签名中的 <code>self</code> 参数类型，若匹配上，由于 <code>self</code> 的类型中一定包含有 <code>Self</code> 类型，从而确定 <code>Self</code> 的类型（<code>Self</code> 类型作为 <code>&lt;xxx as yyy&gt;</code> 中的 <code>xxx</code>）</strong>。见附录 Appendix C - Method-call expressions，测试代码 2。</p>
+<p>TODO: FIXME 这里的描述可能存在错误，读者可以在评论区指出。未来我可能会专门写一篇文章来详细讲解匹配过程（在阅读 rustc 对应的源码之后，感觉遥遥无期啊 😮‍💨）。</p>
+<p>回到对 cheatrs 截图 <code>g</code> 函数签名中 <code>mut</code> 关键字的讨论，写一段测试代码测试一下，<a href="https://play.rust-lang.org/?version=stable&amp;mode=debug&amp;edition=2021&amp;gist=dd689932ca7d19d28d9a80580ffce0fe">代码 13，call-FnMut-with-mut-keyword</a>，读者可以看代码中的详细注释，这里就不重复解释了。</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-rust" data-lang="rust"><span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">main</span>() {
+    <span style="color:#66d9ef">let</span> <span style="color:#66d9ef">mut</span> name <span style="color:#f92672">=</span> String::from(<span style="color:#e6db74">&#34;hello&#34;</span>);
+
+    <span style="color:#75715e">// c 的类型表示为 `ClosureStruct`（简写为 `C`）, 包含 `name: &amp;mut String` 字段
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// impl `FnMut` for `C`
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// c 使用 mut 修饰，但 mut 不作为类型的一部分，表示后续可以获取得到 `&amp;mut C`
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">let</span> <span style="color:#66d9ef">mut</span> c <span style="color:#f92672">=</span> <span style="color:#f92672">||</span> {
+        name.push_str(<span style="color:#e6db74">&#34; qiao&#34;</span>);
+        println<span style="color:#f92672">!</span>(<span style="color:#e6db74">&#34;c: {}&#34;</span>, name);
+    };
+
+    <span style="color:#75715e">// 由于定义 c 时使用 mut 修饰，因此可以获取 &amp;mut c，即类型为 `&amp;mut C`
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// 方法调用候选列表 [C, &amp;C, &amp;mut C]
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">//                        ^^^^^^
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// &lt;C as FnMut&lt;()&gt;&gt;::call_mut(&amp;mut c, ());
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// 第一个参数 &amp;mut c 的类型与候选列表标记处一致，即 self: &amp;mut c
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// 对应的 call_mut(&amp;mut self, args)，则确定 Self 类型 `Self: C`
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// 因此，可以确定候选列表先匹配 `self`，再根据签名匹配 `Self`
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// 更细致的测试代码见： Appendix C - Method-call expressions 两个测试
+</span><span style="color:#75715e"></span>    c();
+
+    <span style="color:#75715e">// 试着将两个 `call_mut1(c);` 的注释打开，看看编译器的报错信息
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// 入参类型 `C`
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// call_mut1(c);
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">//        - value moved here, `C` not impl `Copy` trait
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// call_mut1(c);
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">//        ^ value used here after move
+</span><span style="color:#75715e"></span>
+    <span style="color:#75715e">// 试着将两个 `call_mut2(c);` 的注释打开，看看编译器的报错信息
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// 入参类型 mutable reference `&amp;mut C`
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// let mut_c_param = &amp;mut c;
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// call_mut2(mut_c_param);
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">//        ----------- value moved here, `&amp;mut C` not impl `Copy` trait
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// call_mut2(mut_c_param);
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">//        ^^^^^^^^^^^ value used here after move
+</span><span style="color:#75715e"></span>
+    <span style="color:#75715e">// 入参类型 mutable reference `&amp;mut C`
+</span><span style="color:#75715e"></span>    call_mut3(<span style="color:#f92672">&amp;</span><span style="color:#66d9ef">mut</span> c);
+    call_mut3(<span style="color:#f92672">&amp;</span><span style="color:#66d9ef">mut</span> c);
+
+    <span style="color:#75715e">// 入参类型 mutable reference `&amp;mut C`
+</span><span style="color:#75715e"></span>    call_mut4(<span style="color:#f92672">&amp;</span><span style="color:#66d9ef">mut</span> c);
+    call_mut4(<span style="color:#f92672">&amp;</span><span style="color:#66d9ef">mut</span> c);    
+}
+
+<span style="color:#75715e">// 借助 `let mut f: F = c;` 进行理解
+</span><span style="color:#75715e">// F 对应 `C`, `C` impl `FnMut` ==&gt; 满足 trait bounds
+</span><span style="color:#75715e">// c 的所有权转移给了 f，f 的类型为 `C`
+</span><span style="color:#75715e">// f 使用 mut 修饰，因此可以获取 &amp;mut f，即类型 `&amp;mut C`
+</span><span style="color:#75715e">// 方法调用候选列表 [C, &amp;C, &amp;mut C]
+</span><span style="color:#75715e">//                       ^^^^^^
+</span><span style="color:#75715e">// 假设调用的 FnMut 为 `impl FnMut for Self`
+</span><span style="color:#75715e">// 将命中的类型作为 `call_mut(&amp;self, args)` 的第一个参数，&amp;mut f 确定 self，则 `Self: C`
+</span><span style="color:#75715e">// &lt;C as  FnMut&lt;()&gt;&gt;::call_mut(&amp;mut f, ());
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">call_mut1</span><span style="color:#f92672">&lt;</span>F<span style="color:#f92672">&gt;</span>(<span style="color:#66d9ef">mut</span> f: <span style="color:#a6e22e">F</span>) <span style="color:#66d9ef">where</span> F: FnMut() {
+    f();
+}
+
+<span style="color:#75715e">// 借助 `let mut f: F = &amp;mut c;` 进行理解
+</span><span style="color:#75715e">// 等号左侧 `: F` 指定 type，等号右侧需要是相应 type 或者能够转换到
+</span><span style="color:#75715e">// F 对应 `&amp;mut C`
+</span><span style="color:#75715e">// `C` impl `FnMut` ==&gt; `&amp;mut C` imple `FnMut` ==&gt; 满足 trait bounds
+</span><span style="color:#75715e">//                      ^^^^^^^^^^^^^^^^^^^^^ Rust 编译器自动添加实现
+</span><span style="color:#75715e">// f 使用 mut 修饰，因此可以获取 &amp;mut f, F 对应 `&amp;mut C`，展开为 `&amp;mut &amp;mut C`
+</span><span style="color:#75715e">// 方法调用候选列表 [&amp;mut C, &amp; &amp;mut C, &amp;mut &amp;mut C, C, &amp;C, &amp;mut C]
+</span><span style="color:#75715e">//                ^^^^^^
+</span><span style="color:#75715e">// 假设调用的 FnMut 为 `impl FnMut for Self`
+</span><span style="color:#75715e">// 将命中的类型作为 `call_mut(&amp;self, args)` 的第一个参数，&amp;mut c 确定 self，则 `Self: C`
+</span><span style="color:#75715e">// &lt;C as FnMut&lt;()&gt;&gt;::call_mut(&amp;mut c, ());
+</span><span style="color:#75715e">// call_mut1 和 call_mut2 签名完全一样，只是入参不一样，
+</span><span style="color:#75715e">// 这里只是解释两种不同的入参是怎么满足 trait bounds 的
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">call_mut2</span><span style="color:#f92672">&lt;</span>F<span style="color:#f92672">&gt;</span>(<span style="color:#66d9ef">mut</span> f: <span style="color:#a6e22e">F</span>) <span style="color:#66d9ef">where</span> F: FnMut() {
+    f();
+}
+
+<span style="color:#75715e">// 借助 `let f: &amp;mut F = &amp;mut c;` 进行理解
+</span><span style="color:#75715e">// 等号左侧 `: &amp;mut F` 指定 type，等号右侧需要是相应 type 或者能够转换到
+</span><span style="color:#75715e">// F 对应 `C`, `C` impl `FnMut` ==&gt; 满足 trait bounds
+</span><span style="color:#75715e">// f 为 `&amp;mut c`, f 未使用 mut 修饰，无法得到 &amp;mut f, 即 `&amp;mut &amp;mut C` 不能进入候选列表
+</span><span style="color:#75715e">// 方法调用候选列表 [&amp;mut C, &amp; &amp;mut C, C, &amp;C, &amp;mut C]
+</span><span style="color:#75715e">//                ^^^^^^
+</span><span style="color:#75715e">// 假设调用的 FnMut 为 `impl FnMut for Self`
+</span><span style="color:#75715e">// 将命中的类型作为 `call_mut(&amp;self, args)` 的第一个参数，&amp;mut c 确定 self，则 `Self: C`
+</span><span style="color:#75715e">// &lt;C as FnMut&lt;()&gt;&gt;::call_mut(&amp;mut c, ());
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">call_mut3</span><span style="color:#f92672">&lt;</span>F<span style="color:#f92672">&gt;</span>(f: <span style="color:#66d9ef">&amp;</span><span style="color:#a6e22e">mut</span> F) <span style="color:#66d9ef">where</span> F: FnMut() {
+    f();
+}
+
+<span style="color:#75715e">// 借助 `let mut f: &amp;mut F = &amp;mut c;` 进行理解
+</span><span style="color:#75715e">// 等号左侧 `: &amp;mut F` 指定 type，等号右侧需要是相应 type 或者能够转换到
+</span><span style="color:#75715e">// F 对应 `C`, `C` impl `FnMut` ==&gt; 满足 trait bounds
+</span><span style="color:#75715e">// f 为 `&amp;mut c`, f 使用 mut 修饰，因此可以获取 &amp;mut f, 即 `&amp;mut &amp;mut C` 加入候选列表
+</span><span style="color:#75715e">// 方法调用候选列表 [&amp;mut C, &amp; &amp;mut C, &amp;mut &amp;mut C, C, &amp;C, &amp;mut C]
+</span><span style="color:#75715e">//                ^^^^^^
+</span><span style="color:#75715e">// 假设调用的 FnMut 为 `impl FnMut for Self`
+</span><span style="color:#75715e">// 将命中的类型作为 `call_mut(&amp;self, args)` 的第一个参数，&amp;mut c 确定 self，`Self: C`
+</span><span style="color:#75715e">// &lt;C as FnMut&lt;()&gt;&gt;::call_mut(&amp;mut c, ());
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">call_mut4</span><span style="color:#f92672">&lt;</span>F<span style="color:#f92672">&gt;</span>(<span style="color:#66d9ef">mut</span> f: <span style="color:#66d9ef">&amp;</span><span style="color:#a6e22e">mut</span> F) <span style="color:#66d9ef">where</span> F: FnMut() {
+    f();
+}
+</code></pre></div><h3 id="move-keyword"><code>move</code> keyword</h3>
+<p>对闭包中的 <code>move</code> 关键字，Rust 编译器的处理方式如下（<a href="https://doc.rust-lang.org/reference/expressions/closure-expr.html">Closure expressions</a>）：</p>
+<blockquote>
+<p>Without the <code>move</code> keyword, the closure expression <a href="https://doc.rust-lang.org/reference/types/closure.html#capture-modes">infers how it captures each variable from its environment</a>, preferring to capture by shared reference, effectively borrowing all outer variables mentioned inside the closure&rsquo;s body. If needed the compiler will infer that instead mutable references should be taken, or that the values should be moved or copied (depending on their type) from the environment.</p>
+<p>A closure can be forced to capture its environment by copying or moving values by prefixing it with the <code>move</code> keyword. This is often used to ensure that the closure&rsquo;s lifetime is <code>'static</code>.</p>
+</blockquote>
+<p><a href="https://doc.rust-lang.org/std/keyword.move.html"><code>move</code> 关键字</a>表示对自由变量的捕获方式（how it captures them），而闭包类型对 <code>Fn*</code> traits 的实现是依据 closure body 对捕获变量的使用方式来确定的（the traits implemented by a closure type are determined by what the closure does with captured values）。借助图 10 进行理解。</p>
+<figure>
+    <img src="images/closures-capture-mode-with-move.png"
+         alt="图 10：closure capture modes"/> <figcaption>
+            <p>图 10：closure capture modes</p>
+        </figcaption>
+</figure>
+
+<p>针对 <code>move</code> closure，但是 Rust 编译器推断闭包类型实现 <code>Fn</code> / <code>FnMut</code> traits，通过生成的 MIR 来理解一下：</p>
+<figure>
+    <img src="images/closure-impl-Fn-with-move.png"
+         alt="图 11：通过 move 捕获自由变量的所有权，但 closure body 仅使用不可变引用，实现 Fn trait"/> <figcaption>
+            <p>图 11：通过 move 捕获自由变量的所有权，但 closure body 仅使用不可变引用，实现 Fn trait</p>
+        </figcaption>
+</figure>
+
+<p><code>me</code> 表示的闭包类型为 <code>[closure@/app/example.rs:11:14: 15:6]</code>（图 11 标记 1），包含两个字段，类型分别为 <code>std::string::String</code> 和 <code>u32</code>（图 11 标记 2，<code>name</code> 为 <code>String</code> 类型，未实现 <code>Copy</code> trait，因此所有权 move 到闭包类型实例中；<code>age</code> 为 <code>u32</code> 类型，实现了 <code>Copy</code> trait，因此 copy 到闭包类型实例中）。closure body 仅使用 <code>name</code>、<code>age</code> 的不可变引用（图 11 标记 0 和标记 5），闭包类型实现 <code>Fn</code> trait（图 11 标记 3），对应匿名函数 <code>fn main::{closure#0}(_1: &amp;[closure@/app/example.rs:11:14: 15:6], _2: Gender) -&gt; ()</code>（图 11 标记 4）。同时，由于闭包类型拥有 move <code>name</code> 和 copy <code>age</code> 的所有权，在闭包调用结束后需要负责清理（图 11 标记 6，关于 <code>Drop</code> trait 后续会单独写一篇文章）。</p>
+<h3 id="summary-1">summary</h3>
+<p>以 <a href="https://doc.rust-lang.org/std/ops/index.html">std::ops</a> 文档对 <code>Fn*</code> 的介绍作为小结：</p>
+<blockquote>
+<p>The <a href="https://doc.rust-lang.org/std/ops/trait.Fn.html"><code>Fn</code></a>, <a href="https://doc.rust-lang.org/std/ops/trait.FnMut.html"><code>FnMut</code></a>, and <a href="https://doc.rust-lang.org/std/ops/trait.FnOnce.html"><code>FnOnce</code></a> traits are implemented by types that can be invoked like functions. Note that <a href="https://doc.rust-lang.org/std/ops/trait.Fn.html"><code>Fn</code></a> takes <code>&amp;self</code>, <a href="https://doc.rust-lang.org/std/ops/trait.FnMut.html"><code>FnMut</code></a> takes <code>&amp;mut self</code> and <a href="https://doc.rust-lang.org/std/ops/trait.FnOnce.html"><code>FnOnce</code></a> takes <code>self</code>. These correspond to the three kinds of methods that can be invoked on an instance: call-by-reference, call-by-mutable-reference, and call-by-value. The most common use of these traits is to act as bounds to higher-level functions that take functions or closures as arguments.</p>
+</blockquote>
+<h2 id="conclusion">Conclusion</h2>
+<p>在本文中，我们介绍了 Rust 中三种 function-like types，分别是 function items、function pointers、closures，讲解它们之间的区别与联系（特别关注了三者之间可能存在的转换）。针对 <code>Fn*</code> traits，着重讲解了 <code>FnOnce</code>、<code>FnMut</code>、<code>Fn</code> 三个 traits 之间的 supertrait 关系，以及 <code>move</code> 关键字对 closures 的影响。</p>
+<p>闭包（closures）的使用场景，会在后续单独写一篇文件进行讲解。</p>
+<p>除了对 function-like types 和 <code>Fn*</code> traits 的介绍外，本文还对其他的知识点做了一些分析：</p>
+<ul>
+<li>ZST（Zero-Sized-Type）</li>
+<li>Rust MIR（<strong>M</strong>id-level <strong>I</strong>ntermediate <strong>R</strong>epresentation）</li>
+<li><code>turbofish</code> 语法</li>
+<li><code>unboxed_closures</code> &amp; <code>fn_traits</code> feature</li>
+<li><code>Copy</code> trait</li>
+<li><code>mut</code> keyword</li>
+<li>methods lookup</li>
+<li><code>move</code> keyword</li>
+<li>etc &hellip;</li>
+</ul>
+<p>本文为作者学习 Rust 的一篇学习笔记，肯定存在遗漏或错误，欢迎大家在评论区讨论指出。</p>
+<p>【系列文章】：</p>
+<p>1、<a href="https://qiaoin.github.io/2021/12/15/rust-lifetime/">Rust 中的生命周期</a></p>
+<p>2、<a href="https://qiaoin.github.io/2022/01/17/rust-iterator/">Rust 中的迭代器</a></p>
+<p>3、<a href="https://qiaoin.github.io/2022/02/23/rust-closures/">Rust 中的闭包：function-like types and their traits</a></p>
+<p>4、更多 Rust 相关的文章，敬请期待</p>
+<h2 id="license">License</h2>
+<p>本作品采用<a href="http://creativecommons.org/licenses/by/4.0/">知识共享署名 4.0 国际许可协议</a>进行许可，转载时请注明原文链接。</p>
+<h2 id="references">References</h2>
+<ul>
+<li>Crust of Rust 系列 <a href="https://www.youtube.com/watch?v=dHkzSZnYXmk&amp;t=23s&amp;ab_channel=JonGjengset">functions, closures, and their traits</a>，本文为学习此视频后的笔记</li>
+<li>极客时间专栏 <a href="https://time.geekbang.org/column/intro/100085301">陈天 · Rust 编程第一课</a>，第 19 讲，写的非常好，推荐阅读</li>
+<li><a href="https://doc.rust-lang.org/stable/book/">Rust The Book</a>，Chapter 13.1、19.4</li>
+<li><a href="https://play.rust-lang.org/?version=stable&amp;mode=debug&amp;edition=2021&amp;gist=cfb527e705feff799a7459f0487d702d">代码 1，fn-item-types</a>，来源 <a href="https://doc.rust-lang.org/std/primitive.fn.html#creating-function-pointers">Creating function pointers</a>，有修改</li>
+<li>Rust reference 中针对三种 function-like types 的介绍，1）<a href="https://doc.rust-lang.org/reference/types/function-item.html">Function item types</a>，2）<a href="https://doc.rust-lang.org/reference/types/function-pointer.html">Function pointer types</a>，3）<a href="https://doc.rust-lang.org/reference/types/closure.html">Closure types</a>，同时标准库有 <a href="https://doc.rust-lang.org/std/primitive.fn.html">fn</a> 的介绍</li>
+<li><a href="https://github.com/rust-lang/rust/pull/19891">Implement unique types per fn item, rather than having all fn items have fn pointer type by nikomatsakis · Pull Request #19891 · rust-lang/rust (github.com)</a></li>
+<li><a href="https://stackoverflow.com/a/64298764">In Rust, what is <code>fn() -&gt; ()</code>?</a>，回答写的非常好，可以作为本文的总结，推荐阅读</li>
+<li><a href="https://play.rust-lang.org/?version=stable&amp;mode=debug&amp;edition=2021&amp;gist=13b2997636a647bcd1a98dea7dc2f8d7">代码 6，three-function-like-types-and-type-coercion</a>，来源 StackOverflow 上的这个 <a href="https://stackoverflow.com/questions/27895946/expected-fn-item-found-a-different-fn-item-when-working-with-function-pointer">提问</a>，有修改，补充上 no capturing closure</li>
+<li><a href="https://medium.com/swlh/function-overloading-in-rust-d591aff64a03">Function overloading in Rust</a>，参考这篇博客，在 nightly 环境下为 <code>struct Person</code> 实现 <code>Fn*</code> traits</li>
+<li>方法调用的官方文档，1）Rust Reference, <a href="https://doc.rust-lang.org/reference/expressions/method-call-expr.html#method-call-expressions">Method-call expressions</a>，2）Guide to Rustc Development, <a href="https://rustc-dev-guide.rust-lang.org/method-lookup.html">Method Lookup</a>，3）The Rustonomicon, <a href="https://doc.rust-lang.org/nomicon/dot-operator.html">The Dot Operator</a>，推荐阅读，并且以官方文档为准，本文中的方法调用总结只是我的理解，可能存在错误</li>
+<li><a href="https://stackoverflow.com/a/28552082/4238811">What are Rust&rsquo;s exact auto-dereferencing rules?</a>，回答可以作为方法调用匹配规则的一个简单概括</li>
+<li>文中的所有图片均使用 <a href="https://excalidraw.com/">excalidraw</a> 绘制</li>
+<li>MIR 输出均使用 <a href="https://godbolt.org/">Compiler Explorer</a></li>
+</ul>
+<h2 id="appendix">Appendix</h2>
+<h3 id="a---tuple-like-struct-or-enum-variant">A - tuple-like struct or enum variant</h3>
+<p><a href="https://doc.rust-lang.org/reference/types/function-item.html">Function item types</a> 开始部分</p>
+<blockquote>
+<p>When referred to, a function item, or the constructor of a tuple-like struct or enum variant, yields a zero-sized value of its <em>function item type</em>.</p>
+</blockquote>
+<p>写段<a href="https://play.rust-lang.org/?version=stable&amp;mode=debug&amp;edition=2021&amp;gist=589b52a222f1ccb1c25f77f895a088d3">代码</a>测试，在 <code>x</code> / <code>y</code> / <code>z</code> 后添加 <code>: ()</code> 编译器提示类型不匹配，就能够知道 <code>x</code> / <code>y</code> / <code>z</code> 对应的类型了，<code>x</code> 在 function item types 小节已经详细介绍了，<code>y</code> / <code>z</code> 为什么也是 function items 呢？</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-rust" data-lang="rust"><span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">main</span>() {
+    <span style="color:#75715e">// x&#39;s type == fn item `fn() -&gt; i32 {bar}`
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">let</span> x <span style="color:#f92672">=</span> bar;
+    println<span style="color:#f92672">!</span>(<span style="color:#e6db74">&#34;{}&#34;</span>, std::mem::size_of_val(<span style="color:#f92672">&amp;</span>x));  <span style="color:#75715e">// 0
+</span><span style="color:#75715e"></span>
+    <span style="color:#75715e">// y&#39;s type == fn item `fn(i32) -&gt; Foo {Foo}`
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">let</span> y <span style="color:#f92672">=</span> Foo;
+    println<span style="color:#f92672">!</span>(<span style="color:#e6db74">&#34;{}&#34;</span>, std::mem::size_of_val(<span style="color:#f92672">&amp;</span>y));  <span style="color:#75715e">// 0
+</span><span style="color:#75715e"></span>
+    <span style="color:#75715e">// z&#39;s type == fn item `fn(i32) -&gt; Enum {Enum::First}`
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">let</span> z <span style="color:#f92672">=</span> Enum::First;
+    println<span style="color:#f92672">!</span>(<span style="color:#e6db74">&#34;{}&#34;</span>, std::mem::size_of_val(<span style="color:#f92672">&amp;</span>z));  <span style="color:#75715e">// 0
+</span><span style="color:#75715e"></span>
+    <span style="color:#66d9ef">let</span> z2: () <span style="color:#f92672">=</span> Enum::Second;
+    println<span style="color:#f92672">!</span>(<span style="color:#e6db74">&#34;{}&#34;</span>, std::mem::size_of_val(<span style="color:#f92672">&amp;</span>z2));  <span style="color:#75715e">// 8
+</span><span style="color:#75715e"></span>}
+
+<span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">bar</span>() -&gt; <span style="color:#66d9ef">i32</span> {
+    <span style="color:#ae81ff">42</span>
+}
+
+<span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">Foo</span>(<span style="color:#66d9ef">i32</span>);
+
+<span style="color:#66d9ef">enum</span> <span style="color:#a6e22e">Enum</span> {
+    First(<span style="color:#66d9ef">i32</span>),
+    Second,
+}
+</code></pre></div><p><a href="https://doc.rust-lang.org/stable/book/">Rust The Book</a> Chapter 19.4 有两段话解释 tuple structs 和 tuple-struct enum variants 的实现：</p>
+<blockquote>
+<p>These types use <code>()</code> as initializer syntax, which looks like a function call. The initializers are actually implemented as functions returning an instance that’s constructed from their arguments. We can use these initializer functions as function pointers that implement the closure traits, which means we can specify the initializer functions as arguments for methods that take closures, like so:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-rust" data-lang="rust">    <span style="color:#66d9ef">enum</span> <span style="color:#a6e22e">Status</span> {
+        Value(<span style="color:#66d9ef">u32</span>),
+        Stop,
+    }
+
+    <span style="color:#66d9ef">let</span> list_of_statuses: Vec<span style="color:#f92672">&lt;</span>Status<span style="color:#f92672">&gt;</span>
+        <span style="color:#f92672">=</span> (<span style="color:#ae81ff">0</span><span style="color:#66d9ef">u32</span>..<span style="color:#ae81ff">20</span>).map(Status::Value).collect();
+</code></pre></div><p>Here we create <code>Status::Value</code> instances using each <code>u32</code> value in the range that <code>map</code> is called on by using the initializer function of <code>Status::Value</code>.</p>
+</blockquote>
+<h3 id="b---rust-mir">B - Rust MIR</h3>
+<p>对于 MIR，我们只需能够阅读并理解即可。下面给到一些链接，有部分文章未完整看完 😅。</p>
+<ul>
+<li><a href="https://rustmagazine.github.io/rust_magazine_2021/chapter_1/rustc_part1.html">Rust编译器专题 | 图解 Rust 编译器与语言设计 Part 1 - Rust精选</a>，最开始是看到这篇翻译，对 Rust 程序的编译过程有了一个大致的印象，在构思如何解释 closure types 时，希望能够有一个正式的直观的解释，从而找到了 Rust MIR，本文中对于 closures 的解释都是从 Rust MIR 进行延展开来的。在此，感谢 <a href="https://github.com/RustMagazine/rust_magazine_2021">RustMagazine 2021 期刊</a>，感谢 <a href="https://github.com/ZhangHanDong">ZhangHanDong (Alex)</a>；</li>
+<li><a href="https://blog.rust-lang.org/2016/04/19/MIR.html">Introducing MIR</a>，Rust 官方博客，写的非常好，推荐全文阅读；</li>
+<li><a href="https://github.com/rust-lang/rfcs/blob/master/text/1211-mir.md">rfcs/1211-mir.md · rust-lang/rfcs</a>，MIR 对应的 RFC，了解设计动机；</li>
+<li><a href="https://github.com/rust-lang/miri">rust-lang/miri: An interpreter for Rust&rsquo;s mid-level intermediate representation</a>，MIR 实现；</li>
+<li><a href="https://rustc-dev-guide.rust-lang.org/mir/index.html">The MIR (Mid-level IR) - Guide to Rustc Development</a>，MIR 语法介绍，必须阅读才能够理解 MIR 中各部分的含义；</li>
+<li><a href="https://rustc-dev-guide.rust-lang.org/closure.html">Closure expansion - Guide to Rustc Development (rust-lang.org)</a>，闭包在 MIR 中的表示；</li>
+<li><a href="https://kazlauskas.me/entries/the-road-to-bestest-optimiser">The steps towards rustc, the great optimiser</a></li>
+<li><a href="https://kanishkarj.github.io/rust-internals-mir">Rust Compiler Internals : Mid-level Intermediate Representation (MIR)</a></li>
+</ul>
+<h3 id="c---method-call-expressions">C - Method-call expressions</h3>
+<p>为什么可以使用 <code>()</code> 执行函数调用，是因为实现了 <code>Fn*</code> traits 吗？</p>
+<p>Rust Reference <a href="https://doc.rust-lang.org/reference/expressions/call-expr.html">Call expressions</a> 有介绍：</p>
+<blockquote>
+<p>A <em>call expression</em> calls a function. The syntax of a call expression is an expression, called the <em>function operand</em>, followed by a parenthesized (用括号括起来的 <code>(arg0, arg1)</code>) comma-separated list of expression, called the <em>argument operands</em>. If the function eventually returns, then the expression completes. For <a href="https://doc.rust-lang.org/reference/types/function-item.html">non-function types</a>, the expression <code>f(...)</code> uses the method on one of the <a href="https://doc.rust-lang.org/std/ops/trait.Fn.html"><code>std::ops::Fn</code></a>, <a href="https://doc.rust-lang.org/std/ops/trait.FnMut.html"><code>std::ops::FnMut</code></a> or <a href="https://doc.rust-lang.org/std/ops/trait.FnOnce.html"><code>std::ops::FnOnce</code></a> traits, which differ in whether they take the type by reference, mutable reference, or take ownership respectively. An automatic borrow will be taken if needed. The function operand will also be <a href="https://doc.rust-lang.org/reference/expressions/field-expr.html#automatic-dereferencing">automatically dereferenced</a> as required.</p>
+</blockquote>
+<h4 id="test-1">test 1</h4>
+<p><a href="https://play.rust-lang.org/?version=stable&amp;mode=debug&amp;edition=2021&amp;gist=afc5642e534c5564adbd86f7d22eea5f">测试代码 1</a>，能够说明以下两点（更多可以验证的点，读者可以修改测试代码自行探索）：</p>
+<p>1、<code>T</code> 类型对应的变量需使用 <code>mut</code> 修饰，候选类型列表才能够添加 <code>&amp;mut T</code>；</p>
+<p>2、在 inherent methods 和 trait impl 同时满足时（例如 <code>f2.bar()</code>），会优先选择 inherent methods。</p>
+<p>inherent methods 的介绍在 Guide to Rustc Development <a href="https://rustc-dev-guide.rust-lang.org/method-lookup.html">Method Lookup</a>，优先级相关的表述参见 StackOverflow 上的这个<a href="https://stackoverflow.com/a/28552082/4238811">回答</a>（inherent methods take precedence over trait ones）。</p>
+<h4 id="test-2">test 2</h4>
+<p><a href="https://play.rust-lang.org/?version=stable&amp;mode=debug&amp;edition=2021&amp;gist=3e1424088174bba86703d86048f707d3">测试代码 2</a>，能够说明，候选类型匹配时，是对 <code>self</code> 进行匹配，然后确定 <code>Self</code>。</p>
+<p>同样，StackOverflow 上的回答 <a href="https://stackoverflow.com/a/28552082/4238811">What are Rust&rsquo;s exact auto-dereferencing rules?</a> 也印证了这里的测试结论。</p>
+<figure>
+    <img src="images/stackoverflow-dereferencing-self.jpg"/> 
+</figure>
+
+
+    </div>
+  </article>
+
+  
+<section class="comments">
+<script src="https://utteranc.es/client.js"
+        repo="qiaoin/hugo-blog-comments"
+        issue-term="og:title"
+        theme="github-light"
+        crossorigin="anonymous"
+        async>
+</script>
+</section>
+
+
+
+</main>
+
+      <footer class="footer">
+        <ul class="footer-links">
+          <li>
+            <a href="https://qiaoin.github.io">在桥边</a> © 2016 - 2021
+          </li>
+          <li>
+            <a href="https://gohugo.io/" class="footer-links-kudos">Made with <img src="/images/hugo-logo.png" alt="Img link to Hugo website" width="22" height="22"></a>
+          </li>
+        </ul>
+      </footer>
+
+    </div>
+    
+
+
+
+<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/highlight.min.js"></script>
+
+
+
+<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/languages/awk.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/languages/bash.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/languages/c.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/languages/c&#43;&#43;.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/languages/cmake.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/languages/go.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/languages/html.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/languages/java.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/languages/javascript.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/languages/python.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/languages/rust.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/languages/typescript.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/languages/yaml.min.js"></script>
+<script>hljs.configure({languages: []}); hljs.initHighlightingOnLoad();</script>
+
+
+
+    
+<script src="/js/math-code.js"></script>
+<script async src="//cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+
+
+    
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-EBLEJGMMQV"></script>
+<script>
+var doNotTrack = false;
+if (!doNotTrack) {
+	window.dataLayer = window.dataLayer || [];
+	function gtag(){dataLayer.push(arguments);}
+	gtag('js', new Date());
+	gtag('config', 'G-EBLEJGMMQV', { 'anonymize_ip': false });
+}
+</script>
+
+  </body>
+</html>
+

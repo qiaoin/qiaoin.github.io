@@ -29,6 +29,7 @@
 
 <link rel="stylesheet" href="/css/fonts.css" media="all">
 <link rel="stylesheet" href="/css/main.css" media="all">
+<link rel="stylesheet" href="/css/bootstrap-table.css">
 
 <link rel="stylesheet" href="/css/custom.css">
 
@@ -968,6 +969,7 @@
     <span style="color:#66d9ef">pub</span> <span style="color:#66d9ef">fn</span> <span style="color:#a6e22e">call</span>(<span style="color:#f92672">&amp;</span><span style="color:#66d9ef">mut</span> self, req: <span style="color:#a6e22e">Request</span>) -&gt; <span style="color:#a6e22e">Self</span>::Future;
 }
 </code></pre></div><h3 id="why-use-associated-types-in-iterator-trait">why use associated types in Iterator trait?</h3>
+<p>Refernce <a href="https://doc.rust-lang.org/reference/items/associated-items.html">associated-items</a></p>
 <p>基于 <code>tower_service::Service&lt;Request&gt;</code> trait 的定义，重新审视一下标准库中 <code>Iterator</code> trait 的定义：</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-rust" data-lang="rust"><span style="color:#75715e">// 使用关联类型（associated types）进行定义
 </span><span style="color:#75715e"></span><span style="color:#66d9ef">trait</span> Iterator {
@@ -1130,7 +1132,8 @@
 <p>【系列文章】：</p>
 <p>1、<a href="https://qiaoin.github.io/2021/12/15/rust-lifetime/">Rust 中的生命周期</a></p>
 <p>2、<a href="https://qiaoin.github.io/2022/01/17/rust-iterator/">Rust 中的迭代器</a></p>
-<p>3、更多 Rust 相关的文章，敬请期待</p>
+<p>3、<a href="https://qiaoin.github.io/2022/02/23/rust-closures/">Rust 中的闭包：function-like types and their traits</a></p>
+<p>4、更多 Rust 相关的文章，敬请期待</p>
 <h2 id="版权声明">版权声明</h2>
 <p>本作品采用<a href="http://creativecommons.org/licenses/by/4.0/">知识共享署名 4.0 国际许可协议</a>进行许可，转载时请注明原文链接。</p>
 <h2 id="references">References</h2>
@@ -1141,10 +1144,12 @@
 <li><a href="https://doc.rust-lang.org/stable/book/">Rust The Book</a>，Chapter 10、13、19.2、19.3</li>
 <li><a href="https://book.douban.com/subject/1436745/">Design Patterns: Elements of Reusable Object-Oriented Software</a>, Chater 5.4 Iterator，内部迭代器（internal iterator）和外部迭代器（external iterator）的来源</li>
 <li><a href="https://stackoverflow.com/questions/48999776/what-are-the-main-differences-between-a-rust-iterator-and-c-iterator">rust - What are the main differences between a Rust Iterator and C++ Iterator? - Stack Overflow</a></li>
+<li><a href="https://blog.rust-lang.org/2016/04/19/MIR.html#reducing-rust-to-a-simple-core">Introducing MIR - Reducing Rust to a simple core</a>，对于 <code>for-in-loops</code> 语法糖有详细介绍</li>
 <li><a href="https://aloso.github.io/2021/03/09/creating-an-iterator">Creating an Iterator in Rust</a>，强烈推荐阅读，实现树的深度优先遍历</li>
 <li><a href="https://book.douban.com/subject/34973905/">Programming Rust (2nd Edition)</a>，Chapter 15，<code>dump</code> 示例来源，有修改</li>
 <li><a href="https://book.douban.com/subject/35520588/">Rust for Rustaceans</a>，Chapter 2.2 Generic Traits、Chapter 13.2 Pattern in the Wild</li>
 <li><a href="https://github.com/rust-lang/rfcs/blob/master/text/0445-extension-trait-conventions.md">rfcs/0445-extension-trait-conventions.md at master · rust-lang/rfcs</a>，extension traits 对应的 RFC</li>
+<li><a href="https://eli.thegreenplace.net/2022/rust-extension-traits-greppability-and-ides/">Rust extension traits, greppability and IDEs</a></li>
 <li><a href="http://xion.io/post/code/rust-extension-traits.html">Extension traits in Rust</a>，描述了两种使用 extension traits 的场景</li>
 <li><a href="https://cheats.rs/">cheats.rs</a>，Iterators、Blanket Implementations、Sized</li>
 <li><a href="https://github.com/pretzelhammer/rust-blog/blob/master/posts/sizedness-in-rust.md">rust-blog/sizedness-in-rust</a>，强烈推荐阅读，关于 <code>Sized</code> trait 的所有内容，这篇博客都会给到解答</li>
