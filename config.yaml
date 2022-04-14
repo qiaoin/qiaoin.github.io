@@ -15,18 +15,21 @@ permalinks:
   post: /:year/:month/:day/:slug/
 menu:
   main:
+    - name: Rust 100
+      url: /leetcode-rust-100/
+      weight: 1
     - name: 重学基础
       url: /re-learning-cs/
-      weight: 1
+      weight: 2
     - name: Readings
       url: /readings/
-      weight: 2
+      weight: 3
     - name: About
       url: /about/
-      weight: 3
+      weight: 4
     - name: GitHub
       url: https://github.com/qiaoin
-      weight: 4
+      weight: 5
 params:
   MathJaxCDN: //cdnjs.cloudflare.com/ajax/libs
   MathJaxVersion: 2.7.5
