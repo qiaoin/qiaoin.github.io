@@ -15,8 +15,8 @@ permalinks:
   post: /:year/:month/:day/:slug/
 menu:
   main:
-    - name: Rust 100
-      url: /leetcode-rust-100/
+    - name: Rust
+      url: /learning-rust/
       weight: 1
     - name: 重学基础
       url: /re-learning-cs/
